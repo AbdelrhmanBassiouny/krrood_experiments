@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 
 from krrood.class_diagrams.utils import classes_of_module
@@ -72,6 +73,8 @@ def test_query_on_descriptor_transitivity():
     org3.sub_organization_of = [org2]
 
     SymbolGraph().to_dot("instance_graph.pdf", format="pdf", graph_type="instance")
+    if os.path.exists("instance_graph_inferred.pdf"):
+        os.remove("instance_graph_inferred.pdf")
 
     with symbolic_mode():
         with Organization() as my_org:
@@ -81,4 +84,6 @@ def test_query_on_descriptor_transitivity():
     SymbolGraph().to_dot(
         "instance_graph_inferred.pdf", format="pdf", graph_type="instance"
     )
+    if os.path.exists("instance_graph.pdf"):
+        os.remove("instance_graph.pdf")
     assert {p.name for p in results} == {"ACME_sub", "ACME_sub_sub"}

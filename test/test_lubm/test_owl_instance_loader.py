@@ -5,8 +5,8 @@ from rdflib import Graph
 
 from krrood.entity_query_language.entity import let, entity, an, contains, set_of
 from krrood.entity_query_language.symbolic import symbolic_mode
-from krrood.experiments.ood.lubm import Student, University, Department
-from krrood.experiments.ood.owl_instance_loader import DatasetConverter
+from krrood_experiments.lubm.ood.lubm import Student, University, Department
+from krrood_experiments.lubm.ood.owl_instance_loader import DatasetConverter
 
 
 def test_owl_instance_loader():
