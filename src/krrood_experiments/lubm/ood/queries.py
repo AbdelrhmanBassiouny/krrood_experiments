@@ -1,6 +1,6 @@
 from ...entity_query_language.entity import let, an, entity, contains, set_of, or_, not_
 from ...entity_query_language.symbolic import symbolic_mode
-from ...experiments.ood.lubm import (
+from src.krrood_experiments.lubm.ood.lubm import (
     Student,
     University,
     Department,
@@ -8,9 +8,7 @@ from ...experiments.ood.lubm import (
     Professor,
     FacultyMember,
     Course,
-    exists,
     ResearchGroup,
-    Person,
 )
 
 

@@ -1,3 +1,4 @@
 owlrl
 rdflib
 line-profiler
+SPARQLWrapper

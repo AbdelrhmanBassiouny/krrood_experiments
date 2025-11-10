@@ -163,7 +163,7 @@ sparql_queries = [
 
 if __name__ == "__main__":
 
-    instances_path = os.path.join("..", "..", "..", "resources", "lubm_instances.owl")
+    instances_path = os.path.join("../../../lubm", "..", "..", "resources", "lubm_instances.owl")
     graph = make_rdf_graph(instances_path)
     start_time = time.time()
     counts = evaluate_sparql(graph, sparql_queries)

@@ -9,7 +9,6 @@ from owlrl import DeductiveClosure, OWLRL_Semantics
 from rdflib import Graph
 
 from .owl_instances_loader import (
-    load_instances,
     load_multi_file_instances,
     OwlInstancesRegistry,
 )
@@ -88,7 +87,7 @@ def load_instances_for_lubm_with_predicates() -> OwlInstancesRegistry:
     from . import lubm_with_predicates
 
     folder_path = Path(
-        f"{dirname(__file__)}", "..", "..", "..", "resources", "instances"
+        f"{dirname(__file__)}", "../../../lubm", "..", "..", "resources", "instances"
     )
     files = [f.name for f in folder_path.iterdir() if f.is_file()]
     files.sort(key=lambda x: int(x.split("_")[1].split(".")[0]))
