@@ -1,6 +1,8 @@
 import os
 import re
-from typing import Dict, List
+from collections import defaultdict
+from copy import copy
+from typing import Dict, List, Callable, Optional, Any, Tuple
 
 import rdflib
 from jinja2 import Environment, FileSystemLoader
@@ -24,7 +26,9 @@ class OwlToPythonConverter:
         path = owl_file_path
         # If a relative path was provided and does not exist relative to CWD, try repository resources
         if not os.path.isabs(path) and not os.path.exists(path):
-            repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+            repo_root = os.path.abspath(
+                os.path.join(os.path.dirname(__file__), "..", "..", "..")
+            )
             candidate = os.path.join(repo_root, "resources", os.path.basename(path))
             if os.path.exists(candidate):
                 path = candidate
@@ -94,20 +98,20 @@ class OwlToPythonConverter:
             if isinstance(superclass, rdflib.URIRef):
                 superclasses.append(self._uri_to_python_name(superclass))
 
-        # If no explicit superclasses, try owl:intersectionOf list items
-        if not superclasses:
-            for coll in self.graph.objects(class_uri, OWL.intersectionOf):
-                # Traverse RDF list
-                node = coll
-                while node and node != RDF.nil:
-                    first = self.graph.value(node, RDF.first)
-                    if isinstance(first, rdflib.URIRef):
-                        superclasses.append(self._uri_to_python_name(first))
-                    # move to next
-                    node = self.graph.value(node, RDF.rest)
-                # only process first intersectionOf occurrence
-                if superclasses:
-                    break
+        role_taker: List[Dict[str, str]] = []
+        for coll in self.graph.objects(class_uri, OWL.intersectionOf):
+            # Traverse RDF list
+            node = coll
+            while node and node != RDF.nil:
+                first = self.graph.value(node, RDF.first)
+                if isinstance(first, rdflib.URIRef):
+                    role_cls_name = self._uri_to_python_name(first)
+                    snake_cls_name = self._to_snake_case(role_cls_name)
+                    role_taker.append(
+                        {"cls_name": role_cls_name, "field_name": snake_cls_name}
+                    )
+                # move to next
+                node = self.graph.value(node, RDF.rest)
 
         # De-duplicate while preserving order
         seen = set()
@@ -126,6 +130,8 @@ class OwlToPythonConverter:
             "superclasses": unique_superclasses or ["Thing"],
             "label": label,
             "comment": self._get_comment(class_uri),
+            "role_taker": role_taker,
+            "add_role_taker": True,
         }
 
     def _extract_property_info(self, property_uri) -> Dict:
@@ -189,7 +195,60 @@ class OwlToPythonConverter:
             "inverses": sorted(set(inverses)),
             "inverse_of": inverse_of,
             "is_transitive": is_transitive,
+            "is_specialized": False,
         }
+
+    def _walk_restrictions(
+        self,
+        declared_dom_map: Optional[Dict[str, set]] = None,
+        restrictions_handler: Optional[Callable] = None,
+        classes: Optional[Dict[str, Dict[str, Any]]] = None,
+    ):
+        if declared_dom_map is None:
+            declared_dom_map: Dict[str, set] = defaultdict(set)
+        # Walk class restrictions
+        for cls_uri in self.graph.subjects(RDF.type, OWL.Class):
+            cls_name = self._uri_to_python_name(cls_uri)
+            # direct subclass restrictions
+            superclass = None
+            on_prop = None
+            for restr in self.graph.objects(cls_uri, RDFS.subClassOf):
+                if restrictions_handler:
+                    restrictions_handler(cls_name, restr)
+                # If restriction mentions a property, count this class as declared domain for that property
+                on_prop = self.graph.value(restr, OWL.onProperty)
+                if on_prop:
+                    declared_dom_map[self._uri_to_python_name(on_prop)].add(cls_name)
+                else:
+                    superclass = self._uri_to_python_name(restr)
+
+            if classes and superclass and on_prop:
+                # this means that this is likely a role, defined as a subclass and a restriction, with context being
+                # the restriction on the property (the restricted range type of the property)
+                class_info = classes.get(cls_name)
+                if class_info:
+                    class_info["role_taker"] = [
+                        {
+                            "cls_name": superclass,
+                            "field_name": self._to_snake_case(superclass),
+                        }
+                    ]
+                    if superclass in class_info["superclasses"]:
+                        class_info["superclasses"].remove(superclass)
+
+            # restrictions inside intersectionOf
+            for coll in self.graph.objects(cls_uri, OWL.intersectionOf):
+                node = coll
+                while node and node != RDF.nil:
+                    first = self.graph.value(node, RDF.first)
+                    if restrictions_handler:
+                        restrictions_handler(cls_name, first)
+                    on_prop = self.graph.value(first, OWL.onProperty) if first else None
+                    if on_prop:
+                        declared_dom_map[self._uri_to_python_name(on_prop)].add(
+                            cls_name
+                        )
+                    node = self.graph.value(node, RDF.rest)
 
     def _uri_to_python_name(self, uri) -> str:
         """Convert URI to valid Python identifier"""
@@ -263,16 +322,32 @@ class OwlToPythonConverter:
         classes_copy: Dict[str, Dict] = {
             name: dict(info) for name, info in self.classes.items()
         }
-        for info in classes_copy.values():
-            info["base_classes"] = [
-                b for b in info.get("superclasses", []) if b != "Thing"
-            ]
+
+        self._walk_restrictions(classes=classes_copy)
+
         # Create ontology base class name from ontology label
         ontology_base_class_name = self._to_pascal_case(
             re.sub(r"\W+", " ", getattr(self, "ontology_label", "Ontology")).strip()
         )
         if not ontology_base_class_name.endswith("Ontology"):
             ontology_base_class_name = ontology_base_class_name + "Ontology"
+
+        role_cls_name = f"{ontology_base_class_name}Role"
+        classes_copy[role_cls_name] = {
+            "name": role_cls_name,
+            "superclasses": [
+                f"Role[T]",
+                ontology_base_class_name,
+            ],
+            "label": "Role class which represents a role that a persistent identifier can take on in a certain context",
+        }
+
+        for info in classes_copy.values():
+            if info.get("role_taker"):
+                info["superclasses"].append(role_cls_name)
+            info["base_classes"] = [
+                b for b in info.get("superclasses", []) if b != "Thing"
+            ]
         # Create synthetic ontology base class entry if not exists
         if ontology_base_class_name not in classes_copy:
             classes_copy[ontology_base_class_name] = {
@@ -290,12 +365,6 @@ class OwlToPythonConverter:
             bases = info.get("base_classes", [])
             if len(bases) == 0:
                 info["base_classes"] = [ontology_base_class_name]
-        # Determine decorator/metaclass application flags: only on original root classes (kept for compatibility)
-        for name, info in classes_copy.items():
-            bases = info.get("base_classes", [])
-            is_root = name == ontology_base_class_name
-            info["define_metaclass"] = is_root
-            info["apply_symbol"] = is_root
 
         # Compute full ancestor sets for each class (transitive closure)
         name_to_bases = {
@@ -311,6 +380,19 @@ class OwlToPythonConverter:
                 ancestors.add(base)
                 stack.extend(name_to_bases.get(base, []))
             info["all_base_classes"] = sorted(ancestors)
+
+        for name, info in classes_copy.items():
+            if not info.get("role_taker"):
+                continue
+            # Remove role_taker properties that are already defined in ancestors
+            for base in info["all_base_classes"]:
+                if base == name:
+                    continue
+                base_info = classes_copy.get(base)
+                if base_info and base_info.get("role_taker"):
+                    for prop_name in info["role_taker"]:
+                        if prop_name in base_info["role_taker"]:
+                            info["add_role_taker"] = False
 
         # Prepare property descriptor bases and compute type-hint helpers
         properties_copy: Dict[str, Dict] = {
@@ -377,27 +459,8 @@ class OwlToPythonConverter:
         }
 
         # Walk class restrictions
-        for cls_uri in self.graph.subjects(RDF.type, OWL.Class):
-            cls_name = self._uri_to_python_name(cls_uri)
-            # direct subclass restrictions
-            for restr in self.graph.objects(cls_uri, RDFS.subClassOf):
-                _handle_restriction(cls_name, restr)
-                # If restriction mentions a property, count this class as declared domain for that property
-                on_prop = self.graph.value(restr, OWL.onProperty)
-                if on_prop:
-                    declared_dom_map[self._uri_to_python_name(on_prop)].add(cls_name)
-            # restrictions inside intersectionOf
-            for coll in self.graph.objects(cls_uri, OWL.intersectionOf):
-                node = coll
-                while node and node != RDF.nil:
-                    first = self.graph.value(node, RDF.first)
-                    _handle_restriction(cls_name, first)
-                    on_prop = self.graph.value(first, OWL.onProperty) if first else None
-                    if on_prop:
-                        declared_dom_map[self._uri_to_python_name(on_prop)].add(
-                            cls_name
-                        )
-                    node = self.graph.value(node, RDF.rest)
+        self._walk_restrictions(declared_dom_map, _handle_restriction)
+
         # Fixed-point propagate via subPropertyOf and inverseOf (for types/ranges), but do NOT add to declared domains
         changed = True
         while changed:
@@ -411,7 +474,7 @@ class OwlToPythonConverter:
                         len(rng_map[name]),
                         len(rng_uri_map[name]),
                     )
-                    dom_map[name].update(dom_map.get(sp, set()))
+                    # dom_map[name].update(dom_map.get(sp, set()))
                     rng_map[name].update(rng_map.get(sp, set()))
                     rng_uri_map[name].update(rng_uri_map.get(sp, set()))
                     if (
@@ -461,11 +524,11 @@ class OwlToPythonConverter:
                     base_dd.remove(cls_name)
                     base["declared_domains"] = base_dd
                 for rng_name in sorted(rng_names):
-                    spec_key = f"{prop_name}__{rng_name}"
+                    spec_key = prop_name + "{" + rng_name + "}"
                     if spec_key in properties_copy or spec_key in specialized_props:
                         continue
                     spec = {
-                        "name": spec_key,
+                        "name": prop_name,
                         "uri": base.get("uri", ""),
                         "type": "ObjectProperty",
                         "domains": [cls_name],
@@ -476,18 +539,39 @@ class OwlToPythonConverter:
                         "field_name": base.get("field_name"),
                         "descriptor_name": self._to_pascal_case(
                             base.get("descriptor_name", prop_name)
-                        )
-                        + self._to_pascal_case(rng_name),
+                        ),  # + self._to_pascal_case(rng_name),
                         "superproperties": [prop_name],
                         "inverses": [],
                         "inverse_of": None,
                         "is_transitive": base.get("is_transitive", False),
                         "declared_domains": [cls_name],
+                        "is_specialized": True,
                     }
                     specialized_props[spec_key] = spec
 
         # Merge specialized properties
         properties_copy.update(specialized_props)
+
+        # Add uri data property to the ontology base class
+        if "uri" not in properties_copy:
+            properties_copy["uri"] = {
+                "name": "uri",
+                "uri": "",
+                "type": "DataProperty",
+                "domains": [ontology_base_class_name],
+                "ranges": ["str"],
+                "range_uris": [XSD.anyURI],
+                "label": "URI of the ontology element",
+                "comment": "The unique resource identifier (URI) of the ontology element.",
+                "field_name": "uri",
+                "descriptor_name": "Uri",
+                "superproperties": [],
+                "inverses": [],
+                "inverse_of": None,
+                "is_transitive": False,
+                "declared_domains": [ontology_base_class_name],
+                "is_specialized": False,
+            }
 
         # Attach datatype properties without an explicit domain to the ontology base class
         for name, info in properties_copy.items():
@@ -669,7 +753,13 @@ class OwlToPythonConverter:
             declared: List[str] = []
             for prop_name, p in properties_copy.items():
                 declared_domains = p.get("declared_domains", [])
-                applies_to_cls = cls_name in declared_domains
+                domains = p.get("domains", [])
+                if declared_domains:
+                    applies_to_cls = cls_name in declared_domains
+                else:
+                    applies_to_cls = cls_name in domains
+                    if applies_to_cls:
+                        declared_domains = domains
                 if not applies_to_cls:
                     continue
                 # If any ancestor is also a declared domain, skip on this class
@@ -682,8 +772,69 @@ class OwlToPythonConverter:
                             skip = True
                             break
                 if not skip:
+                    if p["is_specialized"]:
+                        for super_prop in p.get("superproperties", []):
+                            if super_prop in declared:
+                                declared.remove(super_prop)
                     declared.append(prop_name)
             cls_info["declared_properties"] = declared
+
+        # find implicit sub types by checking if the class properties match and have ranges that are subtypes
+        # of of the other class property
+        for cls_name, cls_info in classes_copy.items():
+            for prop_name in cls_info.get("declared_properties", []):
+                prop_info = properties_copy.get(prop_name)
+                for other_cls_name, other_cls_info in classes_copy.items():
+                    if other_cls_name == cls_name:
+                        continue
+                    for other_prop_name in other_cls_info.get(
+                        "declared_properties", []
+                    ):
+                        if other_prop_name.split("{")[0] != prop_name.split("{")[0]:
+                            continue
+                        other_prop_info = properties_copy.get(other_prop_name)
+                        if (
+                            other_prop_info["type"] == "DataProperty"
+                            or prop_info["type"] == "DataProperty"
+                        ):
+                            continue
+                        other_prop_range = other_prop_info["object_range_hint"]
+                        prop_range = prop_info["object_range_hint"]
+                        parent_name = None
+                        child_name = None
+                        if prop_range in ancestors_map[other_prop_range]:
+                            parent_name = cls_name
+                            child_name = other_cls_name
+                        elif other_prop_range in ancestors_map[prop_range]:
+                            parent_name = other_cls_name
+                            child_name = cls_name
+                        if not parent_name:
+                            continue
+                        child_info = classes_copy[child_name]
+                        parent_info = classes_copy[parent_name]
+                        if ontology_base_class_name in child_info["superclasses"]:
+                            child_info["superclasses"].remove(ontology_base_class_name)
+                        if ontology_base_class_name in child_info["base_classes"]:
+                            child_info["base_classes"].remove(ontology_base_class_name)
+                        if (
+                            role_cls_name in parent_info["superclasses"]
+                            and role_cls_name in child_info["superclasses"]
+                        ):
+                            child_info["superclasses"].remove(role_cls_name)
+                        if (
+                            role_cls_name in parent_info["base_classes"]
+                            and role_cls_name in child_info["base_classes"]
+                        ):
+                            child_info["base_classes"].remove(role_cls_name)
+                        if parent_name not in child_info["superclasses"]:
+                            child_info["superclasses"].append(parent_name)
+                            child_info["base_classes"].append(parent_name)
+                        for rt in copy(child_info["role_taker"]):
+                            if rt in parent_info["role_taker"]:
+                                child_info["role_taker"].remove(rt)
+                        for prop in copy(child_info["declared_properties"]):
+                            if prop in parent_info["declared_properties"]:
+                                child_info["declared_properties"].remove(prop)
 
         # Start with base-class-only topological order
         classes_order = self._topological_order(classes_copy, dep_key="base_classes")
@@ -691,19 +842,29 @@ class OwlToPythonConverter:
         # Note: we deliberately do not reorder by object-range dependencies to avoid
         # violating base-class ordering and creating oscillations. Forward references
         # in type hints are handled by Thing/PropertyDescriptor patches.
-
+        property_classes = {
+            k: v for k, v in properties_copy.items() if not v["is_specialized"]
+        }
         properties_order = self._topological_order(
-            properties_copy, dep_key="superproperties"
+            property_classes,
+            dep_key="superproperties",
         )
 
         # Precompute whether inverse target is defined prior in the descriptor order
         index_map = {name: idx for idx, name in enumerate(properties_order)}
-        for name, info in properties_copy.items():
+        for name, info in property_classes.items():
             inv = info.get("inverse_of")
             prior = False
-            if inv and inv in properties_copy:
+            if inv and inv in property_classes:
                 prior = index_map.get(inv, 10**9) < index_map.get(name, 10**9)
             info["inverse_target_is_prior"] = prior
+
+        for info in classes_copy.values():
+            if role_cls_name in info["base_classes"]:
+                info["base_classes"].remove(role_cls_name)
+                info["base_classes"].append(
+                    f"{role_cls_name}[{info['role_taker'][0]['cls_name']}]"
+                )
 
         template_dir = os.path.dirname(__file__)
         env = Environment(

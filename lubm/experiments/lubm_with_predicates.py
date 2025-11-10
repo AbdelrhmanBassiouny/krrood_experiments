@@ -6,9 +6,10 @@ Generated using custom converter
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Union, Any
+from typing_extensions import List, Optional, Union, Any, Set, Generic, TypeVar
 
-from ..entity_query_language.predicate import Thing, PropertyDescriptor
+from ..entity_query_language.property_descriptor import Thing, PropertyDescriptor
+from ..class_diagrams.utils import Role
 
 
 # Property descriptor classes (object properties)
@@ -35,10 +36,7 @@ class DegreeFrom(PropertyDescriptor):
 @dataclass
 class HasAlumnus(PropertyDescriptor):
     """has as an alumnus"""
-    @property
-    def inverse(self):
-        # Inverse of degreeFrom
-        return DegreeFrom(self.range_value, self.domain_value)
+    inverse_of = DegreeFrom
 
 
 @dataclass
@@ -54,10 +52,7 @@ class Member(PropertyDescriptor):
 @dataclass
 class MemberOf(PropertyDescriptor):
     """member of"""
-    @property
-    def inverse(self):
-        # Inverse of member
-        return Member(self.range_value, self.domain_value)
+    inverse_of = Member
 
 
 @dataclass
@@ -117,16 +112,6 @@ class MastersDegreeFrom(DegreeFrom):
 
 
 @dataclass
-class TakesCourseCourse(TakesCourse):
-    """is taking"""
-
-
-@dataclass
-class TakesCourseGraduateCourse(TakesCourse):
-    """is taking"""
-
-
-@dataclass
 class UndergraduateDegreeFrom(DegreeFrom):
     """has an undergraduate degree from"""
 
@@ -141,116 +126,107 @@ class HeadOf(WorksFor):
     """is the head of"""
 
 
-@dataclass
-class WorksForOrganization(WorksFor):
-    """Works For"""
-
-
-@dataclass
-class WorksForResearchGroup(WorksFor):
-    """Works For"""
-
-
-@dataclass
-class HeadOfCollege(HeadOf):
-    """is the head of"""
-
-
-@dataclass
-class HeadOfDepartment(HeadOf):
-    """is the head of"""
-
-
-@dataclass
-class HeadOfProgram(HeadOf):
-    """is the head of"""
-
-
 
 # Generated classes
-@dataclass(eq=False)
+@dataclass
 class UnivBenchOntology(Thing):
     """Base class for Univ-bench Ontology"""
     # name
-    name: Optional[str] = None
+    name: Optional[str] = field(kw_only=True, default=None)
     # office room No.
-    office_number: Optional[int] = None
+    office_number: Optional[int] = field(kw_only=True, default=None)
     # is researching
-    research_interest: Optional[str] = None
+    research_interest: Optional[str] = field(kw_only=True, default=None)
+    # URI of the ontology element - The unique resource identifier (URI) of the ontology element.
+    uri: Optional[str] = field(kw_only=True, default=None)
 
     def __hash__(self):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+T = TypeVar('T', bound=UnivBenchOntology)
+
+
+@dataclass
 class Organization(UnivBenchOntology):
     """organization"""
     # is affiliated with
-    affiliated_organization_of: List[Organization] = field(default_factory=AffiliatedOrganizationOf)
+    affiliated_organization_of: Set[Organization] = field(default_factory=AffiliatedOrganizationOf)
     # is affiliated with
-    affiliate_of: List[Person] = field(default_factory=AffiliateOf)
+    affiliate_of: Set[Person] = field(default_factory=AffiliateOf)
     # has as a member
-    member: List[Person] = field(default_factory=Member)
+    member: Set[Person] = field(default_factory=Member)
     # publishes
-    org_publication: List[Publication] = field(default_factory=OrgPublication)
+    org_publication: Set[Publication] = field(default_factory=OrgPublication)
     # is part of
-    sub_organization_of: List[Organization] = field(default_factory=SubOrganizationOf)
+    sub_organization_of: Set[Organization] = field(default_factory=SubOrganizationOf)
 
     def __hash__(self):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class Person(UnivBenchOntology):
     """person"""
     # is being advised by
-    advisor: List[Professor] = field(default_factory=Advisor)
+    advisor: Set[Professor] = field(default_factory=Advisor)
     # has a degree from
-    degree_from: List[University] = field(default_factory=DegreeFrom)
+    degree_from: Set[University] = field(default_factory=DegreeFrom)
     # has a doctoral degree from
-    doctoral_degree_from: List[University] = field(default_factory=DoctoralDegreeFrom)
+    doctoral_degree_from: Set[University] = field(default_factory=DoctoralDegreeFrom)
     # has a masters degree from
-    masters_degree_from: List[University] = field(default_factory=MastersDegreeFrom)
+    masters_degree_from: Set[University] = field(default_factory=MastersDegreeFrom)
+    # member of
+    member_of: Set[Organization] = field(default_factory=MemberOf)
     # has an undergraduate degree from
-    undergraduate_degree_from: List[University] = field(default_factory=UndergraduateDegreeFrom)
+    undergraduate_degree_from: Set[University] = field(default_factory=UndergraduateDegreeFrom)
     # is age
-    age: Optional[int] = None
+    age: Optional[int] = field(kw_only=True, default=None)
     # can be reached at
-    email_address: Optional[str] = None
+    email_address: Optional[str] = field(kw_only=True, default=None)
     # telephone number
-    telephone: Optional[str] = None
+    telephone: Optional[str] = field(kw_only=True, default=None)
     # title
-    title: Optional[str] = None
+    title: Optional[str] = field(kw_only=True, default=None)
 
     def __hash__(self):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class Publication(UnivBenchOntology):
     """publication"""
     # was written by
-    publication_author: List[Person] = field(default_factory=PublicationAuthor)
+    publication_author: Set[Person] = field(default_factory=PublicationAuthor)
     # was written on
-    publication_date: Optional[str] = None
+    publication_date: Optional[str] = field(kw_only=True, default=None)
     # is about
-    publication_research: List[Research] = field(default_factory=PublicationResearch)
+    publication_research: Set[Research] = field(default_factory=PublicationResearch)
 
     def __hash__(self):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class Schedule(UnivBenchOntology):
     """schedule"""
     # lists as a course
-    listed_course: List[Course] = field(default_factory=ListedCourse)
+    listed_course: Set[Course] = field(default_factory=ListedCourse)
 
     def __hash__(self):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
+class UnivBenchOntologyRole(Role[T], UnivBenchOntology):
+    """Role class which represents a role that a persistent identifier can take on in a certain context"""
+    ...
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+@dataclass
 class Work(UnivBenchOntology):
     """Work"""
     ...
@@ -259,7 +235,7 @@ class Work(UnivBenchOntology):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class Article(Publication):
     """article"""
     ...
@@ -268,7 +244,7 @@ class Article(Publication):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class Book(Publication):
     """book"""
     ...
@@ -277,7 +253,7 @@ class Book(Publication):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class College(Organization):
     """school"""
     ...
@@ -286,7 +262,7 @@ class College(Organization):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class Course(Work):
     """teaching course"""
     ...
@@ -295,7 +271,7 @@ class Course(Work):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class Department(Organization):
     """university department"""
     ...
@@ -304,37 +280,31 @@ class Department(Organization):
         return hash(id(self))
 
 
-@dataclass(eq=False)
-class Director(Person):
+@dataclass
+class Director(UnivBenchOntologyRole[Person]):
     """director"""
+    # Role taker
+    person: Person
     # is the head of
-    head_of: List[Program] = field(default_factory=HeadOfProgram)
+    head_of: Set[Program] = field(default_factory=HeadOf)
 
     def __hash__(self):
         return hash(id(self))
 
 
-@dataclass(eq=False)
-class Employee(Person):
+@dataclass
+class Employee(UnivBenchOntologyRole[Person]):
     """Employee"""
+    # Role taker
+    person: Person
     # Works For
-    works_for: List[Organization] = field(default_factory=WorksForOrganization)
+    works_for: Set[Organization] = field(default_factory=WorksFor)
 
     def __hash__(self):
         return hash(id(self))
 
 
-@dataclass(eq=False)
-class GraduateStudent(Person):
-    """graduate student"""
-    # is taking
-    takes_course: List[GraduateCourse] = field(default_factory=TakesCourseGraduateCourse)
-
-    def __hash__(self):
-        return hash(id(self))
-
-
-@dataclass(eq=False)
+@dataclass
 class Institute(Organization):
     """institute"""
     ...
@@ -343,7 +313,7 @@ class Institute(Organization):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class Manual(Publication):
     """manual"""
     ...
@@ -352,7 +322,7 @@ class Manual(Publication):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class Program(Organization):
     """program"""
     ...
@@ -361,7 +331,7 @@ class Program(Organization):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class Research(Work):
     """research work"""
     ...
@@ -370,39 +340,29 @@ class Research(Work):
         return hash(id(self))
 
 
-@dataclass(eq=False)
-class ResearchAssistant(Person):
-    """university research assistant"""
-    # Works For
-    works_for: List[ResearchGroup] = field(default_factory=WorksForResearchGroup)
-
-    def __hash__(self):
-        return hash(id(self))
-
-
-@dataclass(eq=False)
+@dataclass
 class ResearchGroup(Organization):
     """research group"""
     # has as a research project
-    research_project: List[Research] = field(default_factory=ResearchProject)
+    research_project: Set[Research] = field(default_factory=ResearchProject)
 
     def __hash__(self):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class Software(Publication):
     """software program"""
     # is documented in
-    software_documentation: List[Publication] = field(default_factory=SoftwareDocumentation)
+    software_documentation: Set[Publication] = field(default_factory=SoftwareDocumentation)
     # is version
-    software_version: Optional[str] = None
+    software_version: Optional[str] = field(kw_only=True, default=None)
 
     def __hash__(self):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class Specification(Publication):
     """published specification"""
     ...
@@ -411,37 +371,41 @@ class Specification(Publication):
         return hash(id(self))
 
 
-@dataclass(eq=False)
-class Student(Person):
+@dataclass
+class Student(UnivBenchOntologyRole[Person]):
     """student"""
+    # Role taker
+    person: Person
     # is taking
-    takes_course: List[Course] = field(default_factory=TakesCourseCourse)
+    takes_course: Set[Course] = field(default_factory=TakesCourse)
 
     def __hash__(self):
         return hash(id(self))
 
 
-@dataclass(eq=False)
-class TeachingAssistant(Person):
+@dataclass
+class TeachingAssistant(UnivBenchOntologyRole[Person]):
     """university teaching assistant"""
+    # Role taker
+    person: Person
     # is a teaching assistant for
-    teaching_assistant_of: List[Course] = field(default_factory=TeachingAssistantOf)
+    teaching_assistant_of: Set[Course] = field(default_factory=TeachingAssistantOf)
 
     def __hash__(self):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class University(Organization):
     """university"""
     # has as an alumnus
-    has_alumnus: List[Person] = field(default_factory=HasAlumnus)
+    has_alumnus: Set[Person] = field(default_factory=HasAlumnus)
 
     def __hash__(self):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class UnofficialPublication(Publication):
     """unnoficial publication"""
     ...
@@ -450,7 +414,7 @@ class UnofficialPublication(Publication):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class AdministrativeStaff(Employee):
     """administrative staff worker"""
     ...
@@ -459,7 +423,7 @@ class AdministrativeStaff(Employee):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class ConferencePaper(Article):
     """conference paper"""
     ...
@@ -468,17 +432,17 @@ class ConferencePaper(Article):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class Faculty(Employee):
     """faculty member"""
     # teaches
-    teacher_of: List[Course] = field(default_factory=TeacherOf)
+    teacher_of: Set[Course] = field(default_factory=TeacherOf)
 
     def __hash__(self):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class GraduateCourse(Course):
     """Graduate Level Courses"""
     ...
@@ -487,7 +451,17 @@ class GraduateCourse(Course):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
+class GraduateStudent(Student):
+    """graduate student"""
+    # is taking
+    takes_course: Set[GraduateCourse] = field(default_factory=TakesCourse)
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+@dataclass
 class JournalArticle(Article):
     """journal article"""
     ...
@@ -496,7 +470,17 @@ class JournalArticle(Article):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
+class ResearchAssistant(Employee):
+    """university research assistant"""
+    # Works For
+    works_for: Set[ResearchGroup] = field(default_factory=WorksFor)
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+@dataclass
 class TechnicalReport(Article):
     """technical report"""
     ...
@@ -505,7 +489,7 @@ class TechnicalReport(Article):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class UndergraduateStudent(Student):
     """undergraduate student"""
     ...
@@ -514,7 +498,7 @@ class UndergraduateStudent(Student):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class ClericalStaff(AdministrativeStaff):
     """clerical staff worker"""
     ...
@@ -523,7 +507,7 @@ class ClericalStaff(AdministrativeStaff):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class Lecturer(Faculty):
     """lecturer"""
     ...
@@ -532,7 +516,7 @@ class Lecturer(Faculty):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class PostDoc(Faculty):
     """post doctorate"""
     ...
@@ -541,17 +525,17 @@ class PostDoc(Faculty):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class Professor(Faculty):
     """professor"""
     # is tenured:
-    tenured: Optional[bool] = None
+    tenured: Optional[bool] = field(kw_only=True, default=None)
 
     def __hash__(self):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class SystemsStaff(AdministrativeStaff):
     """systems staff worker"""
     ...
@@ -560,7 +544,7 @@ class SystemsStaff(AdministrativeStaff):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class AssistantProfessor(Professor):
     """assistant professor"""
     ...
@@ -569,7 +553,7 @@ class AssistantProfessor(Professor):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class AssociateProfessor(Professor):
     """associate professor"""
     ...
@@ -578,27 +562,28 @@ class AssociateProfessor(Professor):
         return hash(id(self))
 
 
-@dataclass(eq=False)
-class Chair(Professor):
+@dataclass
+class Chair(Professor, UnivBenchOntologyRole[Person]):
     """chair"""
+    # Role taker
     # is the head of
-    head_of: List[Department] = field(default_factory=HeadOfDepartment)
+    head_of: Set[Department] = field(default_factory=HeadOf)
 
     def __hash__(self):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class Dean(Professor):
     """dean"""
     # is the head of
-    head_of: List[College] = field(default_factory=HeadOfCollege)
+    head_of: Set[College] = field(default_factory=HeadOf)
 
     def __hash__(self):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class FullProfessor(Professor):
     """full professor"""
     ...
@@ -607,7 +592,7 @@ class FullProfessor(Professor):
         return hash(id(self))
 
 
-@dataclass(eq=False)
+@dataclass
 class VisitingProfessor(Professor):
     """visiting professor"""
     ...
