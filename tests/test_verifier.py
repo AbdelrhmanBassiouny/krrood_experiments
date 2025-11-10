@@ -42,9 +42,5 @@ def test_verifier_detects_duplicate_parentage():
     assert "appears under multiple universities" in str(exc.value)
 
 
-@pytest.mark.skipif(
-    not Path("../resources/instances.owl").exists(), reason="instances.owl not present"
-)
-def test_verifier_on_instances_owl():
-    world = WorldLoader().load(Path("../resources/instances.owl"))
-    WorldVerifier().verify(world)  # should not raise
+def test_verifier_on_instances_owl(owl2_dl1):
+    WorldVerifier().verify(owl2_dl1)  # should not raise

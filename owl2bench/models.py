@@ -2,17 +2,19 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import List, Optional
 
+from krrood.entity_query_language.predicate import Symbol
 
-@dataclass(frozen=True)
-class Course:
+
+@dataclass
+class Course(Symbol):
     """Represents a course with a generated identifier and title."""
 
     identifier: str
     title: str
 
 
-@dataclass(frozen=True)
-class Publication:
+@dataclass
+class Publication(Symbol):
     """Represents a publication affiliated with a university."""
 
     identifier: str
@@ -21,8 +23,8 @@ class Publication:
     authors: List["Person"] = field(default_factory=list)
 
 
-@dataclass(frozen=True)
-class Person:
+@dataclass
+class Person(Symbol):
     """Represents a person and their basic attributes."""
 
     identifier: str
@@ -43,8 +45,8 @@ class Person:
         return f"{self.first_name} {self.last_name}"
 
 
-@dataclass(frozen=True)
-class Student:
+@dataclass
+class Student(Symbol):
     """Represents a student with a study level and advisory links."""
 
     person: Person
@@ -77,8 +79,8 @@ class Student:
         return self.person.full_name
 
 
-@dataclass(frozen=True)
-class Employee:
+@dataclass
+class Employee(Symbol):
     """Represents an employee with a role and optional rank."""
 
     person: Person
@@ -86,16 +88,16 @@ class Employee:
     rank: Optional[str] = None  # assistant/associate/full/visiting, or staff type
 
 
-@dataclass(frozen=True)
-class Program:
+@dataclass
+class Program(Symbol):
     """Represents a degree program offered by a department."""
 
     identifier: str
     name: str
 
 
-@dataclass(frozen=True)
-class ResearchGroup:
+@dataclass
+class ResearchGroup(Symbol):
     """Represents a research group with members and publications."""
 
     identifier: str
@@ -104,8 +106,8 @@ class ResearchGroup:
     publications: List[Publication] = field(default_factory=list)
 
 
-@dataclass(frozen=True)
-class Department:
+@dataclass
+class Department(Symbol):
     """Represents an academic department."""
 
     identifier: str
@@ -119,8 +121,8 @@ class Department:
     research_groups: List[ResearchGroup] = field(default_factory=list)
 
 
-@dataclass(frozen=True)
-class College:
+@dataclass
+class College(Symbol):
     """Represents a college that can be women-only or co-educational."""
 
     identifier: str
@@ -129,8 +131,8 @@ class College:
     departments: List[Department] = field(default_factory=list)
 
 
-@dataclass(frozen=True)
-class University:
+@dataclass
+class University(Symbol):
     """Represents a university that aggregates colleges and publications."""
 
     identifier: str
@@ -139,8 +141,8 @@ class University:
     publications: List[Publication] = field(default_factory=list)
 
 
-@dataclass(frozen=True)
-class World:
+@dataclass
+class World(Symbol):
     """Aggregates all generated entities for easy cross-linking and queries."""
 
     universities: List[University] = field(default_factory=list)

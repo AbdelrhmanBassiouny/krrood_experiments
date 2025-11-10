@@ -131,8 +131,13 @@ class WorldLoader:
             object.__setattr__(uni, "colleges", college_objs)
             universities.append(uni)
 
-        # Persons — we do not attach them to departments yet because ABox linking varies
-        for p in g.subjects(RDF.type, BENCH.Person):
+        # Persons — include individuals typed as Person, Woman, or Man (no reasoning)
+        person_nodes = (
+            set(g.subjects(RDF.type, BENCH.Person))
+            | set(g.subjects(RDF.type, BENCH.Woman))
+            | set(g.subjects(RDF.type, BENCH.Man))
+        )
+        for p in person_nodes:
             if not isinstance(p, URIRef):
                 continue
             person = persons_index.get(p)
