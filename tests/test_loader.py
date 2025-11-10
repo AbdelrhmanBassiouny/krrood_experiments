@@ -81,17 +81,12 @@ def test_world_loader_missing_required_raises(tmp_path: Path):
         loader.load(p)
 
 
-@pytest.mark.skipif(
-    not Path("../resources/instances.owl").exists(), reason="instances.owl not present"
-)
-def test_world_loader_smoke_instances_file():
-    loader = WorldLoader()
-    world = loader.load(Path("../resources/instances.owl"))
-
+def test_world_loader_smoke_instances_file(owl2_dl1):
     # Smoke assertions: ensure we loaded at least one university
-    assert len(world.universities) >= 1
+    assert len(owl2_dl1.universities) >= 1
+    assert len(owl2_dl1.persons) >= 1
     # Optional: if persons are present, basic field integrity
-    for person in world.persons[:10]:
+    for person in owl2_dl1.persons[:10]:
         assert person.first_name
         assert person.last_name
         assert person.email
