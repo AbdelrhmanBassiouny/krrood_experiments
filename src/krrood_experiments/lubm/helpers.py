@@ -41,7 +41,7 @@ def generate_lubm_with_predicates():
     }
     converter = OwlToPythonConverter(predefined_data_types=_default_overrides)
     resources_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "..", "resources"
+        os.path.dirname(__file__), "..", "..", "..", "lubm", "resources"
     )
     converter.load_ontology(os.path.join(resources_path, "lubm.owl"))
     # Save into the package module so tests import the updated code

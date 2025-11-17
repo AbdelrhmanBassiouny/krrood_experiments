@@ -29,7 +29,7 @@ class OwlToPythonConverter:
             repo_root = os.path.abspath(
                 os.path.join(os.path.dirname(__file__), "..", "..", "..")
             )
-            candidate = os.path.join(repo_root, "resources", os.path.basename(path))
+            candidate = os.path.join(repo_root, "lubm", "resources", os.path.basename(path))
             if os.path.exists(candidate):
                 path = candidate
         self.graph.parse(path)
@@ -652,6 +652,10 @@ class OwlToPythonConverter:
                     bases.append(properties_copy[sp]["descriptor_name"])
             if not bases:
                 bases.append("PropertyDescriptor")
+            if info["is_transitive"]:
+                bases.append("TransitiveProperty")
+            if info["inverse_of"]:
+                bases.append("HasInverseProperty")
             info["base_descriptors"] = bases
 
             # Object vs data type hints
@@ -892,6 +896,6 @@ class OwlToPythonConverter:
 
 # Usage
 if __name__ == "__main__":
-    from krrood.experiments.helpers import generate_lubm_with_predicates
+    from krrood_experiments.lubm.helpers import generate_lubm_with_predicates
 
     generate_lubm_with_predicates()

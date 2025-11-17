@@ -9,15 +9,15 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union
 import rdflib
 from rdflib import RDF, RDFS, URIRef, Literal
 
-from ..class_diagrams.utils import get_generic_type_param
-from ..class_diagrams.class_diagram import Association
+from krrood.class_diagrams.utils import get_generic_type_param
+from krrood.class_diagrams.class_diagram import Association
 
 # Import PropertyDescriptor to correctly detect descriptor class attributes
-from ..entity_query_language.property_descriptor import PropertyDescriptor
+from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
 
 # from .lubm_with_predicates import *
-from ..entity_query_language.symbol_graph import SymbolGraph
-from ..ormatic.utils import classes_of_module
+from krrood.entity_query_language.symbol_graph import SymbolGraph
+from krrood.ormatic.utils import classes_of_module
 
 
 class OwlInstancesRegistry:
