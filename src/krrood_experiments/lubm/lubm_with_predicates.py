@@ -6,10 +6,12 @@ Generated using custom converter
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing_extensions import List, Optional, Union, Any, Set, Generic, TypeVar
+from typing_extensions import List, Optional, Union, Any, Set, Generic, TypeVar, Type
 
-from ..entity_query_language.property_descriptor import Thing, PropertyDescriptor
-from ..class_diagrams.utils import Role
+from krrood.entity_query_language.predicate import Symbol
+from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
+from krrood.ontomatic.property_descriptor.mixins import HasInverseProperty, TransitiveProperty
+from krrood.class_diagrams.utils import Role
 
 
 # Property descriptor classes (object properties)
@@ -29,14 +31,19 @@ class AffiliatedOrganizationOf(PropertyDescriptor):
 
 
 @dataclass
-class DegreeFrom(PropertyDescriptor):
+class DegreeFrom(PropertyDescriptor, HasInverseProperty):
     """has a degree from"""
+    @classmethod
+    def get_inverse(cls) -> Type[HasAlumnus]:
+        return HasAlumnus
 
 
 @dataclass
-class HasAlumnus(PropertyDescriptor):
+class HasAlumnus(PropertyDescriptor, HasInverseProperty):
     """has as an alumnus"""
-    inverse_of = DegreeFrom
+    @classmethod
+    def get_inverse(cls) -> Type[DegreeFrom]:
+        return DegreeFrom
 
 
 @dataclass
@@ -45,14 +52,19 @@ class ListedCourse(PropertyDescriptor):
 
 
 @dataclass
-class Member(PropertyDescriptor):
+class Member(PropertyDescriptor, HasInverseProperty):
     """has as a member"""
+    @classmethod
+    def get_inverse(cls) -> Type[MemberOf]:
+        return MemberOf
 
 
 @dataclass
-class MemberOf(PropertyDescriptor):
+class MemberOf(PropertyDescriptor, HasInverseProperty):
     """member of"""
-    inverse_of = Member
+    @classmethod
+    def get_inverse(cls) -> Type[Member]:
+        return Member
 
 
 @dataclass
@@ -81,9 +93,8 @@ class SoftwareDocumentation(PropertyDescriptor):
 
 
 @dataclass
-class SubOrganizationOf(PropertyDescriptor):
+class SubOrganizationOf(PropertyDescriptor, TransitiveProperty):
     """is part of"""
-    transitive = True
 
 
 @dataclass
@@ -129,7 +140,7 @@ class HeadOf(WorksFor):
 
 # Generated classes
 @dataclass
-class UnivBenchOntology(Thing):
+class UnivBenchOntology(Symbol):
     """Base class for Univ-bench Ontology"""
     # name
     name: Optional[str] = field(kw_only=True, default=None)
@@ -146,40 +157,45 @@ class UnivBenchOntology(Thing):
 
 T = TypeVar('T', bound=UnivBenchOntology)
 
-
 @dataclass
 class Organization(UnivBenchOntology):
     """organization"""
     # is affiliated with
-    affiliated_organization_of: Set[Organization] = field(default_factory=AffiliatedOrganizationOf)
+    affiliated_organization_of: Set[Organization] = field(default_factory=set)
     # is affiliated with
-    affiliate_of: Set[Person] = field(default_factory=AffiliateOf)
+    affiliate_of: Set[Person] = field(default_factory=set)
     # has as a member
-    member: Set[Person] = field(default_factory=Member)
+    member: Set[Person] = field(default_factory=set)
     # publishes
-    org_publication: Set[Publication] = field(default_factory=OrgPublication)
+    org_publication: Set[Publication] = field(default_factory=set)
     # is part of
-    sub_organization_of: Set[Organization] = field(default_factory=SubOrganizationOf)
+    sub_organization_of: Set[Organization] = field(default_factory=set)
 
     def __hash__(self):
         return hash(id(self))
+
+Organization.affiliated_organization_of = AffiliatedOrganizationOf(Organization, 'affiliated_organization_of')
+Organization.affiliate_of = AffiliateOf(Organization, 'affiliate_of')
+Organization.member = Member(Organization, 'member')
+Organization.org_publication = OrgPublication(Organization, 'org_publication')
+Organization.sub_organization_of = SubOrganizationOf(Organization, 'sub_organization_of')
 
 
 @dataclass
 class Person(UnivBenchOntology):
     """person"""
     # is being advised by
-    advisor: Set[Professor] = field(default_factory=Advisor)
+    advisor: Set[Professor] = field(default_factory=set)
     # has a degree from
-    degree_from: Set[University] = field(default_factory=DegreeFrom)
+    degree_from: Set[University] = field(default_factory=set)
     # has a doctoral degree from
-    doctoral_degree_from: Set[University] = field(default_factory=DoctoralDegreeFrom)
+    doctoral_degree_from: Set[University] = field(default_factory=set)
     # has a masters degree from
-    masters_degree_from: Set[University] = field(default_factory=MastersDegreeFrom)
+    masters_degree_from: Set[University] = field(default_factory=set)
     # member of
-    member_of: Set[Organization] = field(default_factory=MemberOf)
+    member_of: Set[Organization] = field(default_factory=set)
     # has an undergraduate degree from
-    undergraduate_degree_from: Set[University] = field(default_factory=UndergraduateDegreeFrom)
+    undergraduate_degree_from: Set[University] = field(default_factory=set)
     # is age
     age: Optional[int] = field(kw_only=True, default=None)
     # can be reached at
@@ -192,29 +208,41 @@ class Person(UnivBenchOntology):
     def __hash__(self):
         return hash(id(self))
 
+Person.advisor = Advisor(Person, 'advisor')
+Person.degree_from = DegreeFrom(Person, 'degree_from')
+Person.doctoral_degree_from = DoctoralDegreeFrom(Person, 'doctoral_degree_from')
+Person.masters_degree_from = MastersDegreeFrom(Person, 'masters_degree_from')
+Person.member_of = MemberOf(Person, 'member_of')
+Person.undergraduate_degree_from = UndergraduateDegreeFrom(Person, 'undergraduate_degree_from')
+
 
 @dataclass
 class Publication(UnivBenchOntology):
     """publication"""
     # was written by
-    publication_author: Set[Person] = field(default_factory=PublicationAuthor)
+    publication_author: Set[Person] = field(default_factory=set)
     # was written on
     publication_date: Optional[str] = field(kw_only=True, default=None)
     # is about
-    publication_research: Set[Research] = field(default_factory=PublicationResearch)
+    publication_research: Set[Research] = field(default_factory=set)
 
     def __hash__(self):
         return hash(id(self))
+
+Publication.publication_author = PublicationAuthor(Publication, 'publication_author')
+Publication.publication_research = PublicationResearch(Publication, 'publication_research')
 
 
 @dataclass
 class Schedule(UnivBenchOntology):
     """schedule"""
     # lists as a course
-    listed_course: Set[Course] = field(default_factory=ListedCourse)
+    listed_course: Set[Course] = field(default_factory=set)
 
     def __hash__(self):
         return hash(id(self))
+
+Schedule.listed_course = ListedCourse(Schedule, 'listed_course')
 
 
 @dataclass
@@ -226,6 +254,7 @@ class UnivBenchOntologyRole(Role[T], UnivBenchOntology):
         return hash(id(self))
 
 
+
 @dataclass
 class Work(UnivBenchOntology):
     """Work"""
@@ -233,6 +262,7 @@ class Work(UnivBenchOntology):
 
     def __hash__(self):
         return hash(id(self))
+
 
 
 @dataclass
@@ -244,6 +274,7 @@ class Article(Publication):
         return hash(id(self))
 
 
+
 @dataclass
 class Book(Publication):
     """book"""
@@ -251,6 +282,7 @@ class Book(Publication):
 
     def __hash__(self):
         return hash(id(self))
+
 
 
 @dataclass
@@ -262,6 +294,7 @@ class College(Organization):
         return hash(id(self))
 
 
+
 @dataclass
 class Course(Work):
     """teaching course"""
@@ -269,6 +302,7 @@ class Course(Work):
 
     def __hash__(self):
         return hash(id(self))
+
 
 
 @dataclass
@@ -280,16 +314,19 @@ class Department(Organization):
         return hash(id(self))
 
 
+
 @dataclass
 class Director(UnivBenchOntologyRole[Person]):
     """director"""
     # Role taker
     person: Person
     # is the head of
-    head_of: Set[Program] = field(default_factory=HeadOf)
+    head_of: Set[Program] = field(default_factory=set)
 
     def __hash__(self):
         return hash(id(self))
+
+Director.head_of = HeadOf(Director, 'head_of')
 
 
 @dataclass
@@ -298,10 +335,12 @@ class Employee(UnivBenchOntologyRole[Person]):
     # Role taker
     person: Person
     # Works For
-    works_for: Set[Organization] = field(default_factory=WorksFor)
+    works_for: Set[Organization] = field(default_factory=set)
 
     def __hash__(self):
         return hash(id(self))
+
+Employee.works_for = WorksFor(Employee, 'works_for')
 
 
 @dataclass
@@ -313,6 +352,7 @@ class Institute(Organization):
         return hash(id(self))
 
 
+
 @dataclass
 class Manual(Publication):
     """manual"""
@@ -320,6 +360,7 @@ class Manual(Publication):
 
     def __hash__(self):
         return hash(id(self))
+
 
 
 @dataclass
@@ -331,6 +372,7 @@ class Program(Organization):
         return hash(id(self))
 
 
+
 @dataclass
 class Research(Work):
     """research work"""
@@ -340,26 +382,31 @@ class Research(Work):
         return hash(id(self))
 
 
+
 @dataclass
 class ResearchGroup(Organization):
     """research group"""
     # has as a research project
-    research_project: Set[Research] = field(default_factory=ResearchProject)
+    research_project: Set[Research] = field(default_factory=set)
 
     def __hash__(self):
         return hash(id(self))
+
+ResearchGroup.research_project = ResearchProject(ResearchGroup, 'research_project')
 
 
 @dataclass
 class Software(Publication):
     """software program"""
     # is documented in
-    software_documentation: Set[Publication] = field(default_factory=SoftwareDocumentation)
+    software_documentation: Set[Publication] = field(default_factory=set)
     # is version
     software_version: Optional[str] = field(kw_only=True, default=None)
 
     def __hash__(self):
         return hash(id(self))
+
+Software.software_documentation = SoftwareDocumentation(Software, 'software_documentation')
 
 
 @dataclass
@@ -371,16 +418,19 @@ class Specification(Publication):
         return hash(id(self))
 
 
+
 @dataclass
 class Student(UnivBenchOntologyRole[Person]):
     """student"""
     # Role taker
     person: Person
     # is taking
-    takes_course: Set[Course] = field(default_factory=TakesCourse)
+    takes_course: Set[Course] = field(default_factory=set)
 
     def __hash__(self):
         return hash(id(self))
+
+Student.takes_course = TakesCourse(Student, 'takes_course')
 
 
 @dataclass
@@ -389,20 +439,24 @@ class TeachingAssistant(UnivBenchOntologyRole[Person]):
     # Role taker
     person: Person
     # is a teaching assistant for
-    teaching_assistant_of: Set[Course] = field(default_factory=TeachingAssistantOf)
+    teaching_assistant_of: Set[Course] = field(default_factory=set)
 
     def __hash__(self):
         return hash(id(self))
+
+TeachingAssistant.teaching_assistant_of = TeachingAssistantOf(TeachingAssistant, 'teaching_assistant_of')
 
 
 @dataclass
 class University(Organization):
     """university"""
     # has as an alumnus
-    has_alumnus: Set[Person] = field(default_factory=HasAlumnus)
+    has_alumnus: Set[Person] = field(default_factory=set)
 
     def __hash__(self):
         return hash(id(self))
+
+University.has_alumnus = HasAlumnus(University, 'has_alumnus')
 
 
 @dataclass
@@ -414,6 +468,7 @@ class UnofficialPublication(Publication):
         return hash(id(self))
 
 
+
 @dataclass
 class AdministrativeStaff(Employee):
     """administrative staff worker"""
@@ -421,6 +476,7 @@ class AdministrativeStaff(Employee):
 
     def __hash__(self):
         return hash(id(self))
+
 
 
 @dataclass
@@ -432,14 +488,17 @@ class ConferencePaper(Article):
         return hash(id(self))
 
 
+
 @dataclass
 class Faculty(Employee):
     """faculty member"""
     # teaches
-    teacher_of: Set[Course] = field(default_factory=TeacherOf)
+    teacher_of: Set[Course] = field(default_factory=set)
 
     def __hash__(self):
         return hash(id(self))
+
+Faculty.teacher_of = TeacherOf(Faculty, 'teacher_of')
 
 
 @dataclass
@@ -451,14 +510,17 @@ class GraduateCourse(Course):
         return hash(id(self))
 
 
+
 @dataclass
 class GraduateStudent(Student):
     """graduate student"""
     # is taking
-    takes_course: Set[GraduateCourse] = field(default_factory=TakesCourse)
+    takes_course: Set[GraduateCourse] = field(default_factory=set)
 
     def __hash__(self):
         return hash(id(self))
+
+GraduateStudent.takes_course = TakesCourse(GraduateStudent, 'takes_course')
 
 
 @dataclass
@@ -470,14 +532,17 @@ class JournalArticle(Article):
         return hash(id(self))
 
 
+
 @dataclass
 class ResearchAssistant(Employee):
     """university research assistant"""
     # Works For
-    works_for: Set[ResearchGroup] = field(default_factory=WorksFor)
+    works_for: Set[ResearchGroup] = field(default_factory=set)
 
     def __hash__(self):
         return hash(id(self))
+
+ResearchAssistant.works_for = WorksFor(ResearchAssistant, 'works_for')
 
 
 @dataclass
@@ -489,6 +554,7 @@ class TechnicalReport(Article):
         return hash(id(self))
 
 
+
 @dataclass
 class UndergraduateStudent(Student):
     """undergraduate student"""
@@ -496,6 +562,7 @@ class UndergraduateStudent(Student):
 
     def __hash__(self):
         return hash(id(self))
+
 
 
 @dataclass
@@ -507,6 +574,7 @@ class ClericalStaff(AdministrativeStaff):
         return hash(id(self))
 
 
+
 @dataclass
 class Lecturer(Faculty):
     """lecturer"""
@@ -516,6 +584,7 @@ class Lecturer(Faculty):
         return hash(id(self))
 
 
+
 @dataclass
 class PostDoc(Faculty):
     """post doctorate"""
@@ -523,6 +592,7 @@ class PostDoc(Faculty):
 
     def __hash__(self):
         return hash(id(self))
+
 
 
 @dataclass
@@ -535,6 +605,7 @@ class Professor(Faculty):
         return hash(id(self))
 
 
+
 @dataclass
 class SystemsStaff(AdministrativeStaff):
     """systems staff worker"""
@@ -542,6 +613,7 @@ class SystemsStaff(AdministrativeStaff):
 
     def __hash__(self):
         return hash(id(self))
+
 
 
 @dataclass
@@ -553,6 +625,7 @@ class AssistantProfessor(Professor):
         return hash(id(self))
 
 
+
 @dataclass
 class AssociateProfessor(Professor):
     """associate professor"""
@@ -562,25 +635,30 @@ class AssociateProfessor(Professor):
         return hash(id(self))
 
 
+
 @dataclass
 class Chair(Professor, UnivBenchOntologyRole[Person]):
     """chair"""
     # Role taker
     # is the head of
-    head_of: Set[Department] = field(default_factory=HeadOf)
+    head_of: Set[Department] = field(default_factory=set)
 
     def __hash__(self):
         return hash(id(self))
+
+Chair.head_of = HeadOf(Chair, 'head_of')
 
 
 @dataclass
 class Dean(Professor):
     """dean"""
     # is the head of
-    head_of: Set[College] = field(default_factory=HeadOf)
+    head_of: Set[College] = field(default_factory=set)
 
     def __hash__(self):
         return hash(id(self))
+
+Dean.head_of = HeadOf(Dean, 'head_of')
 
 
 @dataclass
@@ -592,6 +670,7 @@ class FullProfessor(Professor):
         return hash(id(self))
 
 
+
 @dataclass
 class VisitingProfessor(Professor):
     """visiting professor"""
@@ -599,5 +678,6 @@ class VisitingProfessor(Professor):
 
     def __hash__(self):
         return hash(id(self))
+
 
 
