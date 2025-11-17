@@ -174,11 +174,6 @@ class Organization(UnivBenchOntology):
     def __hash__(self):
         return hash(id(self))
 
-Organization.affiliated_organization_of = AffiliatedOrganizationOf(Organization, 'affiliated_organization_of')
-Organization.affiliate_of = AffiliateOf(Organization, 'affiliate_of')
-Organization.member = Member(Organization, 'member')
-Organization.org_publication = OrgPublication(Organization, 'org_publication')
-Organization.sub_organization_of = SubOrganizationOf(Organization, 'sub_organization_of')
 
 
 @dataclass
@@ -208,12 +203,6 @@ class Person(UnivBenchOntology):
     def __hash__(self):
         return hash(id(self))
 
-Person.advisor = Advisor(Person, 'advisor')
-Person.degree_from = DegreeFrom(Person, 'degree_from')
-Person.doctoral_degree_from = DoctoralDegreeFrom(Person, 'doctoral_degree_from')
-Person.masters_degree_from = MastersDegreeFrom(Person, 'masters_degree_from')
-Person.member_of = MemberOf(Person, 'member_of')
-Person.undergraduate_degree_from = UndergraduateDegreeFrom(Person, 'undergraduate_degree_from')
 
 
 @dataclass
@@ -229,8 +218,6 @@ class Publication(UnivBenchOntology):
     def __hash__(self):
         return hash(id(self))
 
-Publication.publication_author = PublicationAuthor(Publication, 'publication_author')
-Publication.publication_research = PublicationResearch(Publication, 'publication_research')
 
 
 @dataclass
@@ -242,7 +229,6 @@ class Schedule(UnivBenchOntology):
     def __hash__(self):
         return hash(id(self))
 
-Schedule.listed_course = ListedCourse(Schedule, 'listed_course')
 
 
 @dataclass
@@ -326,7 +312,6 @@ class Director(UnivBenchOntologyRole[Person]):
     def __hash__(self):
         return hash(id(self))
 
-Director.head_of = HeadOf(Director, 'head_of')
 
 
 @dataclass
@@ -340,7 +325,6 @@ class Employee(UnivBenchOntologyRole[Person]):
     def __hash__(self):
         return hash(id(self))
 
-Employee.works_for = WorksFor(Employee, 'works_for')
 
 
 @dataclass
@@ -392,7 +376,6 @@ class ResearchGroup(Organization):
     def __hash__(self):
         return hash(id(self))
 
-ResearchGroup.research_project = ResearchProject(ResearchGroup, 'research_project')
 
 
 @dataclass
@@ -406,7 +389,6 @@ class Software(Publication):
     def __hash__(self):
         return hash(id(self))
 
-Software.software_documentation = SoftwareDocumentation(Software, 'software_documentation')
 
 
 @dataclass
@@ -430,7 +412,6 @@ class Student(UnivBenchOntologyRole[Person]):
     def __hash__(self):
         return hash(id(self))
 
-Student.takes_course = TakesCourse(Student, 'takes_course')
 
 
 @dataclass
@@ -444,7 +425,6 @@ class TeachingAssistant(UnivBenchOntologyRole[Person]):
     def __hash__(self):
         return hash(id(self))
 
-TeachingAssistant.teaching_assistant_of = TeachingAssistantOf(TeachingAssistant, 'teaching_assistant_of')
 
 
 @dataclass
@@ -456,7 +436,6 @@ class University(Organization):
     def __hash__(self):
         return hash(id(self))
 
-University.has_alumnus = HasAlumnus(University, 'has_alumnus')
 
 
 @dataclass
@@ -498,7 +477,6 @@ class Faculty(Employee):
     def __hash__(self):
         return hash(id(self))
 
-Faculty.teacher_of = TeacherOf(Faculty, 'teacher_of')
 
 
 @dataclass
@@ -520,7 +498,6 @@ class GraduateStudent(Student):
     def __hash__(self):
         return hash(id(self))
 
-GraduateStudent.takes_course = TakesCourse(GraduateStudent, 'takes_course')
 
 
 @dataclass
@@ -542,7 +519,6 @@ class ResearchAssistant(Employee):
     def __hash__(self):
         return hash(id(self))
 
-ResearchAssistant.works_for = WorksFor(ResearchAssistant, 'works_for')
 
 
 @dataclass
@@ -646,7 +622,6 @@ class Chair(Professor, UnivBenchOntologyRole[Person]):
     def __hash__(self):
         return hash(id(self))
 
-Chair.head_of = HeadOf(Chair, 'head_of')
 
 
 @dataclass
@@ -658,7 +633,6 @@ class Dean(Professor):
     def __hash__(self):
         return hash(id(self))
 
-Dean.head_of = HeadOf(Dean, 'head_of')
 
 
 @dataclass
@@ -681,3 +655,32 @@ class VisitingProfessor(Professor):
 
 
 
+
+
+# Descriptor assignments
+Organization.affiliated_organization_of = AffiliatedOrganizationOf(Organization, 'affiliated_organization_of')
+Organization.affiliate_of = AffiliateOf(Organization, 'affiliate_of')
+Organization.member = Member(Organization, 'member')
+Organization.org_publication = OrgPublication(Organization, 'org_publication')
+Organization.sub_organization_of = SubOrganizationOf(Organization, 'sub_organization_of')
+Person.advisor = Advisor(Person, 'advisor')
+Person.degree_from = DegreeFrom(Person, 'degree_from')
+Person.doctoral_degree_from = DoctoralDegreeFrom(Person, 'doctoral_degree_from')
+Person.masters_degree_from = MastersDegreeFrom(Person, 'masters_degree_from')
+Person.member_of = MemberOf(Person, 'member_of')
+Person.undergraduate_degree_from = UndergraduateDegreeFrom(Person, 'undergraduate_degree_from')
+Publication.publication_author = PublicationAuthor(Publication, 'publication_author')
+Publication.publication_research = PublicationResearch(Publication, 'publication_research')
+Schedule.listed_course = ListedCourse(Schedule, 'listed_course')
+Director.head_of = HeadOf(Director, 'head_of')
+Employee.works_for = WorksFor(Employee, 'works_for')
+ResearchGroup.research_project = ResearchProject(ResearchGroup, 'research_project')
+Software.software_documentation = SoftwareDocumentation(Software, 'software_documentation')
+Student.takes_course = TakesCourse(Student, 'takes_course')
+TeachingAssistant.teaching_assistant_of = TeachingAssistantOf(TeachingAssistant, 'teaching_assistant_of')
+University.has_alumnus = HasAlumnus(University, 'has_alumnus')
+Faculty.teacher_of = TeacherOf(Faculty, 'teacher_of')
+GraduateStudent.takes_course = TakesCourse(GraduateStudent, 'takes_course')
+ResearchAssistant.works_for = WorksFor(ResearchAssistant, 'works_for')
+Chair.head_of = HeadOf(Chair, 'head_of')
+Dean.head_of = HeadOf(Dean, 'head_of')

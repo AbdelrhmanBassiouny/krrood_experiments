@@ -73,15 +73,21 @@ class {{ cls.name }}({% if cls.name == ontology_base_class_name %}Symbol{% elif 
     def __hash__(self):
         return hash(id(self))
 
+
+{% if cls_name == ontology_base_class_name %}
+T = TypeVar('T', bound={{ ontology_base_class_name }})
+{% endif %}
+
+{% endfor %}
+
+
+# Descriptor assignments
+{% for cls_name in classes_order %}
+{% set cls = classes[cls_name] %}
 {% for prop_name in cls.declared_properties %}
 {% set prop = properties[prop_name] %}
 {% if prop.type == 'ObjectProperty' %}
 {{ cls.name }}.{{ prop.field_name }} = {{ prop.descriptor_name }}({{ cls.name }}, '{{ prop.field_name }}')
 {% endif %}
 {% endfor %}
-
-{% if cls_name == ontology_base_class_name %}
-T = TypeVar('T', bound={{ ontology_base_class_name }})
-{% endif %}
-
 {% endfor %}
