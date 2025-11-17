@@ -7,12 +7,12 @@ from krrood.entity_query_language.entity import (
     flatten,
     contains,
     set_of,
-    the,
+    the, let, entity, an, exists
 )
 from krrood.entity_query_language.predicate import HasType
 from krrood.entity_query_language.symbol_graph import SymbolGraph
 from krrood.entity_query_language.symbolic import ResultQuantifier
-from krrood_experiments.lubm import lubm_with_predicates
+
 from krrood_experiments.lubm.helpers import (
     evaluate_eql,
     load_instances_for_lubm_with_predicates,
@@ -31,22 +31,21 @@ from krrood_experiments.lubm.lubm_with_predicates import (
     Chair,
     UndergraduateStudent,
 )
-from krrood.ormatic.utils import classes_of_module
 
 
 def get_eql_queries() -> List[ResultQuantifier]:
     # 1 (No joining, just filtration of graduate students through taking a certain course)
-    SymbolGraph().clear()
-    SymbolGraph()
-    q1 = a(
-        x := GraduateStudent(),
-        flatten(x.takes_course).uri
-        == "http://www.Department0.University0.edu/GraduateCourse0",
-    )
+    # SymbolGraph().clear()
+    # SymbolGraph()
+    q1 = an(entity(
+        x := let(GraduateStudent, domain=None),
+        exists(x, flatten(x.takes_course).uri
+        == "http://www.Department0.University0.edu/GraduateCourse0"),
+    ))
 
     # 2
-    q2 = a(
-        x := GraduateStudent(),
+    q2 = an(entity(
+        x := let(GraduateStudent, domain=None),
         HasType(
             z := flatten(x.person.member_of), Department
         ),  # filtration of x producing z
@@ -54,20 +53,20 @@ def get_eql_queries() -> List[ResultQuantifier]:
             y := flatten(z.sub_organization_of), University
         ),  # filtration of z (which in turn filters x again) producing y
         contains(x.person.undergraduate_degree_from, y),  # join between x and y
-    )
+    ))
 
     # 3
-    q3 = a(
-        x := Publication(),
+    q3 = an(entity(
+        x := let(Publication, domain=None),
         flatten(x.publication_author).uri
         == "http://www.Department0.University0.edu/AssistantProfessor0",
-    )
+    ))
 
     # 4
     q4 = a(
         set_of(
             (
-                x := Professor(),
+                x := let(Professor, domain=None),
                 name := x.name,
                 email := x.person.email_address,
                 telephone := x.person.telephone,
@@ -77,24 +76,24 @@ def get_eql_queries() -> List[ResultQuantifier]:
     )
 
     # 5
-    q5 = a(
-        x := Person(),
+    q5 = an(entity(
+        x := let(Person, domain=None),
         flatten(x.member_of).uri == "http://www.Department0.University0.edu",
-    )
+    ))
 
     # 6
-    q6 = a(x := Student())
+    q6 = an(entity(x := let(Student, domain=None)))
 
     # 7
-    associate_professor = the(
-        AssociateProfessor(
-            uri="http://www.Department0.University0.edu/AssociateProfessor0"
-        )
-    )
+    associate_professor = the(entity(
+        assoc_prof := let(AssociateProfessor, domain=None),
+        assoc_prof.uri == "http://www.Department0.University0.edu/AssociateProfessor0"
+    ))
+
     q7 = a(
         set_of(
             (
-                x := Student(),
+                x := let(Student, domain=None),
                 y := flatten(x.takes_course),
             ),
             contains(associate_professor.teacher_of, y),
@@ -102,10 +101,10 @@ def get_eql_queries() -> List[ResultQuantifier]:
     )
 
     # 8
-    q8 = a(
+    q8 = an(
         set_of(
             (
-                x := Student(),
+                x := let(Student, domain=None),
                 y := flatten(x.person.member_of),
                 z := x.person.email_address,
             ),
@@ -118,7 +117,7 @@ def get_eql_queries() -> List[ResultQuantifier]:
     q9 = a(
         set_of(
             (
-                x := Student(),
+                x := let(Student, domain=None),
                 y := flatten(x.person.advisor),
                 z := flatten(x.takes_course),
             ),
@@ -130,22 +129,22 @@ def get_eql_queries() -> List[ResultQuantifier]:
     )
 
     # 10
-    q10 = a(
-        x := Student(),
+    q10 = an(entity(
+        x := let(Student, domain=None),
         flatten(x.takes_course).uri
         == "http://www.Department0.University0.edu/GraduateCourse0",
-    )
+    ))
 
     # 11
-    q11 = a(
-        x := ResearchGroup(),
+    q11 = an(entity(
+        x := let(ResearchGroup, domain=None),
         flatten(x.sub_organization_of).uri == "http://www.University0.edu",
-    )
+    ))
 
     # 12
-    q12 = a(
+    q12 = an(
         set_of(
-            (x := Chair(), y := flatten(x.works_for)),
+            (x := let(Chair, domain=None), y := flatten(x.works_for)),
             HasType(y, Department),
             flatten(y.sub_organization_of).uri == "http://www.University0.edu",
         )  # writing contains like this implies that the user knows that this is a set of objects.
@@ -153,12 +152,12 @@ def get_eql_queries() -> List[ResultQuantifier]:
     )
 
     # 13
-    q13 = a(
-        x := flatten(the(University(uri="http://www.University0.edu")).has_alumnus),
-    )
+    q13 = an(entity(
+        x := flatten(the(entity(uni := let(University, domain=None), uni.uri == "http://www.University0.edu")).has_alumnus),
+    ))
 
     # 14
-    q14 = a(x := UndergraduateStudent())
+    q14 = an(entity(x := let(UndergraduateStudent, domain=None)))
 
     eql_queries = [q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13, q14]
     return eql_queries
@@ -196,5 +195,5 @@ if __name__ == "__main__":
     end_time = time.time()
     for i, n in enumerate(counts, 1):
         print(f"{i}:{n} ({times[i - 1]} sec)")
-        print({type(r) for r in results[i - 1]})
+        # print([r for r in results[i - 1]])
     print(f"Time elapsed: {end_time - start_time} seconds")
