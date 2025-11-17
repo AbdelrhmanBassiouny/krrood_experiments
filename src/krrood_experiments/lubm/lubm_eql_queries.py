@@ -37,7 +37,7 @@ from krrood.ormatic.utils import classes_of_module
 def get_eql_queries() -> List[ResultQuantifier]:
     # 1 (No joining, just filtration of graduate students through taking a certain course)
     SymbolGraph().clear()
-    SymbolGraph.build(classes=classes_of_module(lubm_with_predicates))
+    SymbolGraph()
     q1 = a(
         x := GraduateStudent(),
         flatten(x.takes_course).uri

@@ -178,7 +178,7 @@ def load_multi_file_instances(
         model_module = __import__(model_module, fromlist=["*"])
     combined_registry = OwlInstancesRegistry()
     SymbolGraph().clear()
-    symbol_graph = SymbolGraph.build(classes=classes_of_module(model_module))
+    symbol_graph = SymbolGraph()
     for path in owl_paths:
         load_instances(
             path, model_module, symbol_graph=symbol_graph, registry=combined_registry
@@ -228,7 +228,7 @@ def load_instances(
                 (
                     assoc1,
                     assoc2,
-                ) = symbol_graph.type_graph.get_common_role_taker_associations(
+                ) = symbol_graph.class_diagram.get_common_role_taker_associations(
                     type(er), py_cls
                 )
                 if assoc1 and assoc2:
@@ -238,7 +238,7 @@ def load_instances(
                         er, assoc1.field.public_name
                     )
         role_taker_association = (
-            symbol_graph.type_graph.get_role_taker_associations_of_cls(py_cls)
+            symbol_graph.class_diagram.get_role_taker_associations_of_cls(py_cls)
         )
         if role_taker_association:
             role_taker_field = role_taker_association.field
@@ -288,7 +288,8 @@ def load_instances(
             if snake in [f.name for f in fields(subj_cls)]:
                 field_name = snake
 
-        role_taker_val = symbol_graph.get_role_takers_of_instance(subj)
+        role_taker_association = symbol_graph.class_diagram.get_role_taker_associations_of_cls(subj_cls)
+        role_taker_val = getattr(subj, role_taker_association.field.public_name, None) if role_taker_association else None
 
         if isinstance(o, Literal):
             if field_name and hasattr(subj, field_name):
@@ -309,7 +310,7 @@ def load_instances(
         if obj_roles is not None:
             obj = obj_roles[0]
         if field_name and hasattr(subj, field_name):
-            subj_wrapped_cls = symbol_graph.type_graph.get_wrapped_class(subj_cls)
+            subj_wrapped_cls = symbol_graph.class_diagram.get_wrapped_class(subj_cls)
             subj_wrapped_field = subj_wrapped_cls._wrapped_field_name_map_.get(
                 field_name
             )
@@ -321,7 +322,7 @@ def load_instances(
                     break
             if not matched_obj:
                 role_taker_assoc = (
-                    symbol_graph.type_graph.get_role_taker_associations_of_cls(
+                    symbol_graph.class_diagram.get_role_taker_associations_of_cls(
                         type(obj_roles[0])
                     )
                 )
@@ -347,7 +348,7 @@ def load_instances(
         base_desc = descriptor_base_for(snake)
 
         if base_desc is not None:
-            possible_roles = list(base_desc.domain_types)
+            possible_roles = list(base_desc.all_domains)
             if len(possible_roles) == 1:
                 new_role_class = possible_roles[0]
             else:
@@ -359,7 +360,7 @@ def load_instances(
                         pr_wrapped_field = getattr(pr, snake)
                     except AttributeError:
                         continue
-                    range_types = tuple(pr_wrapped_field.range_type)
+                    range_types = tuple(pr_wrapped_field.all_ranges)
                     if issubclass(o_type, range_types):
                         wrapped_field_types[pr] = range_types
                 # choose the nearest wrapped field type
@@ -383,9 +384,9 @@ def load_instances(
                     new_role = er
                     break
             if new_role is None:
-                type_graph = symbol_graph.type_graph
+                class_diagram = symbol_graph.class_diagram
                 kwargs = {}
-                assoc1, assoc2 = type_graph.get_common_role_taker_associations(
+                assoc1, assoc2 = class_diagram.get_common_role_taker_associations(
                     subj_cls, new_role_class
                 )
                 if assoc1 and assoc2:
