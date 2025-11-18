@@ -7,7 +7,7 @@ from krrood.entity_query_language.entity import (
     flatten,
     contains,
     set_of,
-    the, let, entity, an, exists
+    the, let, entity, an, exists, and_
 )
 from krrood.entity_query_language.predicate import HasType
 from krrood.entity_query_language.symbol_graph import SymbolGraph
@@ -35,12 +35,10 @@ from krrood_experiments.lubm.lubm_with_predicates import (
 
 def get_eql_queries() -> List[ResultQuantifier]:
     # 1 (No joining, just filtration of graduate students through taking a certain course)
-    # SymbolGraph().clear()
-    # SymbolGraph()
     q1 = an(entity(
         x := let(GraduateStudent, domain=None),
-        exists(x, flatten(x.takes_course).uri
-        == "http://www.Department0.University0.edu/GraduateCourse0"),
+        flatten(x.takes_course).uri
+        == "http://www.Department0.University0.edu/GraduateCourse0"
     ))
 
     # 2
@@ -145,8 +143,9 @@ def get_eql_queries() -> List[ResultQuantifier]:
     q12 = an(
         set_of(
             (x := let(Chair, domain=None), y := flatten(x.works_for)),
-            HasType(y, Department),
-            flatten(y.sub_organization_of).uri == "http://www.University0.edu",
+            exists(y, and_(HasType(y, Department)
+                   , flatten(y.sub_organization_of).uri == "http://www.University0.edu"))
+            # flatten(y.sub_organization_of).uri == "http://www.University0.edu",
         )  # writing contains like this implies that the user knows that this is a set of objects.
         # A more declarative way would be to write SubOrganizationOf(y, the(University(name="University0"))).
     )

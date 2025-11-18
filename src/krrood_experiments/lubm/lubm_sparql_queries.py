@@ -1,7 +1,7 @@
 import os
 import time
 
-from krrood.experiments.helpers import make_rdf_graph, evaluate_sparql
+from krrood_experiments.lubm.helpers import make_rdf_graph, evaluate_sparql
 
 query_1_sparql = """
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
