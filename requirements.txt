@@ -3,3 +3,7 @@ rdflib
 line-profiler
 SPARQLWrapper
 pytest
+krrood
+rustworkx
+sqlalchemy
+

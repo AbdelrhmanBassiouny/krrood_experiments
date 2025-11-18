@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import os
 
-from krrood.experiments import lubm_with_predicates
-from krrood.experiments.helpers import (
+from krrood_experiments.lubm import lubm_with_predicates
+from krrood_experiments.lubm.helpers import (
     evaluate_sparql,
     make_rdf_graph,
     load_instances_for_lubm_with_predicates,
 )
-from krrood.experiments.lubm_sparql_queries import sparql_queries
-from krrood.experiments.lubm_eql_queries import evaluate_eql, get_eql_queries
-from krrood.experiments.owl_instances_loader import load_instances
+from krrood_experiments.lubm.lubm_sparql_queries import sparql_queries
+from krrood_experiments.lubm.lubm_eql_queries import evaluate_eql, get_eql_queries
+from krrood_experiments.lubm.owl_instances_loader import load_instances
 
 
 def test_eql_counts_match_sparql():
