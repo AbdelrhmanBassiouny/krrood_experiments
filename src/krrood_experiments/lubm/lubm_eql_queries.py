@@ -60,16 +60,6 @@ def get_eql_queries() -> List[ResultQuantifier]:
         )
     )
 
-    # 2
-    q2 = an(
-        entity(
-            x := let(GraduateStudent, domain=None),
-            HasType(z := flatten(x.person.member_of), Department),
-            HasType(y := flatten(z.sub_organization_of), University),
-            contains(x.person.undergraduate_degree_from, y),
-        )
-    )
-
     # 3
     q3 = an(
         entity(
