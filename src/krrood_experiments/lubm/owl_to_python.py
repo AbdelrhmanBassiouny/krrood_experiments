@@ -2,13 +2,12 @@ import os
 import re
 from collections import defaultdict
 from copy import copy
-from typing import Dict, List, Callable, Optional, Any, Tuple
+from typing import Dict, List, Callable, Optional, Any
 
 import rdflib
 from jinja2 import Environment, FileSystemLoader
-from rdflib.namespace import RDF, RDFS, OWL, XSD
-
 from krrood import logger
+from rdflib.namespace import RDF, RDFS, OWL, XSD
 
 
 class OwlToPythonConverter:
@@ -29,7 +28,9 @@ class OwlToPythonConverter:
             repo_root = os.path.abspath(
                 os.path.join(os.path.dirname(__file__), "..", "..", "..")
             )
-            candidate = os.path.join(repo_root, "lubm", "resources", os.path.basename(path))
+            candidate = os.path.join(
+                repo_root, "lubm", "resources", os.path.basename(path)
+            )
             if os.path.exists(candidate):
                 path = candidate
         self.graph.parse(path)
@@ -49,6 +50,16 @@ class OwlToPythonConverter:
         for cls in self.graph.subjects(RDF.type, OWL.Class):
             class_info = self._extract_class_info(cls)
             self.classes[class_info["name"]] = class_info
+
+        for cls_name, cls_info in self.classes.items():
+            if not cls_info["role_taker"]:
+                continue
+            if any(
+                cls_info["role_taker"][0] in self.classes[sc]["role_taker"]
+                for sc in cls_info["superclasses"]
+                if sc in self.classes
+            ):
+                cls_info["role_taker"] = []
 
         # Extract properties
         for prop in self.graph.subjects(RDF.type, OWL.ObjectProperty):
@@ -348,6 +359,7 @@ class OwlToPythonConverter:
             info["base_classes"] = [
                 b for b in info.get("superclasses", []) if b != "Thing"
             ]
+
         # Create synthetic ontology base class entry if not exists
         if ontology_base_class_name not in classes_copy:
             classes_copy[ontology_base_class_name] = {
@@ -382,17 +394,17 @@ class OwlToPythonConverter:
             info["all_base_classes"] = sorted(ancestors)
 
         for name, info in classes_copy.items():
-            if not info.get("role_taker"):
-                continue
-            # Remove role_taker properties that are already defined in ancestors
-            for base in info["all_base_classes"]:
-                if base == name:
-                    continue
-                base_info = classes_copy.get(base)
-                if base_info and base_info.get("role_taker"):
-                    for prop_name in info["role_taker"]:
-                        if prop_name in base_info["role_taker"]:
-                            info["add_role_taker"] = False
+            if role_cls_name in info["base_classes"]:
+                if any(
+                    role_cls_name in classes_copy[sc]["all_base_classes"]
+                    for sc in info["base_classes"]
+                    if sc in classes_copy
+                ):
+                    try:
+                        info["add_role_taker"] = False
+                        info["base_classes"].remove(role_cls_name)
+                    except IndexError:
+                        pass
 
         # Prepare property descriptor bases and compute type-hint helpers
         properties_copy: Dict[str, Dict] = {

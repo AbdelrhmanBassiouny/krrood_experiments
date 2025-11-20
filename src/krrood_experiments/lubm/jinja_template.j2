@@ -49,8 +49,8 @@ class {{ cls.name }}({% if cls.name == ontology_base_class_name %}Symbol{% elif 
     ...
     {% else %}
     {% if cls.role_taker|length > 0 %}
-    # Role taker
     {% if cls.add_role_taker %}
+    # Role taker
     {% for role in cls.role_taker %}
     {{ role.field_name }}: {{ role.cls_name }}
     {% endfor %}
