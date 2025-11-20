@@ -613,9 +613,8 @@ class AssociateProfessor(Professor):
 
 
 @dataclass
-class Chair(Professor, UnivBenchOntologyRole[Person]):
+class Chair(Professor):
     """chair"""
-    # Role taker
     # is the head of
     head_of: Set[Department] = field(default_factory=set)
 
