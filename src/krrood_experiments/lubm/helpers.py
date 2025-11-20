@@ -39,7 +39,7 @@ def generate_lubm_with_predicates():
             "research_interest": "str",
         },
     }
-    converter = OwlToPythonConverter(predefined_data_types=_default_overrides)
+    converter = OwlToPythonConverter(predefined_data_types=_default_overrides, enable_role_inference=True)
     resources_path = os.path.join(
         os.path.dirname(__file__), "..", "..", "..", "lubm", "resources"
     )

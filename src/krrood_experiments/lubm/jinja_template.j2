@@ -52,7 +52,7 @@ class {{ cls.name }}({% if cls.name == ontology_base_class_name %}Symbol{% elif 
     # Role taker
     {% if cls.add_role_taker %}
     {% for role in cls.role_taker %}
-    {{ role.field_name }}: {{ role.cls_name }}
+    {{ role.field_name }}: Optional[{{ role.cls_name }}] = field(kw_only=True, default=None)
     {% endfor %}
     {% endif %}
     {% endif %}

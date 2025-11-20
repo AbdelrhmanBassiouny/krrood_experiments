@@ -12,7 +12,11 @@ from krrood import logger
 
 
 class OwlToPythonConverter:
-    def __init__(self, predefined_data_types: Dict[str, Dict[str, str]] | None = None):
+    def __init__(
+        self,
+        predefined_data_types: Dict[str, Dict[str, str]] | None = None,
+        enable_role_inference: bool = False,
+    ):
         self.graph = rdflib.Graph()
         self.classes = {}
         self.properties = {}
@@ -20,6 +24,9 @@ class OwlToPythonConverter:
         self.predefined_data_types: Dict[str, Dict[str, str]] = (
             predefined_data_types or {}
         )
+        # Feature flag: when True, apply narrow role inference heuristics.
+        # Defaults to False to avoid misclassifying classes like Chair/Dean as roles.
+        self.enable_role_inference: bool = enable_role_inference
 
     def load_ontology(self, owl_file_path: str):
         """Load OWL file using RDFLib"""
@@ -29,7 +36,9 @@ class OwlToPythonConverter:
             repo_root = os.path.abspath(
                 os.path.join(os.path.dirname(__file__), "..", "..", "..")
             )
-            candidate = os.path.join(repo_root, "lubm", "resources", os.path.basename(path))
+            candidate = os.path.join(
+                repo_root, "lubm", "resources", os.path.basename(path)
+            )
             if os.path.exists(candidate):
                 path = candidate
         self.graph.parse(path)
@@ -98,20 +107,10 @@ class OwlToPythonConverter:
             if isinstance(superclass, rdflib.URIRef):
                 superclasses.append(self._uri_to_python_name(superclass))
 
+        # Do NOT infer role-taker from generic owl:intersectionOf operands.
+        # role_taker is only populated via the restricted heuristic in _walk_restrictions
+        # when enable_role_inference=True.
         role_taker: List[Dict[str, str]] = []
-        for coll in self.graph.objects(class_uri, OWL.intersectionOf):
-            # Traverse RDF list
-            node = coll
-            while node and node != RDF.nil:
-                first = self.graph.value(node, RDF.first)
-                if isinstance(first, rdflib.URIRef):
-                    role_cls_name = self._uri_to_python_name(first)
-                    snake_cls_name = self._to_snake_case(role_cls_name)
-                    role_taker.append(
-                        {"cls_name": role_cls_name, "field_name": snake_cls_name}
-                    )
-                # move to next
-                node = self.graph.value(node, RDF.rest)
 
         # De-duplicate while preserving order
         seen = set()
@@ -206,6 +205,40 @@ class OwlToPythonConverter:
     ):
         if declared_dom_map is None:
             declared_dom_map: Dict[str, set] = defaultdict(set)
+
+        # Helper: resolve whether a class name is (transitively) a subclass of target
+        def _is_descendant(
+            name: str, target: str, classes_map: Dict[str, Dict[str, Any]] | None
+        ) -> bool:
+            if not classes_map:
+                return False
+            if name == target:
+                return True
+            visited = set()
+            stack = list(classes_map.get(name, {}).get("superclasses", []))
+            while stack:
+                base = stack.pop()
+                if base in visited:
+                    continue
+                visited.add(base)
+                if base == target:
+                    return True
+                stack.extend(classes_map.get(base, {}).get("superclasses", []))
+            return False
+
+        # Target properties that signal a contextual role (narrow heuristic)
+        role_context_properties = {
+            "worksFor",
+            "teachingAssistantOf",
+            "researchAssistantOf",
+        }
+        # Precompute declared domain-based context signal from ontology properties
+        context_domains = set()
+        for pname, pinfo in self.properties.items():
+            if pname in role_context_properties:
+                for d in pinfo.get("domains", []) or []:
+                    context_domains.add(d)
+
         # Walk class restrictions
         for cls_uri in self.graph.subjects(RDF.type, OWL.Class):
             cls_name = self._uri_to_python_name(cls_uri)
@@ -222,21 +255,61 @@ class OwlToPythonConverter:
                 else:
                     superclass = self._uri_to_python_name(restr)
 
-            if classes and superclass and on_prop:
-                # this means that this is likely a role, defined as a subclass and a restriction, with context being
-                # the restriction on the property (the restricted range type of the property)
+            # Narrow role inference: only when enabled
+            if self.enable_role_inference and classes:
                 class_info = classes.get(cls_name)
                 if class_info:
-                    class_info["role_taker"] = [
-                        {
-                            "cls_name": superclass,
-                            "field_name": self._to_snake_case(superclass),
-                        }
-                    ]
-                    if superclass in class_info["superclasses"]:
-                        class_info["superclasses"].remove(superclass)
+                    # Determine if this class should be a Person-role and not a Professor descendant
+                    is_personish = _is_descendant(cls_name, "Person", classes)
+                    is_prof_desc = _is_descendant(cls_name, "Professor", classes)
+                    # Check for any context restriction via allowed properties
+                    has_context = False
 
-            # restrictions inside intersectionOf
+                    # Check both direct subclass restrictions and intersectionOf restrictions for onProperty
+                    def _has_role_context_for(class_uri) -> bool:
+                        # direct restrictions
+                        for restr in self.graph.objects(class_uri, RDFS.subClassOf):
+                            on_p = self.graph.value(restr, OWL.onProperty)
+                            if (
+                                on_p
+                                and self._uri_to_python_name(on_p)
+                                in role_context_properties
+                            ):
+                                return True
+                        # restrictions inside intersectionOf
+                        for coll in self.graph.objects(class_uri, OWL.intersectionOf):
+                            node = coll
+                            while node and node != RDF.nil:
+                                first = self.graph.value(node, RDF.first)
+                                on_p = (
+                                    self.graph.value(first, OWL.onProperty)
+                                    if first
+                                    else None
+                                )
+                                if (
+                                    on_p
+                                    and self._uri_to_python_name(on_p)
+                                    in role_context_properties
+                                ):
+                                    return True
+                                node = self.graph.value(node, RDF.rest)
+                        return False
+
+                    has_context = _has_role_context_for(cls_uri)
+
+                    if is_personish and not is_prof_desc and has_context:
+                        # Mark as a role for Person
+                        class_info["role_taker"] = [
+                            {
+                                "cls_name": "Person",
+                                "field_name": self._to_snake_case("Person"),
+                            }
+                        ]
+                        # Ensure we don't keep Person as an explicit superclass
+                        if "Person" in class_info.get("superclasses", []):
+                            class_info["superclasses"].remove("Person")
+
+            # restrictions inside intersectionOf: accumulate declared domains
             for coll in self.graph.objects(cls_uri, OWL.intersectionOf):
                 node = coll
                 while node and node != RDF.nil:
@@ -343,7 +416,7 @@ class OwlToPythonConverter:
         }
 
         for info in classes_copy.values():
-            if info.get("role_taker"):
+            if self.enable_role_inference and info.get("role_taker"):
                 info["superclasses"].append(role_cls_name)
             info["base_classes"] = [
                 b for b in info.get("superclasses", []) if b != "Thing"

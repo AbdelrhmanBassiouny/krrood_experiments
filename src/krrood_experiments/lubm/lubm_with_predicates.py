@@ -302,10 +302,8 @@ class Department(Organization):
 
 
 @dataclass
-class Director(UnivBenchOntologyRole[Person]):
+class Director(Person):
     """director"""
-    # Role taker
-    person: Person
     # is the head of
     head_of: Set[Program] = field(default_factory=set)
 
@@ -315,10 +313,10 @@ class Director(UnivBenchOntologyRole[Person]):
 
 
 @dataclass
-class Employee(UnivBenchOntologyRole[Person]):
+class Employee(Person, UnivBenchOntologyRole[Person]):
     """Employee"""
     # Role taker
-    person: Person
+    person: Optional[Person] = field(kw_only=True, default=None)
     # Works For
     works_for: Set[Organization] = field(default_factory=set)
 
@@ -402,10 +400,8 @@ class Specification(Publication):
 
 
 @dataclass
-class Student(UnivBenchOntologyRole[Person]):
+class Student(Person):
     """student"""
-    # Role taker
-    person: Person
     # is taking
     takes_course: Set[Course] = field(default_factory=set)
 
@@ -415,10 +411,10 @@ class Student(UnivBenchOntologyRole[Person]):
 
 
 @dataclass
-class TeachingAssistant(UnivBenchOntologyRole[Person]):
+class TeachingAssistant(Person, UnivBenchOntologyRole[Person]):
     """university teaching assistant"""
     # Role taker
-    person: Person
+    person: Optional[Person] = field(kw_only=True, default=None)
     # is a teaching assistant for
     teaching_assistant_of: Set[Course] = field(default_factory=set)
 
@@ -490,7 +486,7 @@ class GraduateCourse(Course):
 
 
 @dataclass
-class GraduateStudent(Student):
+class GraduateStudent(Person, Student):
     """graduate student"""
     # is taking
     takes_course: Set[GraduateCourse] = field(default_factory=set)
@@ -511,7 +507,7 @@ class JournalArticle(Article):
 
 
 @dataclass
-class ResearchAssistant(Employee):
+class ResearchAssistant(Person, Employee):
     """university research assistant"""
     # Works For
     works_for: Set[ResearchGroup] = field(default_factory=set)
@@ -613,9 +609,8 @@ class AssociateProfessor(Professor):
 
 
 @dataclass
-class Chair(Professor, UnivBenchOntologyRole[Person]):
+class Chair(Professor, Person):
     """chair"""
-    # Role taker
     # is the head of
     head_of: Set[Department] = field(default_factory=set)
 
