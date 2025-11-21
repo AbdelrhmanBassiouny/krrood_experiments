@@ -14,6 +14,9 @@ from krrood.entity_query_language.entity import (
     exists,
     and_,
     match,
+    SELECTED,
+    select,
+    select_any,
 )
 from krrood.entity_query_language.predicate import HasType
 from krrood.entity_query_language.symbolic import ResultQuantifier
@@ -35,6 +38,7 @@ from krrood_experiments.lubm.lubm_with_predicates import (
     Chair,
     UndergraduateStudent,
     Course,
+    Organization,
 )
 
 
@@ -53,7 +57,7 @@ def get_eql_queries() -> List[ResultQuantifier]:
         match(GraduateStudent)(
             person=match(Person)(
                 member_of=match(Department)(
-                    sub_organization_of=(uni := match(University)())
+                    sub_organization_of=(uni := match(University))
                 ),
                 undergraduate_degree_from=uni,
             )
@@ -61,56 +65,69 @@ def get_eql_queries() -> List[ResultQuantifier]:
     )
 
     # 3
-    q3 = an(
-        entity(
-            x := let(Publication, domain=None),
-            flatten(x.publication_author).uri
-            == "http://www.Department0.University0.edu/AssistantProfessor0",
+    q3 = a(
+        match(Publication)(
+            publication_author=match(Person)(
+                uri="http://www.Department0.University0.edu/AssistantProfessor0",
+            )
         )
     )
 
     # 4
     q4 = a(
-        set_of(
-            (
-                x := let(Professor, domain=None),
-                name := x.name,
-                email := x.person.email_address,
-                telephone := x.person.telephone,
+        match(Professor)(
+            works_for=match(Organization)(uri="http://www.Department0.University0.edu"),
+            name=SELECTED,
+            person=match(Person)(
+                email_address=SELECTED,
+                telephone=SELECTED,
             ),
-            flatten(x.works_for).uri == "http://www.Department0.University0.edu",
         )
     )
+    # q4 = a(
+    #     set_of(
+    #         (
+    #             x := let(Professor, domain=None),
+    #             name := x.name,
+    #             email := x.person.email_address,
+    #             telephone := x.person.telephone,
+    #         ),
+    #         flatten(x.works_for).uri == "http://www.Department0.University0.edu",
+    #     )
+    # )
 
     # 5
-    q5 = an(
-        entity(
-            x := let(Person, domain=None),
-            flatten(x.member_of).uri == "http://www.Department0.University0.edu",
+    q5 = a(
+        match(Person)(
+            member_of=match(Organization)(uri="http://www.Department0.University0.edu")
         )
     )
 
     # 6
-    q6 = an(entity(x := let(Student, domain=None)))
+    q6 = a(match(Student))
 
     # 7
     associate_professor = the(
-        entity(
-            assoc_prof := let(AssociateProfessor, domain=None),
-            assoc_prof.uri
-            == "http://www.Department0.University0.edu/AssociateProfessor0",
+        match(AssociateProfessor)(
+            uri="http://www.Department0.University0.edu/AssociateProfessor0",
         )
     )
 
     q7 = a(
-        set_of(
-            (
-                x := let(Student, domain=None),
-                y := flatten(x.takes_course),
-            ),
-            contains(associate_professor.teacher_of, y),
+        match(Student)(
+            takes_course=select_any(associate_professor.teacher_of),
         )
     )
+
+    # q7 = a(
+    #     set_of(
+    #         (
+    #             x := let(Student, domain=None),
+    #             y := flatten(x.takes_course),
+    #         ),
+    #         contains(associate_professor.teacher_of, y),
+    #     )
+    # )
 
     # 8
     q8 = an(
@@ -127,66 +144,47 @@ def get_eql_queries() -> List[ResultQuantifier]:
 
     # 9
     q9 = a(
-        set_of(
-            (
-                x := let(Student, domain=None),
-                y := flatten(x.person.advisor),
-                z := flatten(x.takes_course),
+        match(Student)(
+            person=match(Person)(
+                advisor=select(Faculty)(teacher_of=(z := select(Course)))
             ),
-            HasType(y, Faculty),
-            contains(y.teacher_of, z),  # will benefit from symbol graph optimization
+            takes_course=z,
         )
     )
 
     # 10
-    q10 = an(
-        entity(
-            x := let(Student, domain=None),
-            flatten(x.takes_course).uri
-            == "http://www.Department0.University0.edu/GraduateCourse0",
+    q10 = a(
+        match(Student)(
+            takes_course=match(Course)(
+                uri="http://www.Department0.University0.edu/GraduateCourse0",
+            )
         )
     )
 
     # 11
-    q11 = an(
-        entity(
-            x := let(ResearchGroup, domain=None),
-            flatten(x.sub_organization_of).uri == "http://www.University0.edu",
+    q11 = a(
+        match(ResearchGroup)(
+            sub_organization_of=match(Organization)(uri="http://www.University0.edu")
         )
     )
 
     # 12
-    q12 = an(
-        set_of(
-            (x := let(Chair, domain=None), y := flatten(x.works_for)),
-            exists(
-                y,
-                and_(
-                    HasType(y, Department),
-                    flatten(y.sub_organization_of).uri == "http://www.University0.edu",
-                ),
-            ),
-            # flatten(y.sub_organization_of).uri == "http://www.University0.edu",
-        )  # writing contains like this implies that the user knows that this is a set of objects.
-        # A more declarative way would be to write SubOrganizationOf(y, the(University(name="University0"))).
-    )
-
-    # 13
-    q13 = an(
-        entity(
-            x := flatten(
-                the(
-                    entity(
-                        uni := let(University, domain=None),
-                        uni.uri == "http://www.University0.edu",
-                    )
-                ).has_alumnus
-            ),
+    q12 = a(
+        match(Chair)(
+            works_for=select(Department)(
+                sub_organization_of=match(Organization)(
+                    uri="http://www.University0.edu"
+                )
+            )
         )
     )
 
+    # 13
+    uni = the(match(University)(uri="http://www.University0.edu"))
+    q13 = an(entity(uni.has_alumnus))
+
     # 14
-    q14 = an(entity(x := let(UndergraduateStudent, domain=None)))
+    q14 = a(match(UndergraduateStudent))
 
     eql_queries = [q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13, q14]
     return eql_queries
@@ -212,6 +210,7 @@ def get_python_queries():
 
 if __name__ == "__main__":
     registry = load_instances_for_lubm_with_predicates()
+    # assert Chair in registry._by_class
     python_start_time = time.time()
     count = None
     for pq in get_python_queries():
