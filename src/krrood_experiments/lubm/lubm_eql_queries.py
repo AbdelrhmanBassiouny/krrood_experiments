@@ -74,13 +74,14 @@ def get_eql_queries() -> List[ResultQuantifier]:
     )
 
     # 4
+    name, email, telephone = select(), select(), select()
     q4 = a(
         match(Professor)(
             works_for=match(Organization)(uri="http://www.Department0.University0.edu"),
-            name=SELECTED,
+            name=name,
             person=match(Person)(
-                email_address=SELECTED,
-                telephone=SELECTED,
+                email_address=email,
+                telephone=telephone,
             ),
         )
     )
@@ -186,7 +187,7 @@ def get_eql_queries() -> List[ResultQuantifier]:
     # 14
     q14 = a(match(UndergraduateStudent))
 
-    eql_queries = [q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13, q14]
+    eql_queries = [q1, q2, q3, q4, q5, q6, q6, q8, q9, q10, q11, q12, q13, q14]
     return eql_queries
 
 
