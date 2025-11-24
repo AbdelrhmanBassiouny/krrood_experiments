@@ -53,12 +53,11 @@ def get_eql_queries() -> List[ResultQuantifier]:
     )
 
     # 2
+    uni = match(University)
     q2 = a(
         match(GraduateStudent)(
-            person=match(Person)(
-                member_of=match(Department)(
-                    sub_organization_of=(uni := match(University))
-                ),
+            person=match()(
+                member_of=match(Department)(sub_organization_of=uni),
                 undergraduate_degree_from=uni,
             )
         )
@@ -67,7 +66,7 @@ def get_eql_queries() -> List[ResultQuantifier]:
     # 3
     q3 = a(
         match(Publication)(
-            publication_author=match(Person)(
+            publication_author=match()(
                 uri="http://www.Department0.University0.edu/AssistantProfessor0",
             )
         )
@@ -79,29 +78,16 @@ def get_eql_queries() -> List[ResultQuantifier]:
         match(Professor)(
             works_for=match(Organization)(uri="http://www.Department0.University0.edu"),
             name=name,
-            person=match(Person)(
+            person=match()(
                 email_address=email,
                 telephone=telephone,
             ),
         )
     )
-    # q4 = a(
-    #     set_of(
-    #         (
-    #             x := let(Professor, domain=None),
-    #             name := x.name,
-    #             email := x.person.email_address,
-    #             telephone := x.person.telephone,
-    #         ),
-    #         flatten(x.works_for).uri == "http://www.Department0.University0.edu",
-    #     )
-    # )
 
     # 5
     q5 = a(
-        match(Person)(
-            member_of=match(Organization)(uri="http://www.Department0.University0.edu")
-        )
+        match(Person)(member_of=match()(uri="http://www.Department0.University0.edu"))
     )
 
     # 6
@@ -131,32 +117,31 @@ def get_eql_queries() -> List[ResultQuantifier]:
     # )
 
     # 8
-    q8 = an(
-        set_of(
-            (
-                x := let(Student, domain=None),
-                y := flatten(x.person.member_of),
-                z := x.person.email_address,
-            ),
-            HasType(y, Department),
-            flatten(y.sub_organization_of).uri == "http://www.University0.edu",
+    student, department, email = select(Student), select(Department), select()
+    q8 = a(
+        student(
+            person=match()(
+                member_of=department(
+                    sub_organization_of=match()(uri="http://www.University0.edu")
+                ),
+                email_address=email,
+            )
         )
     )
 
     # 9
+    student, advisor, course = select(Student), select(Faculty), select(Course)
     q9 = a(
-        match(Student)(
-            person=match(Person)(
-                advisor=select(Faculty)(teacher_of=(z := select(Course)))
-            ),
-            takes_course=z,
+        student(
+            person=match()(advisor=advisor(teacher_of=course)),
+            takes_course=course,
         )
     )
 
     # 10
     q10 = a(
         match(Student)(
-            takes_course=match(Course)(
+            takes_course=match()(
                 uri="http://www.Department0.University0.edu/GraduateCourse0",
             )
         )
@@ -165,24 +150,22 @@ def get_eql_queries() -> List[ResultQuantifier]:
     # 11
     q11 = a(
         match(ResearchGroup)(
-            sub_organization_of=match(Organization)(uri="http://www.University0.edu")
+            sub_organization_of=match()(uri="http://www.University0.edu")
         )
     )
 
     # 12
+    chair, department = select(Chair), select(Department)
     q12 = a(
-        match(Chair)(
-            works_for=select(Department)(
-                sub_organization_of=match(Organization)(
-                    uri="http://www.University0.edu"
-                )
+        chair(
+            works_for=department(
+                sub_organization_of=match()(uri="http://www.University0.edu")
             )
         )
     )
 
     # 13
-    uni = the(match(University)(uri="http://www.University0.edu"))
-    q13 = an(entity(uni.has_alumnus))
+    q13 = a(match(University)(uri="http://www.University0.edu", has_alumnus=select()))
 
     # 14
     q14 = a(match(UndergraduateStudent))
