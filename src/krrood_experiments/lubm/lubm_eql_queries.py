@@ -4,21 +4,11 @@ from typing import List
 
 from krrood.entity_query_language.entity import (
     a,
-    flatten,
-    contains,
-    set_of,
     the,
-    let,
-    entity,
-    an,
-    exists,
-    and_,
     match,
-    SELECTED,
     select,
     select_any,
 )
-from krrood.entity_query_language.predicate import HasType
 from krrood.entity_query_language.symbolic import ResultQuantifier
 from krrood_experiments.lubm.helpers import (
     evaluate_eql,
@@ -106,16 +96,6 @@ def get_eql_queries() -> List[ResultQuantifier]:
         )
     )
 
-    # q7 = a(
-    #     set_of(
-    #         (
-    #             x := let(Student, domain=None),
-    #             y := flatten(x.takes_course),
-    #         ),
-    #         contains(associate_professor.teacher_of, y),
-    #     )
-    # )
-
     # 8
     student, department, email = select(Student), select(Department), select()
     q8 = a(
@@ -170,7 +150,7 @@ def get_eql_queries() -> List[ResultQuantifier]:
     # 14
     q14 = a(match(UndergraduateStudent))
 
-    eql_queries = [q1, q2, q3, q4, q5, q6, q6, q8, q9, q10, q11, q12, q13, q14]
+    eql_queries = [q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13, q14]
     return eql_queries
 
 
