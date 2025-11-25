@@ -36,7 +36,7 @@ def get_eql_queries() -> List[ResultQuantifier]:
     # 1 (No joining, just filtration of graduate students through taking a certain course)
     q1 = a(
         match(GraduateStudent)(
-            takes_course=match(Course)(
+            takes_course=match()(
                 uri="http://www.Department0.University0.edu/GraduateCourse0"
             )
         )
@@ -66,7 +66,7 @@ def get_eql_queries() -> List[ResultQuantifier]:
     name, email, telephone = select(), select(), select()
     q4 = a(
         match(Professor)(
-            works_for=match(Organization)(uri="http://www.Department0.University0.edu"),
+            works_for=match()(uri="http://www.Department0.University0.edu"),
             name=name,
             person=match()(
                 email_address=email,
@@ -145,7 +145,10 @@ def get_eql_queries() -> List[ResultQuantifier]:
     )
 
     # 13
-    q13 = a(match(University)(uri="http://www.University0.edu", has_alumnus=select()))
+    has_alumnus = select()
+    q13 = a(
+        match(University)(uri="http://www.University0.edu", has_alumnus=has_alumnus)
+    )
 
     # 14
     q14 = a(match(UndergraduateStudent))
