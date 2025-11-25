@@ -2,13 +2,16 @@ import itertools
 import time
 from typing import List
 
-from krrood.entity_query_language.entity import (
+from krrood.entity_query_language.quantify_entity import (
     a,
     the,
+)
+from krrood.entity_query_language.match import (
     match,
     select,
     select_any,
 )
+
 from krrood.entity_query_language.symbolic import ResultQuantifier
 from krrood_experiments.lubm.helpers import (
     evaluate_eql,
