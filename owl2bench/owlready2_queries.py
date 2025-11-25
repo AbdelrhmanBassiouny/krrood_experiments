@@ -18,7 +18,7 @@ from typing import List, Optional, Callable
 
 from owlready2 import get_ontology, sync_reasoner_pellet
 
-path_to_owl = r"C:\Dev\krrood_experiments\owl2bench\resources\refactored_ontologies\owl2benchRlFixed.owl"
+path_to_owl = r"owl2bench/resources/refactored_ontologies/owl2benchRlFixed.owl"
 
 onto = get_ontology(path_to_owl).load()
 
@@ -302,8 +302,8 @@ def query_sixteen(onto):
     results = set()
 
     for x in onto.individuals():
-        for y in x.hasHead:
-            results.add((x, y))
+        if x.hasHead:
+            results.add((x, x.hasHead))
 
     return results
 
@@ -443,7 +443,7 @@ def run_all_queries_rl(onto):
         "eleven": len(query_eleven(onto)),
         "twelve": len(query_twelve(onto)),
         "fifteen": len(query_fifteen(onto)),
-        # "sixteen": query_sixteen(onto),
+         "sixteen": len(query_sixteen(onto)),
         "nineteen": len(query_nineteen(onto)),
         "twenty": len(query_twenty(onto)),
         "twenty_one": len(query_twenty_one(onto)),
