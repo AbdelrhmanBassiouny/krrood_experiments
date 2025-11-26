@@ -1,41 +1,48 @@
 import itertools
 import time
+from dataclasses import dataclass
 from typing import List
 
-from krrood.entity_query_language.quantify_entity import (
-    a,
-    the,
-)
 from krrood.entity_query_language.match import (
     match,
     select,
     select_any,
 )
-
+from krrood.entity_query_language.quantify_entity import (
+    a,
+    the,
+)
 from krrood.entity_query_language.symbolic import ResultQuantifier
+
 from krrood_experiments.lubm.helpers import (
     evaluate_eql,
     load_instances_for_lubm_with_predicates,
+    get_lubm_answers,
 )
 from krrood_experiments.lubm.lubm_with_predicates import (
-    GraduateStudent,
-    Person,
-    Publication,
-    Professor,
     AssociateProfessor,
     Department,
-    University,
     Student,
-    Faculty,
-    ResearchGroup,
-    Chair,
-    UndergraduateStudent,
-    Course,
-    Organization,
 )
 
 
-def get_eql_queries() -> List[ResultQuantifier]:
+@dataclass
+class QueryWithSelectables:
+    """
+    This class is for being able to compare LUBM query answers with eql query answers.
+    """
+
+    query: ResultQuantifier
+    """
+    The query to evaluate.
+    """
+    selectables: dict
+    """
+    A dictionary mapping variable names to selectables.
+    """
+
+
+def get_eql_queries() -> List[QueryWithSelectables]:
     # 1 (No joining, just filtration of graduate students through taking a certain course)
     # q1 = a(
     #     match(GraduateStudent)(
@@ -92,12 +99,10 @@ def get_eql_queries() -> List[ResultQuantifier]:
             uri="http://www.Department0.University0.edu/AssociateProfessor0",
         )
     )
-
-    q7 = a(
-        match(Student)(
-            takes_course=select_any(associate_professor.teacher_of),
-        )
-    )
+    student = select(Student)
+    course = select_any(associate_professor.teacher_of)
+    q7 = a(student(takes_course=course))
+    q7_with_selectables = QueryWithSelectables(q7, {"X": student, "Y": course})
 
     # 8
     # student, department, email = select(Student), select(Department), select()
@@ -158,7 +163,7 @@ def get_eql_queries() -> List[ResultQuantifier]:
 
     # eql_queries = [q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13, q14]
     # return eql_queries
-    return [q7]
+    return [q7_with_selectables]
 
 
 def get_python_queries():
@@ -179,9 +184,7 @@ def get_python_queries():
     return [q8]
 
 
-if __name__ == "__main__":
-    registry = load_instances_for_lubm_with_predicates()
-    # assert Chair in registry._by_class
+def report_python_query_time():
     python_start_time = time.time()
     count = None
     for pq in get_python_queries():
@@ -189,10 +192,22 @@ if __name__ == "__main__":
     python_end_time = time.time()
     print(f"Python Count: {count}")
     print(f"Python Time elapsed: {python_end_time - python_start_time} seconds")
+
+
+if __name__ == "__main__":
+    registry = load_instances_for_lubm_with_predicates()
+    # assert Chair in registry._by_class
+    report_python_query_time()
     start_time = time.time()
-    counts, results, times = evaluate_eql(get_eql_queries())
+    queries_with_selectables = get_eql_queries()
+    counts, results, times = evaluate_eql(
+        list(map(lambda q: q.query, queries_with_selectables))
+    )
     end_time = time.time()
     for i, n in enumerate(counts, 1):
         print(f"{i}:{n} ({times[i - 1]} sec)")
         # print([r for r in results[i - 1]])
     print(f"Time elapsed: {end_time - start_time} seconds")
+
+    lubm_answers = get_lubm_answers()
+    pass
