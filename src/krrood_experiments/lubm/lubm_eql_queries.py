@@ -240,4 +240,5 @@ if __name__ == "__main__":
     print(f"Time elapsed: {end_time - start_time} seconds")
 
     lubm_answers = get_lubm_answers()
-    pass
+    # for i, q in enumerate(queries_with_selectables):
+    #     assert set(tuple(lubm_answers[i + 1].items())) == set(results[i])
