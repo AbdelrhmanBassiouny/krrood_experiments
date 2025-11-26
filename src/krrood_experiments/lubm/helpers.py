@@ -1,9 +1,10 @@
+from __future__ import annotations
 import os
 import time
 from collections import defaultdict
 from os.path import dirname
 from pathlib import Path
-from typing import List, Any, Tuple
+from typing import List, Any, Tuple, TYPE_CHECKING
 
 from krrood.entity_query_language.symbolic import ResultQuantifier
 from owlrl import DeductiveClosure, OWLRL_Semantics
@@ -14,6 +15,9 @@ from .owl_instances_loader import (
     OwlInstancesRegistry,
 )
 from .owl_to_python import OwlToPythonConverter
+
+if TYPE_CHECKING:
+    from .lubm_eql_queries import QueryWithSelectables
 
 
 def generate_lubm_with_predicates():
@@ -68,7 +72,7 @@ def evaluate_sparql(rdf_graph: Graph, sparql_queries: List[str]):
 
 
 def evaluate_eql(
-    eql_queries: List[ResultQuantifier],
+    eql_queries: List[QueryWithSelectables],
 ) -> Tuple[List[int], List[List[Any]], List[float]]:
     """Load instances and evaluate 14 EQL queries, returning counts per query."""
     counts: List[int] = []

@@ -1,6 +1,7 @@
 import itertools
 import time
 from dataclasses import dataclass
+from functools import cached_property
 from typing import List
 
 from krrood.entity_query_language.match import (
@@ -12,7 +13,7 @@ from krrood.entity_query_language.quantify_entity import (
     a,
     the,
 )
-from krrood.entity_query_language.symbolic import ResultQuantifier
+from krrood.entity_query_language.symbolic import ResultQuantifier, An, The, SetOf
 
 from krrood_experiments.lubm.helpers import (
     evaluate_eql,
@@ -23,6 +24,16 @@ from krrood_experiments.lubm.lubm_with_predicates import (
     AssociateProfessor,
     Department,
     Student,
+    GraduateStudent,
+    University,
+    Publication,
+    Professor,
+    Person,
+    Faculty,
+    Course,
+    ResearchGroup,
+    Chair,
+    UndergraduateStudent,
 )
 
 
@@ -32,7 +43,7 @@ class QueryWithSelectables:
     This class is for being able to compare LUBM query answers with eql query answers.
     """
 
-    query: ResultQuantifier
+    query: An
     """
     The query to evaluate.
     """
@@ -41,57 +52,71 @@ class QueryWithSelectables:
     A dictionary mapping variable names to selectables.
     """
 
+    def evaluate(self):
+        for value in self.query.evaluate():
+            if isinstance(self.query._child_, SetOf):
+                yield {k: value[v] for k, v in self.selectables.items()}
+            else:
+                yield {k: value for k, v in self.selectables.items()}
+
 
 def get_eql_queries() -> List[QueryWithSelectables]:
     # 1 (No joining, just filtration of graduate students through taking a certain course)
-    # q1 = a(
-    #     match(GraduateStudent)(
-    #         takes_course=match()(
-    #             uri="http://www.Department0.University0.edu/GraduateCourse0"
-    #         )
-    #     )
-    # )
-    #
-    # # 2
-    # uni = match(University)
-    # q2 = a(
-    #     match(GraduateStudent)(
-    #         person=match()(
-    #             member_of=match(Department)(sub_organization_of=uni),
-    #             undergraduate_degree_from=uni,
-    #         )
-    #     )
-    # )
-    #
-    # # 3
-    # q3 = a(
-    #     match(Publication)(
-    #         publication_author=match()(
-    #             uri="http://www.Department0.University0.edu/AssistantProfessor0",
-    #         )
-    #     )
-    # )
-    #
-    # # 4
-    # name, email, telephone = select(), select(), select()
-    # q4 = a(
-    #     match(Professor)(
-    #         works_for=match()(uri="http://www.Department0.University0.edu"),
-    #         name=name,
-    #         person=match()(
-    #             email_address=email,
-    #             telephone=telephone,
-    #         ),
-    #     )
-    # )
-    #
-    # # 5
-    # q5 = a(
-    #     match(Person)(member_of=match()(uri="http://www.Department0.University0.edu"))
-    # )
-    #
-    # # 6
-    # q6 = a(match(Student))
+    q1 = a(
+        match(GraduateStudent)(
+            takes_course=match()(
+                uri="http://www.Department0.University0.edu/GraduateCourse0"
+            )
+        )
+    )
+    q1 = QueryWithSelectables(q1, {"X": q1})
+
+    # 2
+    uni = match(University)
+    q2 = a(
+        match(GraduateStudent)(
+            person=match()(
+                member_of=match(Department)(sub_organization_of=uni),
+                undergraduate_degree_from=uni,
+            )
+        )
+    )
+    q2 = QueryWithSelectables(q2, {"X": q2})
+
+    # 3
+    q3 = a(
+        match(Publication)(
+            publication_author=match()(
+                uri="http://www.Department0.University0.edu/AssistantProfessor0",
+            )
+        )
+    )
+    q3 = QueryWithSelectables(q3, {"X": q3})
+
+    # 4
+    professor, name, email, telephone = select(Professor), select(), select(), select()
+    q4 = a(
+        professor(
+            works_for=match()(uri="http://www.Department0.University0.edu"),
+            name=name,
+            person=match()(
+                email_address=email,
+                telephone=telephone,
+            ),
+        )
+    )
+    q4 = QueryWithSelectables(
+        q4, {"X": professor, "Y1": name, "Y2": email, "Y3": telephone}
+    )
+
+    # 5
+    q5 = a(
+        match(Person)(member_of=match()(uri="http://www.Department0.University0.edu"))
+    )
+    q5 = QueryWithSelectables(q5, {"X": q5})
+
+    # 6
+    q6 = a(match(Student))
 
     # 7
     associate_professor = the(
@@ -102,68 +127,75 @@ def get_eql_queries() -> List[QueryWithSelectables]:
     student = select(Student)
     course = select_any(associate_professor.teacher_of)
     q7 = a(student(takes_course=course))
-    q7_with_selectables = QueryWithSelectables(q7, {"X": student, "Y": course})
+
+    q7 = QueryWithSelectables(q7, {"X": student, "Y": course})
 
     # 8
-    # student, department, email = select(Student), select(Department), select()
-    # q8 = a(
-    #     student(
-    #         person=match()(
-    #             member_of=department(
-    #                 sub_organization_of=match()(uri="http://www.University0.edu")
-    #             ),
-    #             email_address=email,
-    #         )
-    #     )
-    # )
-    #
-    # # 9
-    # student, advisor, course = select(Student), select(Faculty), select(Course)
-    # q9 = a(
-    #     student(
-    #         person=match()(advisor=advisor(teacher_of=course)),
-    #         takes_course=course,
-    #     )
-    # )
-    #
-    # # 10
-    # q10 = a(
-    #     match(Student)(
-    #         takes_course=match()(
-    #             uri="http://www.Department0.University0.edu/GraduateCourse0",
-    #         )
-    #     )
-    # )
-    #
-    # # 11
-    # q11 = a(
-    #     match(ResearchGroup)(
-    #         sub_organization_of=match()(uri="http://www.University0.edu")
-    #     )
-    # )
-    #
-    # # 12
-    # chair, department = select(Chair), select(Department)
-    # q12 = a(
-    #     chair(
-    #         works_for=department(
-    #             sub_organization_of=match()(uri="http://www.University0.edu")
-    #         )
-    #     )
-    # )
-    #
-    # # 13
-    # has_alumnus = select()
-    # q13 = a(
-    #     match(University)(uri="http://www.University0.edu", has_alumnus=has_alumnus)
-    # )
-    #
-    # # 14
-    # q14 = a(match(UndergraduateStudent))
+    student, department, email = select(Student), select(Department), select()
+    q8 = a(
+        student(
+            person=match()(
+                member_of=department(
+                    sub_organization_of=match()(uri="http://www.University0.edu")
+                ),
+                email_address=email,
+            )
+        )
+    )
+    q8 = QueryWithSelectables(q8, {"X": student, "Y1": department, "Y2": email})
 
-    # eql_queries = [q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13, q14]
-    # return eql_queries
-    return [q7_with_selectables]
+    # 9
+    student, advisor, course = select(Student), select(Faculty), select(Course)
+    q9 = a(
+        student(
+            person=match()(advisor=advisor(teacher_of=course)),
+            takes_course=course,
+        )
+    )
+    q9 = QueryWithSelectables(q9, {"X": student, "Y1": advisor, "Y2": course})
+
+    # 10
+    q10 = a(
+        match(Student)(
+            takes_course=match()(
+                uri="http://www.Department0.University0.edu/GraduateCourse0",
+            )
+        )
+    )
+    q10 = QueryWithSelectables(q10, {"X": q10})
+
+    # 11
+    q11 = a(
+        match(ResearchGroup)(
+            sub_organization_of=match()(uri="http://www.University0.edu")
+        )
+    )
+    q11 = QueryWithSelectables(q11, {"X": q11})
+
+    # 12
+    chair, department = select(Chair), select(Department)
+    q12 = a(
+        chair(
+            works_for=department(
+                sub_organization_of=match()(uri="http://www.University0.edu")
+            )
+        )
+    )
+    q12 = QueryWithSelectables(q12, {"X": chair, "Y": department})
+
+    # 13
+    has_alumnus = select()
+    q13 = a(
+        match(University)(uri="http://www.University0.edu", has_alumnus=has_alumnus)
+    )
+    q13 = QueryWithSelectables(q13, {"X": has_alumnus})
+
+    # 14
+    q14 = a(match(UndergraduateStudent))
+    q14 = QueryWithSelectables(q14, {"X": q14})
+
+    eql_queries = [q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13, q14]
+    return eql_queries
 
 
 def get_python_queries():
@@ -200,9 +232,7 @@ if __name__ == "__main__":
     report_python_query_time()
     start_time = time.time()
     queries_with_selectables = get_eql_queries()
-    counts, results, times = evaluate_eql(
-        list(map(lambda q: q.query, queries_with_selectables))
-    )
+    counts, results, times = evaluate_eql(queries_with_selectables)
     end_time = time.time()
     for i, n in enumerate(counts, 1):
         print(f"{i}:{n} ({times[i - 1]} sec)")
