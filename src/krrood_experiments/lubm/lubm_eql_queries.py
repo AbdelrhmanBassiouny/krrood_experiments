@@ -124,7 +124,7 @@ def get_eql_queries() -> List[QueryWithSelectables]:
         )
     )
     student = select(Student)
-    course = select_any(associate_professor.teacher_of)
+    course = select(associate_professor.teacher_of)
     q7 = a(student(takes_course=course))
 
     q7 = QueryWithSelectables(q7, {"X": student, "Y": course})
