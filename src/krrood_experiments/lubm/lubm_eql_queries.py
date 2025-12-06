@@ -7,9 +7,9 @@ from krrood.entity_query_language.quantify_entity import (
     the,
 )
 from krrood.entity_query_language.match import (
-    match,
     select,
-    select_any,
+    matching,
+    match_any,
 )
 
 from krrood.entity_query_language.symbolic import ResultQuantifier
@@ -38,19 +38,19 @@ from krrood_experiments.lubm.lubm_with_predicates import (
 def get_eql_queries() -> List[ResultQuantifier]:
     # 1 (No joining, just filtration of graduate students through taking a certain course)
     q1 = a(
-        match(GraduateStudent)(
-            takes_course=match()(
+        matching(GraduateStudent)(
+            takes_course=matching()(
                 uri="http://www.Department0.University0.edu/GraduateCourse0"
             )
         )
     )
 
     # 2
-    uni = match(University)
+    uni = matching(University)
     q2 = a(
-        match(GraduateStudent)(
-            person=match()(
-                member_of=match(Department)(sub_organization_of=uni),
+        matching(GraduateStudent)(
+            person=matching()(
+                member_of=matching(Department)(sub_organization_of=uni),
                 undergraduate_degree_from=uni,
             )
         )
@@ -58,73 +58,70 @@ def get_eql_queries() -> List[ResultQuantifier]:
 
     # 3
     q3 = a(
-        match(Publication)(
-            publication_author=match()(
+        matching(Publication)(
+            publication_author=matching()(
                 uri="http://www.Department0.University0.edu/AssistantProfessor0",
             )
         )
     )
 
     # 4
-    name, email, telephone = select(), select(), select()
     q4 = a(
-        match(Professor)(
-            works_for=match()(uri="http://www.Department0.University0.edu"),
-            name=name,
-            person=match()(
-                email_address=email,
-                telephone=telephone,
-            ),
+        matching(Professor)(
+            works_for=matching()(uri="http://www.Department0.University0.edu"),
         )
     )
+    q4 = select(q4, q4.name, q4.person.email_address, q4.person.telephone)
 
     # 5
     q5 = a(
-        match(Person)(member_of=match()(uri="http://www.Department0.University0.edu"))
+        matching(Person)(
+            member_of=matching()(uri="http://www.Department0.University0.edu")
+        )
     )
 
     # 6
-    q6 = a(match(Student))
+    q6 = a(matching(Student))
 
     # 7
     associate_professor = the(
-        match(AssociateProfessor)(
+        matching(AssociateProfessor)(
             uri="http://www.Department0.University0.edu/AssociateProfessor0",
         )
     )
-
     q7 = a(
-        match(Student)(
-            takes_course=select_any(associate_professor.teacher_of),
+        matching(Student)(
+            takes_course=associate_professor.teacher_of,
         )
     )
+    q7 = select(q7, q7.takes_course)
 
     # 8
-    student, department, email = select(Student), select(Department), select()
     q8 = a(
-        student(
-            person=match()(
-                member_of=department(
-                    sub_organization_of=match()(uri="http://www.University0.edu")
+        matching(Student)(
+            person=matching()(
+                member_of=matching(Department)(
+                    sub_organization_of=matching()(uri="http://www.University0.edu")
                 ),
-                email_address=email,
             )
         )
     )
+    q8 = select(q8, q8.person.member_of, q8.person.email_address)
 
     # 9
-    student, advisor, course = select(Student), select(Faculty), select(Course)
+    course = matching(Course)
     q9 = a(
-        student(
-            person=match()(advisor=advisor(teacher_of=course)),
+        matching(Student)(
+            person=matching()(advisor=matching(Faculty)(teacher_of=course)),
             takes_course=course,
         )
     )
+    q9 = select(q9, q9.person.advisor, q9.takes_course)
 
     # 10
     q10 = a(
-        match(Student)(
-            takes_course=match()(
+        matching(Student)(
+            takes_course=matching()(
                 uri="http://www.Department0.University0.edu/GraduateCourse0",
             )
         )
@@ -132,32 +129,31 @@ def get_eql_queries() -> List[ResultQuantifier]:
 
     # 11
     q11 = a(
-        match(ResearchGroup)(
-            sub_organization_of=match()(uri="http://www.University0.edu")
+        matching(ResearchGroup)(
+            sub_organization_of=matching()(uri="http://www.University0.edu")
         )
     )
 
     # 12
-    chair, department = select(Chair), select(Department)
     q12 = a(
-        chair(
-            works_for=department(
-                sub_organization_of=match()(uri="http://www.University0.edu")
+        matching(Chair)(
+            works_for=matching(Department)(
+                sub_organization_of=matching()(uri="http://www.University0.edu")
             )
         )
     )
+    q12 = select(q12, q12.works_for)
 
     # 13
-    has_alumnus = select()
-    q13 = a(
-        match(University)(uri="http://www.University0.edu", has_alumnus=has_alumnus)
-    )
+    q13 = a(matching(University)(uri="http://www.University0.edu"))
+    select(q13.has_alumnus)
 
     # 14
-    q14 = a(match(UndergraduateStudent))
+    q14 = a(matching(UndergraduateStudent))
 
     eql_queries = [q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13, q14]
     return eql_queries
+    # return [q7]
 
 
 def get_python_queries():
