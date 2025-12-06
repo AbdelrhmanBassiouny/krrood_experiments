@@ -1,8 +1,10 @@
+from __future__ import annotations
 import os
 import time
+from collections import defaultdict
 from os.path import dirname
 from pathlib import Path
-from typing import List, Any, Tuple
+from typing import List, Any, Tuple, TYPE_CHECKING
 
 from krrood.entity_query_language.symbolic import ResultQuantifier
 from owlrl import DeductiveClosure, OWLRL_Semantics
@@ -13,6 +15,9 @@ from .owl_instances_loader import (
     OwlInstancesRegistry,
 )
 from .owl_to_python import OwlToPythonConverter
+
+if TYPE_CHECKING:
+    from .lubm_eql_queries import QueryWithSelectables
 
 
 def generate_lubm_with_predicates():
@@ -67,7 +72,7 @@ def evaluate_sparql(rdf_graph: Graph, sparql_queries: List[str]):
 
 
 def evaluate_eql(
-    eql_queries: List[ResultQuantifier],
+    eql_queries: List[QueryWithSelectables],
 ) -> Tuple[List[int], List[List[Any]], List[float]]:
     """Load instances and evaluate 14 EQL queries, returning counts per query."""
     counts: List[int] = []
@@ -96,3 +101,28 @@ def load_instances_for_lubm_with_predicates() -> OwlInstancesRegistry:
         model_module=lubm_with_predicates,
     )
     return registry
+
+
+def get_lubm_answers():
+    queries_answers = defaultdict(list)
+    answers_path = os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "..",
+        "..",
+        "lubm",
+        "resources",
+        "query_answers",
+    )
+    for i in range(1, 15):
+        first_line = True
+        with open(os.path.join(answers_path, f"answers_query{i}.txt")) as f:
+            for line in f:
+                if first_line:
+                    first_line = False
+                    var_names = line.strip().split()
+                else:
+                    var_values = line.strip().split()
+                    assert len(var_names) == len(var_values)
+                    queries_answers[i].append(dict(zip(var_names, var_values)))
+    return queries_answers
