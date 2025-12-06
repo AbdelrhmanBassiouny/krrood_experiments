@@ -13,7 +13,7 @@ from krrood.entity_query_language.quantify_entity import (
     a,
     the,
 )
-from krrood.entity_query_language.symbolic import An, SetOf
+from krrood.entity_query_language.symbolic import An, SetOf, UnificationDict
 from typing_extensions import Any
 
 from krrood_experiments.lubm.helpers import (
@@ -53,9 +53,12 @@ class QueryWithSelectables:
     A dictionary mapping variable names to selectables.
     """
 
+    def __post_init__(self):
+        self.query = select(*self.selectables.values())._expression_
+
     def evaluate(self):
         for value in self.query.evaluate():
-            if isinstance(self.query._child_, SetOf):
+            if isinstance(value, UnificationDict):
                 yield {k: value[v] for k, v in self.selectables.items()}
             else:
                 yield {k: value for k, v in self.selectables.items()}
@@ -71,7 +74,6 @@ def get_eql_queries() -> List[QueryWithSelectables]:
         )
     )
     q1 = QueryWithSelectables(q1, {"X": q1})
-    q1 = QueryWithSelectables(q1, {"X": q1})
 
     # 2
     uni = matching(University)
@@ -84,7 +86,6 @@ def get_eql_queries() -> List[QueryWithSelectables]:
         )
     )
     q2 = QueryWithSelectables(q2, {"X": q2})
-    q2 = QueryWithSelectables(q2, {"X": q2})
 
     # 3
     q3 = a(
@@ -95,7 +96,6 @@ def get_eql_queries() -> List[QueryWithSelectables]:
         )
     )
     q3 = QueryWithSelectables(q3, {"X": q3})
-    q3 = QueryWithSelectables(q3, {"X": q3})
 
     # 4
     q4 = a(
@@ -103,9 +103,14 @@ def get_eql_queries() -> List[QueryWithSelectables]:
             works_for=matching()(uri="http://www.Department0.University0.edu"),
         )
     )
-    q4 = select(q4, q4.name, q4.person.email_address, q4.person.telephone)
     q4 = QueryWithSelectables(
-        q4, {"X": professor, "Y1": name, "Y2": email, "Y3": telephone}
+        q4,
+        {
+            "X": q4,
+            "Y1": q4.name,
+            "Y2": q4.person.email_address,
+            "Y3": q4.person.telephone,
+        },
     )
 
     # 5
@@ -114,7 +119,6 @@ def get_eql_queries() -> List[QueryWithSelectables]:
             member_of=matching()(uri="http://www.Department0.University0.edu")
         )
     )
-    q5 = QueryWithSelectables(q5, {"X": q5})
     q5 = QueryWithSelectables(q5, {"X": q5})
 
     # 6
@@ -132,8 +136,7 @@ def get_eql_queries() -> List[QueryWithSelectables]:
             takes_course=associate_professor.teacher_of,
         )
     )
-    q7 = select(q7, q7.takes_course)
-    q7 = QueryWithSelectables(q7, {"X": student, "Y": course})
+    q7 = QueryWithSelectables(q7, {"X": q7, "Y": q7.takes_course})
 
     # 8
     q8 = a(
@@ -145,8 +148,9 @@ def get_eql_queries() -> List[QueryWithSelectables]:
             )
         )
     )
-    q8 = select(q8, q8.person.member_of, q8.person.email_address)
-    q8 = QueryWithSelectables(q8, {"X": student, "Y1": department, "Y2": email})
+    q8 = QueryWithSelectables(
+        q8, {"X": q8, "Y1": q8.person.member_of, "Y2": q8.person.email_address}
+    )
 
     # 9
     course = matching(Course)
@@ -156,8 +160,9 @@ def get_eql_queries() -> List[QueryWithSelectables]:
             takes_course=course,
         )
     )
-    q9 = select(q9, q9.person.advisor, q9.takes_course)
-    q9 = QueryWithSelectables(q9, {"X": student, "Y1": advisor, "Y2": course})
+    q9 = QueryWithSelectables(
+        q9, {"X": q9, "Y1": q9.person.advisor, "Y2": q9.takes_course}
+    )
 
     # 10
     q10 = a(
@@ -168,7 +173,6 @@ def get_eql_queries() -> List[QueryWithSelectables]:
         )
     )
     q10 = QueryWithSelectables(q10, {"X": q10})
-    q10 = QueryWithSelectables(q10, {"X": q10})
 
     # 11
     q11 = a(
@@ -176,7 +180,6 @@ def get_eql_queries() -> List[QueryWithSelectables]:
             sub_organization_of=matching()(uri="http://www.University0.edu")
         )
     )
-    q11 = QueryWithSelectables(q11, {"X": q11})
     q11 = QueryWithSelectables(q11, {"X": q11})
 
     # 12
@@ -187,13 +190,11 @@ def get_eql_queries() -> List[QueryWithSelectables]:
             )
         )
     )
-    q12 = select(q12, q12.works_for)
-    q12 = QueryWithSelectables(q12, {"X": chair, "Y": department})
+    q12 = QueryWithSelectables(q12, {"X": q12, "Y": q12.works_for})
 
     # 13
     q13 = a(matching(University)(uri="http://www.University0.edu"))
-    select(q13.has_alumnus)
-    q13 = QueryWithSelectables(q13, {"X": has_alumnus})
+    q13 = QueryWithSelectables(q13, {"X": q13})
 
     # 14
     q14 = a(matching(UndergraduateStudent))
