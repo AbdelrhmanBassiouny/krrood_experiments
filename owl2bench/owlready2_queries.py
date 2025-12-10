@@ -11,19 +11,25 @@ Each query function includes a brief documentation block with:
 
 Source of descriptions: `owl2bench/resources/OWL2BENCH_SPARQL_Queries.txt`
 """
+import time
 
-from dataclasses import dataclass
-from enum import Enum
-from typing import List, Optional, Callable
+from owlready2 import get_ontology, sync_reasoner_pellet, sync_reasoner
 
-from owlready2 import get_ontology, sync_reasoner_pellet
+path_to_owl = r"/home/sorin/dev/krrood_experiments/owl2bench/resources/refactored_ontologies/owl2benchRlFixed.owl"
 
-path_to_owl = r"owl2bench/resources/refactored_ontologies/owl2benchRlFixed.owl"
-
+start_time = time.time()
 onto = get_ontology(path_to_owl).load()
+loading_time = time.time() - start_time
 
-with onto:
-    sync_reasoner_pellet(infer_property_values=True, infer_data_property_values=True, debug=True)
+def perform_reasoning(reasoner, onto):
+    start_time = time.time()
+    with onto:
+        if reasoner == "pellet":
+            sync_reasoner_pellet(infer_property_values=True, infer_data_property_values=True, debug=True)
+        elif reasoner == "hermit":
+            sync_reasoner(infer_property_values=True)
+    reasoning_time = time.time() - start_time
+    return reasoning_time
 
 
 def query_one(onto):
@@ -425,6 +431,50 @@ def query_twenty_two(onto):
                         results.add((s, c))
 
     return results
+
+# Function to run all queries and capture individual and total execution time
+def run_all_queries_with_timing(onto):
+    query_functions = [
+        query_one, query_two, query_three, query_four, query_five, query_seven,
+        query_eight, query_ten, query_eleven, query_twelve, query_fifteen, query_sixteen,
+        query_nineteen, query_twenty, query_twenty_one, query_twenty_two,
+    ]
+    query_times = {}
+    total_query_time = 0
+
+    for query_func in query_functions:
+        query_name = query_func.__name__
+        start_time = time.time()
+        results = query_func(onto)  # Execute the query
+        query_time = time.time() - start_time
+        query_times[query_name] = query_time
+        total_query_time += query_time
+
+    return query_times, total_query_time
+
+# Perform reasoning with Pellet and measure time
+#pellet_reasoning_time = perform_reasoning("pellet", onto)
+# Run and time all queries for Pellet
+#pellet_query_times, pellet_total_query_time = run_all_queries_with_timing(onto)
+
+# Perform reasoning with HermiT and measure time
+hermit_reasoning_time = perform_reasoning("hermit", onto)
+# Run and time all queries for HermiT
+hermit_query_times, hermit_total_query_time = run_all_queries_with_timing(onto)
+
+# Print timings
+print(f"Ontology Loading Time: {loading_time:.4f} seconds")
+#print(f"Pellet Reasoning Time: {pellet_reasoning_time:.4f} seconds")
+print(f"HermiT Reasoning Time: {hermit_reasoning_time:.4f} seconds")
+print("\nQuery Execution Times:")
+print("Pellet:")
+#for query, time_taken in pellet_query_times.items():
+#    print(f"{query}: {time_taken:.4f} seconds")
+#print(f"Total Query Execution Time (Pellet): {pellet_total_query_time:.4f} seconds")
+print("\nHermiT:")
+for query, time_taken in hermit_query_times.items():
+    print(f"{query}: {time_taken:.4f} seconds")
+print(f"Total Query Execution Time (HermiT): {hermit_total_query_time:.4f} seconds")
 
 
 def run_all_queries_rl(onto):
