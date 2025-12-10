@@ -1,9 +1,6 @@
-from typing import Set, Tuple, Any, Dict
-from rdflib import Graph
+from typing import Set, Tuple, Dict
+from SPARQLWrapper import SPARQLWrapper, JSON
 import time
-
-# RDFLIB requires an already inferred ontology (or maybe not, for me it took longer then an hour and i interrupted it.)
-ONTO_PATH = r"/home/sorin/dev/krrood_experiments/owl2bench/resources/refactored_ontologies/owl2benchRlFixed.owl"
 
 # Common SPARQL prefixes used by the OWL2Bench queries
 PREFIXES = "\n".join([
@@ -13,31 +10,28 @@ PREFIXES = "\n".join([
 ]) + "\n"
 
 
-def _load_graph(path: str = ONTO_PATH) -> Graph:
+def _run_sparql(endpoint: str, query: str) -> Set[Tuple[str, ...]]:
     """
-    Load the ontology into an rdflib Graph. Returns the Graph.
-    """
-    g = Graph()
-    # try common RDF formats; most OWL files are RDF/XML
-    g.parse(path, format="xml")
-    #DeductiveClosure(OWLRL_Semantics).expand(g)
-    return g
-
-
-def _run_sparql(g: Graph, query: str) -> Set[Tuple[str, ...]]:
-    """
-    Execute a SPARQL SELECT query (query should include PREFIX declarations).
+    Execute a SPARQL SELECT query against the given endpoint.
     Returns a set of tuples of stringified bindings (in order of SELECT variables).
     """
-    results = set()
-    qres = g.query(query)
-    # rdflib returns rows that can be accessed by position
-    for row in qres:
-        results.add(tuple(str(v) if v is not None else "" for v in row))
-    return results
+    sparql = SPARQLWrapper(endpoint)
+    sparql.setQuery(query)
+    sparql.setReturnFormat(JSON)
+    try:
+        results = sparql.query().convert()
+    except Exception:
+        return set()
+
+    vars_order = results.get('head', {}).get('vars', [])
+    res_set = set()
+    for binding in results.get('results', {}).get('bindings', []):
+        row = tuple(binding.get(var, {}).get('value', '') for var in vars_order)
+        res_set.add(row)
+    return res_set
 
 
-def query_one(g: Graph) -> Set[Tuple[str, str]]:
+def query_one(endpoint: str) -> Set[Tuple[str, str]]:
     """
     Description:
         Find the instances who know some other instance.
@@ -47,10 +41,10 @@ def query_one(g: Graph) -> Set[Tuple[str, str]]:
         EL, QL, DL
     """
     q = PREFIXES + "SELECT DISTINCT ?x ?y WHERE { ?x owl2bench:knows ?y }"
-    return _run_sparql(g, q)
+    return _run_sparql(endpoint, q)
 
 
-def query_two(g: Graph) -> Set[Tuple[str, str]]:
+def query_two(endpoint: str) -> Set[Tuple[str, str]]:
     """
     Description:
         Find Person instances who are member (Student or Employee) of some Organization.
@@ -60,10 +54,10 @@ def query_two(g: Graph) -> Set[Tuple[str, str]]:
         EL, RL, DL
     """
     q = PREFIXES + "SELECT DISTINCT ?x ?y WHERE { ?x owl2bench:isMemberOf ?y }"
-    return _run_sparql(g, q)
+    return _run_sparql(endpoint, q)
 
 
-def query_three(g: Graph) -> Set[Tuple[str, str]]:
+def query_three(endpoint: str) -> Set[Tuple[str, str]]:
     """
     Description:
         Find the instances of Organization which is a Part Of any other Organization.
@@ -73,10 +67,10 @@ def query_three(g: Graph) -> Set[Tuple[str, str]]:
         EL, RL, DL
     """
     q = PREFIXES + "SELECT DISTINCT ?x ?y WHERE { ?x owl2bench:isPartOf ?y }"
-    return _run_sparql(g, q)
+    return _run_sparql(endpoint, q)
 
 
-def query_four(g: Graph) -> Set[Tuple[str, str]]:
+def query_four(endpoint: str) -> Set[Tuple[str, str]]:
     """
     Description:
         Find the age of all the Person instances.
@@ -86,10 +80,10 @@ def query_four(g: Graph) -> Set[Tuple[str, str]]:
         EL, RL, DL
     """
     q = PREFIXES + "SELECT DISTINCT ?x ?y WHERE { ?x owl2bench:hasAge ?y }"
-    return _run_sparql(g, q)
+    return _run_sparql(endpoint, q)
 
 
-def query_five(g: Graph) -> Set[Tuple[str]]:
+def query_five(endpoint: str) -> Set[Tuple[str]]:
     """
     Description:
         Find all the instances of class T20CricketFan. T20CricketFan is a Person who is crazy about T20Cricket.
@@ -99,10 +93,10 @@ def query_five(g: Graph) -> Set[Tuple[str]]:
         EL, RL, DL
     """
     q = PREFIXES + "SELECT DISTINCT ?x WHERE { ?x rdf:type owl2bench:T20CricketFan }"
-    return _run_sparql(g, q)
+    return _run_sparql(endpoint, q)
 
 
-def query_six(g: Graph) -> Set[Tuple[str]]:
+def query_six(endpoint: str) -> Set[Tuple[str]]:
     """
     Description:
         Find all the instances of class SelfAwarePerson. SelfAwarePerson is a Person who knows themselves.
@@ -112,10 +106,10 @@ def query_six(g: Graph) -> Set[Tuple[str]]:
         EL, DL
     """
     q = PREFIXES + "SELECT DISTINCT ?x WHERE { ?x rdf:type owl2bench:SelfAwarePerson }"
-    return _run_sparql(g, q)
+    return _run_sparql(endpoint, q)
 
 
-def query_seven(g: Graph) -> Set[Tuple[str, str]]:
+def query_seven(endpoint: str) -> Set[Tuple[str, str]]:
     """
     Description:
         Find all the alumni of a University.
@@ -125,10 +119,10 @@ def query_seven(g: Graph) -> Set[Tuple[str, str]]:
         QL, RL, DL
     """
     q = PREFIXES + "SELECT DISTINCT ?x ?y WHERE { ?x owl2bench:hasAlumnus ?y }"
-    return _run_sparql(g, q)
+    return _run_sparql(endpoint, q)
 
 
-def query_eight(g: Graph) -> Set[Tuple[str, str]]:
+def query_eight(endpoint: str) -> Set[Tuple[str, str]]:
     """
     Description:
         Find Affiliations of all the Organizations.
@@ -138,10 +132,10 @@ def query_eight(g: Graph) -> Set[Tuple[str, str]]:
         QL, RL, DL
     """
     q = PREFIXES + "SELECT DISTINCT ?x ?y WHERE { ?x owl2bench:isAffiliatedOrganizationOf ?y }"
-    return _run_sparql(g, q)
+    return _run_sparql(endpoint, q)
 
 
-def query_nine(g: Graph) -> Set[Tuple[str]]:
+def query_nine(endpoint: str) -> Set[Tuple[str]]:
     """
     Description:
         Find all the colleges having Non-Science discipline.
@@ -151,10 +145,10 @@ def query_nine(g: Graph) -> Set[Tuple[str]]:
         QL, RL, DL
     """
     q = PREFIXES + "SELECT DISTINCT ?x WHERE { ?x owl2bench:hasCollegeDiscipline owl2bench:NonScience }"
-    return _run_sparql(g, q)
+    return _run_sparql(endpoint, q)
 
 
-def query_ten(g: Graph) -> Set[Tuple[str, str]]:
+def query_ten(endpoint: str) -> Set[Tuple[str, str]]:
     """
     Description:
         Find all the instances who has Collaboration with any other instance.
@@ -164,10 +158,10 @@ def query_ten(g: Graph) -> Set[Tuple[str, str]]:
         QL, RL, DL
     """
     q = PREFIXES + "SELECT DISTINCT ?x ?y WHERE { ?x owl2bench:hasCollaborationWith ?y }"
-    return _run_sparql(g, q)
+    return _run_sparql(endpoint, q)
 
 
-def query_eleven(g: Graph) -> Set[Tuple[str, str]]:
+def query_eleven(endpoint: str) -> Set[Tuple[str, str]]:
     """
     Description:
         Find all the instances who are advised by some other instance.
@@ -177,10 +171,10 @@ def query_eleven(g: Graph) -> Set[Tuple[str, str]]:
         QL, RL, DL
     """
     q = PREFIXES + "SELECT DISTINCT ?x ?y WHERE { ?x owl2bench:isAdvisedBy ?y }"
-    return _run_sparql(g, q)
+    return _run_sparql(endpoint, q)
 
 
-def query_twelve(g: Graph) -> Set[Tuple[str]]:
+def query_twelve(endpoint: str) -> Set[Tuple[str]]:
     """
     Description:
         Find all the instances of class Person. A Person is union of Man and Woman.
@@ -190,10 +184,10 @@ def query_twelve(g: Graph) -> Set[Tuple[str]]:
         RL, DL
     """
     q = PREFIXES + "SELECT DISTINCT ?x WHERE { ?x rdf:type owl2bench:Person }"
-    return _run_sparql(g, q)
+    return _run_sparql(endpoint, q)
 
 
-def query_thirteen(g: Graph) -> Set[Tuple[str]]:
+def query_thirteen(endpoint: str) -> Set[Tuple[str]]:
     """
     Description:
         Find all the instances of class WomanCollege. WomanCollege is a College which has only Woman Students.
@@ -203,10 +197,10 @@ def query_thirteen(g: Graph) -> Set[Tuple[str]]:
         RL, DL
     """
     q = PREFIXES + "SELECT DISTINCT ?x WHERE { ?x rdf:type owl2bench:WomanCollege }"
-    return _run_sparql(g, q)
+    return _run_sparql(endpoint, q)
 
 
-def query_fourteen(g: Graph) -> Set[Tuple[str]]:
+def query_fourteen(endpoint: str) -> Set[Tuple[str]]:
     """
     Description:
         Find all the instances of class LeisureStudent. LeisureStudent is a Student who takes maximum one course.
@@ -216,10 +210,10 @@ def query_fourteen(g: Graph) -> Set[Tuple[str]]:
         RL, DL
     """
     q = PREFIXES + "SELECT DISTINCT ?x WHERE { ?x rdf:type owl2bench:LeisureStudent }"
-    return _run_sparql(g, q)
+    return _run_sparql(endpoint, q)
 
 
-def query_fifteen(g: Graph) -> Set[Tuple[str, str]]:
+def query_fifteen(endpoint: str) -> Set[Tuple[str, str]]:
     """
     Description:
         Find the head of all the Organization.
@@ -229,10 +223,10 @@ def query_fifteen(g: Graph) -> Set[Tuple[str, str]]:
         RL, DL
     """
     q = PREFIXES + "SELECT DISTINCT ?x ?y WHERE { ?x owl2bench:isHeadOf ?y }"
-    return _run_sparql(g, q)
+    return _run_sparql(endpoint, q)
 
 
-def query_sixteen(g: Graph) -> Set[Tuple[str, str]]:
+def query_sixteen(endpoint: str) -> Set[Tuple[str, str]]:
     """
     Description:
         Find all the Organizations who has head.
@@ -242,10 +236,10 @@ def query_sixteen(g: Graph) -> Set[Tuple[str, str]]:
         RL, DL
     """
     q = PREFIXES + "SELECT DISTINCT ?x ?y WHERE { ?x owl2bench:hasHead ?y }"
-    return _run_sparql(g, q)
+    return _run_sparql(endpoint, q)
 
 
-def query_seventeen(g: Graph) -> Set[Tuple[str]]:
+def query_seventeen(endpoint: str) -> Set[Tuple[str]]:
     """
     Description:
         Find all the instances of class UGStudent. UGStudent is a Student who enrolls in exactly one UGProgram.
@@ -255,10 +249,10 @@ def query_seventeen(g: Graph) -> Set[Tuple[str]]:
         DL
     """
     q = PREFIXES + "SELECT DISTINCT ?x WHERE { ?x rdf:type owl2bench:UGStudent }"
-    return _run_sparql(g, q)
+    return _run_sparql(endpoint, q)
 
 
-def query_eighteen(g: Graph) -> Set[Tuple[str]]:
+def query_eighteen(endpoint: str) -> Set[Tuple[str]]:
     """
     Description:
         Find all the instances of class PeopleWithManyHobbies. PeopleWithManyHobbies is a Person who has minimum 3 Hobbies.
@@ -268,10 +262,10 @@ def query_eighteen(g: Graph) -> Set[Tuple[str]]:
         DL
     """
     q = PREFIXES + "SELECT DISTINCT ?x WHERE { ?x rdf:type owl2bench:PeopleWithManyHobbies }"
-    return _run_sparql(g, q)
+    return _run_sparql(endpoint, q)
 
 
-def query_nineteen(g: Graph) -> Set[Tuple[str]]:
+def query_nineteen(endpoint: str) -> Set[Tuple[str]]:
     """
     Description:
         Find all the instances of class Faculty. A Faculty is an Employee who teaches some Course.
@@ -281,10 +275,10 @@ def query_nineteen(g: Graph) -> Set[Tuple[str]]:
         EL, QL, RL, DL
     """
     q = PREFIXES + "SELECT DISTINCT ?x WHERE { ?x rdf:type owl2bench:Faculty }"
-    return _run_sparql(g, q)
+    return _run_sparql(endpoint, q)
 
 
-def query_twenty(g: Graph) -> Set[Tuple[str, str]]:
+def query_twenty(endpoint: str) -> Set[Tuple[str, str]]:
     """
     Description:
         Find all the instances who have same home town with any other instance.
@@ -294,10 +288,10 @@ def query_twenty(g: Graph) -> Set[Tuple[str, str]]:
         EL, QL, RL, DL
     """
     q = PREFIXES + "SELECT DISTINCT ?x ?y WHERE { ?x owl2bench:hasSameHomeTownWith ?y }"
-    return _run_sparql(g, q)
+    return _run_sparql(endpoint, q)
 
 
-def query_twenty_one(g: Graph) -> Set[Tuple[str, str, str]]:
+def query_twenty_one(endpoint: str) -> Set[Tuple[str, str, str]]:
     """
     Description:
         Find all the Engineering Students:
@@ -318,10 +312,10 @@ def query_twenty_one(g: Graph) -> Set[Tuple[str, str, str]]:
         " ?z owl2bench:hasCollegeDiscipline owl2bench:Engineering ."
         " }"
     )
-    return _run_sparql(g, q)
+    return _run_sparql(endpoint, q)
 
 
-def query_twenty_two(g: Graph) -> Set[Tuple[str, str]]:
+def query_twenty_two(endpoint: str) -> Set[Tuple[str, str]]:
     """
     Description:
         Find all the students who took course taught by the Dean of the Organization.
@@ -344,12 +338,12 @@ def query_twenty_two(g: Graph) -> Set[Tuple[str, str]]:
         " ?s owl2bench:takesCourse ?c ."
         " }"
     )
-    return _run_sparql(g, q)
+    return _run_sparql(endpoint, q)
 
 
-def run_all_queries_rl(g: Graph) -> Dict[str, Tuple[int, float]]:
+def run_all_queries_rl(endpoint: str) -> Dict[str, Tuple[int, float]]:
     """
-    Run the subset of queries intended for the RL profile run and return counts with execution times.
+    Run the subset of queries intended for the RL profile and return counts with execution times.
     """
     queries = {
         "two": query_two,
@@ -371,22 +365,24 @@ def run_all_queries_rl(g: Graph) -> Dict[str, Tuple[int, float]]:
     results = {}
     for qname, qfunc in queries.items():
         start = time.time()
-        res = qfunc(g)
+        res = qfunc(endpoint)
         t = time.time() - start
         results[qname] = (len(res), t)
     return results
 
-# Convenience: load graph and print RL-run summary when module executed
+
+# Convenience: run queries and print RL-run summary when module executed
 if __name__ == "__main__":
+    # Replace with your actual GraphDB or SPARQL endpoint URL
+    ENDPOINT = "http://sorin-System-Product-Name:7200/repositories/owl2benchRL_2"
+
     start_time = time.time()
-    g = _load_graph()
-    loading_time = time.time() - start_time
-    query_results = run_all_queries_rl(g)
+    query_results = run_all_queries_rl(ENDPOINT)
     total_query_time = sum(t for count, t in query_results.values())
     print("Counts:")
     for q, (count, t) in query_results.items():
         print(f"{q}: {count}")
-    print(f"\nLoading time: {loading_time:.4f} seconds")
+    print("\nLoading time: 0.0000 seconds (no local loading; assumes pre-loaded endpoint)")
     print("Query times:")
     for q, (count, t) in query_results.items():
         print(f"{q}: {t:.4f} seconds")
