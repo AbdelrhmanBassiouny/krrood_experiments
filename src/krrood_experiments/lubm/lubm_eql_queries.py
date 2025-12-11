@@ -9,7 +9,7 @@ from krrood.entity_query_language.match import (
     matching,
     match_any,
 )
-from krrood.entity_query_language.quantify_entity import (
+from krrood.entity_query_language.entity_result_processors import (
     a,
     the,
 )
@@ -54,7 +54,7 @@ class QueryWithSelectables:
     """
 
     def __post_init__(self):
-        self.query = select(*self.selectables.values())._expression_
+        self.query = select(*self.selectables.values())
 
     def evaluate(self):
         for value in self.query.evaluate():
