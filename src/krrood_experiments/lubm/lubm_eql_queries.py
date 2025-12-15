@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import List
 
 import rdflib
-from krrood.entity_query_language.entity import entity, variable, exists, flatten, and_
+from krrood.entity_query_language.entity import entity, variable, exists, flatten, and_, set_of
 from krrood.entity_query_language.entity_result_processors import (
     a,
     the, an,
@@ -34,7 +34,7 @@ from krrood_experiments.lubm.lubm_with_predicates import (
     Course,
     ResearchGroup,
     Chair,
-    UndergraduateStudent,
+    UndergraduateStudent, Organization,
 )
 
 
@@ -54,7 +54,7 @@ class QueryWithSelectables:
     """
 
     def __post_init__(self):
-        self.query = select(*self.selectables.values())
+        self.query = a(set_of(*self.selectables.values()))
 
     def evaluate(self):
         for value in self.query.evaluate():
@@ -75,11 +75,6 @@ def get_eql_queries() -> List[QueryWithSelectables]:
     # 2
     uni = variable(University, domain=None)
     gs = variable(GraduateStudent, domain=None)
-    q2 = an(entity(gs).where(gs.person.undergraduate_degree_from == uni,
-                             flatten(gs.person.member_of).sub_organization_of == uni))
-
-    uni = variable(University, domain=None)
-    gs = variable(GraduateStudent, domain=None)
     department = variable(Department, domain=gs.person.member_of)
     q2 = an(entity(gs).where(gs.person.undergraduate_degree_from == uni,
                                              department.sub_organization_of == uni))
@@ -97,10 +92,10 @@ def get_eql_queries() -> List[QueryWithSelectables]:
     q3 = QueryWithSelectables(q3, {"X": q3})
 
     # 4
-    q4 = a(
-        matching(Professor)(
-            works_for=matching()(uri="http://www.Department0.University0.edu"),
-        )
+    professor = variable(Professor, domain=None)
+    org = variable(Organization, domain=professor.works_for)
+    q4 = an(entity(professor)
+           .where(org.uri == "http://www.Department0.University0.edu")
     )
     q4 = QueryWithSelectables(
         q4,
