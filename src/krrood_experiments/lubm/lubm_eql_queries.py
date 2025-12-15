@@ -4,16 +4,15 @@ from dataclasses import dataclass
 from typing import List
 
 import rdflib
-from krrood.entity_query_language.match import (
-    select,
-    matching,
-    match_any,
-)
+from krrood.entity_query_language.entity import entity, variable, exists
 from krrood.entity_query_language.entity_result_processors import (
     a,
-    the,
+    the, an,
 )
-from krrood.entity_query_language.symbolic import An, SetOf, UnificationDict
+from krrood.entity_query_language.match import (
+    match_variable,
+)
+from krrood.entity_query_language.symbolic import An, UnificationDict
 from typing_extensions import Any
 
 from krrood_experiments.lubm.helpers import (
@@ -66,17 +65,14 @@ class QueryWithSelectables:
 
 def get_eql_queries() -> List[QueryWithSelectables]:
     # 1 (No joining, just filtration of graduate students through taking a certain course)
-    q1 = a(
-        matching(GraduateStudent)(
-            takes_course=matching()(
-                uri="http://www.Department0.University0.edu/GraduateCourse0"
-            )
-        )
-    )
+    grad_student = variable(GraduateStudent, domain=None)
+    takes_course = variable(Course, domain=grad_student.takes_course)
+    q1 = an(entity(grad_student).where(takes_course.uri == "http://www.Department0.University0.edu/GraduateCourse0"))
+
     q1 = QueryWithSelectables(q1, {"X": q1})
 
     # 2
-    uni = matching(University)
+    uni = match_variable(University, domain=None)
     q2 = a(
         matching(GraduateStudent)(
             person=matching()(
