@@ -4,14 +4,15 @@ from dataclasses import dataclass
 from typing import List
 
 import rdflib
-from krrood.entity_query_language.entity import entity, variable, exists
+from krrood.entity_query_language.entity import entity, variable, exists, flatten, and_
 from krrood.entity_query_language.entity_result_processors import (
     a,
     the, an,
 )
 from krrood.entity_query_language.match import (
-    match_variable,
+    match_variable, match,
 )
+from krrood.entity_query_language.predicate import HasType
 from krrood.entity_query_language.symbolic import An, UnificationDict
 from typing_extensions import Any
 
@@ -65,22 +66,24 @@ class QueryWithSelectables:
 
 def get_eql_queries() -> List[QueryWithSelectables]:
     # 1 (No joining, just filtration of graduate students through taking a certain course)
-    grad_student = variable(GraduateStudent, domain=None)
-    takes_course = variable(Course, domain=grad_student.takes_course)
-    q1 = an(entity(grad_student).where(takes_course.uri == "http://www.Department0.University0.edu/GraduateCourse0"))
+    GS = variable(GraduateStudent, domain=None)
+    TC = variable(Course, domain=GS.takes_course)
+    q1 = an(entity(GS).where(TC.uri == "http://www.Department0.University0.edu/GraduateCourse0"))
 
     q1 = QueryWithSelectables(q1, {"X": q1})
 
     # 2
-    uni = match_variable(University, domain=None)
-    q2 = a(
-        matching(GraduateStudent)(
-            person=matching()(
-                member_of=matching(Department)(sub_organization_of=uni),
-                undergraduate_degree_from=uni,
-            )
-        )
-    )
+    uni = variable(University, domain=None)
+    gs = variable(GraduateStudent, domain=None)
+    q2 = an(entity(gs).where(gs.person.undergraduate_degree_from == uni,
+                             flatten(gs.person.member_of).sub_organization_of == uni))
+
+    uni = variable(University, domain=None)
+    gs = variable(GraduateStudent, domain=None)
+    department = variable(Department, domain=gs.person.member_of)
+    q2 = an(entity(gs).where(gs.person.undergraduate_degree_from == uni,
+                                             department.sub_organization_of == uni))
+
     q2 = QueryWithSelectables(q2, {"X": q2})
 
     # 3
