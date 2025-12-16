@@ -7,7 +7,7 @@ from types import ModuleType
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union
 
 import rdflib
-from krrood.utils import recursive_subclasses
+from krrood.utils import recursive_subclasses, inheritance_path_length
 from rdflib import RDF, RDFS, URIRef, Literal
 
 from krrood.class_diagrams.utils import get_generic_type_param
@@ -264,7 +264,7 @@ def load_instances(
         return None
 
     # For convenience: map property local name to descriptor base class (if exists)
-    def descriptor_base_for(pred_local: str) -> Optional[Type]:
+    def descriptor_base_for(pred_local: str) -> Optional[Type[PropertyDescriptor]]:
         return descriptor_by_name.get(to_pascal(pred_local))
 
     # Assign properties
@@ -349,11 +349,7 @@ def load_instances(
         base_desc = descriptor_base_for(snake)
 
         if base_desc is not None:
-            all_desc = [base_desc] + recursive_subclasses(base_desc)
-            all_domains = {}
-            for desc_ in all_desc:
-                all_domains.update(desc_.all_domains[desc_])
-            possible_roles = list(all_domains)
+            possible_roles = list(PropertyDescriptor.all_domains[base_desc])
             if len(possible_roles) == 1:
                 new_role_class = possible_roles[0]
             else:
@@ -361,23 +357,17 @@ def load_instances(
                 wrapped_field_types = {}
                 chosen_role = None
                 for pr in possible_roles:
-                    all_ranges = {}
-                    for desc_ in all_desc:
-                        all_domains.update(pr.all_ranges[desc_])
                     try:
                         pr_wrapped_field = getattr(pr, snake)
                     except AttributeError:
                         continue
-                    range_types = tuple(pr_wrapped_field.all_ranges[pr_wrapped_field])
-                    if issubclass(o_type, range_types):
-                        wrapped_field_types[pr] = range_types
+                    if issubclass(o_type, pr_wrapped_field.range):
+                        wrapped_field_types[pr] = pr_wrapped_field.range
                 # choose the nearest wrapped field type
                 if wrapped_field_types:
                     chosen_role = min(
                         wrapped_field_types.keys(),
-                        key=lambda k: min(
-                            len(vi.__mro__) for vi in wrapped_field_types[k]
-                        ),
+                        key=lambda k: inheritance_path_length(wrapped_field_types[k], o_type)
                     )
                 if chosen_role is None:
                     raise ValueError(
