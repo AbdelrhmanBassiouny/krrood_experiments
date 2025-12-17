@@ -91,3 +91,39 @@ def test_world_loader_smoke_instances_file(owl2_dl1):
         assert person.last_name
         assert person.email
         assert isinstance(person.is_woman, bool)
+
+
+def test_world_loader_loads_knows_relationship(tmp_path: Path):
+    ttl = textwrap.dedent(
+        """
+        @prefix bench: <http://benchmark/OWL2Bench#> .
+
+        bench:P1 a bench:Person , bench:Woman ;
+            bench:hasFirstName "Ada" ;
+            bench:hasLastName "Lovelace" ;
+            bench:hasEmailAddress "ada@bench.com" .
+
+        bench:P2 a bench:Person , bench:Man ;
+            bench:hasFirstName "Alan" ;
+            bench:hasLastName "Turing" ;
+            bench:hasEmailAddress "alan@bench.com" .
+
+        # Relationship: Ada knows Alan
+        bench:P1 bench:knows bench:P2 .
+        """
+    )
+    p = tmp_path / "knows.ttl"
+    p.write_text(ttl, encoding="utf-8")
+
+    loader = WorldLoader()
+    world = loader.load(p)
+
+    # Locate persons by identifier
+    persons_by_id = {person.identifier: person for person in world.persons}
+    assert "P1" in persons_by_id and "P2" in persons_by_id
+
+    p1 = persons_by_id["P1"]
+    p2 = persons_by_id["P2"]
+
+    # P1 should have P2 in knows
+    assert any(friend.identifier == p2.identifier for friend in p1.knows)

@@ -10,8 +10,6 @@ from owl2bench.orm.ormatic_interface import *
 
 
 def test_q1(owl2_dl1):
-    # eql_q1 = eql_queries.q1
-    # sparql_q1 = sparql_queries.q1
 
     engine = create_engine(os.environ["KRROOD_EXPERIMENTS_DATABASE_URI"])
     drop_database(engine)
@@ -22,13 +20,7 @@ def test_q1(owl2_dl1):
     session.add(dao)
     session.commit()
 
-    p1 = aliased(PersonDAO)
-    p2 = aliased(PersonDAO)
+    stmt = select(persondao_knows_association)
 
-    stmt = select(p1, p2).select_from(
-        persondao_knows_association.join(
-            p1, p1.database_id == persondao_knows_association.c.source_persondao_id
-        ).join(p2, p2.database_id == persondao_knows_association.c.target_persondao_id)
-    )
-
-    print(session.execute(stmt).fetchall())
+    result = session.scalars(stmt)
+    print(len(list(result)))
