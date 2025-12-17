@@ -37,7 +37,7 @@ from krrood_experiments.lubm.lubm_with_predicates import (
     Chair,
     Organization,
     AssociateProfessor,
-    Faculty,
+    Faculty, ResearchGroup, UndergraduateStudent,
 )
 
 
@@ -167,44 +167,38 @@ def get_eql_queries() -> List[QueryWithSelectables]:
     TC = variable_from(S.takes_course)
     q9 = a(set_of(S, A, TC).where(contains(A.teacher_of, TC)))
     q9 = QueryWithSelectables(q9, {"X": S, "Y1": A, "Y2": TC})
-    #
-    # # 10
-    # q10 = a(
-    #     matching(Student)(
-    #         takes_course=matching()(
-    #             uri="http://www.Department0.University0.edu/GraduateCourse0",
-    #         )
-    #     )
-    # )
-    # q10 = QueryWithSelectables(q10, {"X": q10})
-    #
-    # # 11
-    # q11 = a(
-    #     matching(ResearchGroup)(
-    #         sub_organization_of=matching()(uri="http://www.University0.edu")
-    #     )
-    # )
-    # q11 = QueryWithSelectables(q11, {"X": q11})
-    #
-    # # 12
-    # q12 = a(
-    #     matching(Chair)(
-    #         works_for=matching(Department)(
-    #             sub_organization_of=matching()(uri="http://www.University0.edu")
-    #         )
-    #     )
-    # )
-    # q12 = QueryWithSelectables(q12, {"X": q12, "Y": q12.works_for})
-    #
-    # # 13
-    # q13 = a(matching(University)(uri="http://www.University0.edu"))
-    # q13 = QueryWithSelectables(q13, {"X": q13})
-    #
-    # # 14
-    # q14 = a(matching(UndergraduateStudent))
-    # q14 = QueryWithSelectables(q14, {"X": q14})
 
-    eql_queries = [q1, q2, q3, q4, q5, q6, q7, q8, q9]  # , q10, q11, q12, q13, q14]
+    # 10
+    S = variable(Student, domain=None)
+    TC = variable_from(S.takes_course)
+    q10 = an(entity(S).where(TC.uri == "http://www.Department0.University0.edu/GraduateCourse0"))
+    q10 = QueryWithSelectables(q10, {"X": S})
+
+    # 11
+    RG = variable(ResearchGroup, domain=None)
+    SO = variable_from(RG.sub_organization_of)
+    q11 = an(entity(RG).where(SO.uri == "http://www.University0.edu"))
+    q11 = QueryWithSelectables(q11, {"X": RG})
+
+    # 12
+    CH = variable(Chair, domain=None)
+    WF = variable(Department, domain=CH.works_for)
+    SO = variable_from(WF.sub_organization_of)
+    q12 = a(set_of(CH, WF).where(SO.uri == "http://www.University0.edu"))
+    q12 = QueryWithSelectables(q12, {"X": CH, "Y": WF})
+
+    # 13
+    UNI = match_variable(University, domain=None)(uri="http://www.University0.edu")
+    AL = variable_from(UNI.has_alumnus)
+    q13 = an(entity(AL))
+    q13 = QueryWithSelectables(q13, {"X": AL})
+
+    # 14
+    UGS = variable(UndergraduateStudent, domain=None)
+    q14 = an(entity(UGS))
+    q14 = QueryWithSelectables(q14, {"X": q14})
+
+    eql_queries = [q1, q2, q3, q4, q5, q6, q7, q8, q9 , q10, q11, q12, q13, q14]
     return eql_queries
 
 
