@@ -1,12 +1,10 @@
 from dataclasses import dataclass
 from typing import Callable
 
-from krrood.entity_query_language.entity import let, contains, set_of, an
+from krrood.entity_query_language.entity import variable, contains, set_of
+from krrood.entity_query_language.entity_result_processors import an
 from krrood.entity_query_language.symbolic import (
-    An,
-    ResultQuantifier,
     SymbolicExpression,
-    symbolic_mode,
 )
 
 from owl2bench import World, Person
@@ -28,10 +26,9 @@ class EQLQuery:
 
 
 def q1_generator(world: World):
-    with symbolic_mode():
-        p1 = let(Person, world.persons)
-        p2 = let(Person, world.persons)
-        query = an(set_of((p1, p2)), contains(p1.knows, p2))
+    p1 = variable(Person, world.persons)
+    p2 = variable(Person, world.persons)
+    query = an(set_of((p1, p2)), contains(p1.knows, p2))
     return query
 
 

@@ -33,11 +33,11 @@ class Person(Symbol):
     email: str
     is_woman: bool
     hometown: Optional[str] = None
-    knows: List["Person"] = field(default_factory=list)
-    likes: List["Person"] = field(default_factory=list)
-    loves: List["Person"] = field(default_factory=list)
-    dislikes: List["Person"] = field(default_factory=list)
-    is_crazy_about: List["Person"] = field(default_factory=list)
+    knows: List[Person] = field(default_factory=list)
+    likes: List[Person] = field(default_factory=list)
+    loves: List[Person] = field(default_factory=list)
+    dislikes: List[Person] = field(default_factory=list)
+    is_crazy_about: List[Person] = field(default_factory=list)
 
     @property
     def full_name(self) -> str:
