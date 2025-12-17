@@ -54,10 +54,22 @@ class SPARQLQuery:
     """
 
 
+PREFIXES = (
+    "\n".join(
+        [
+            "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>",
+            "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>",
+            "PREFIX owl2bench: <http://benchmark/OWL2Bench#>",
+        ]
+    )
+    + "\n"
+)
+
 q1 = SPARQLQuery(
     number=1,
-    query="""
-    SELECT  DISTINCT  ?x  ?y  WHERE { ?x  :knows  ?y  }
+    query=PREFIXES
+    + """
+    SELECT  DISTINCT  ?x  ?y  WHERE { ?x  owl2bench:knows  ?y  }
     """,
     description="Find the instances who know some other instance.",
     construct_involved="knows is a Reflexive Object Property.",

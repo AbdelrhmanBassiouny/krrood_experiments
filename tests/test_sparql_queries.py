@@ -14,3 +14,4 @@ def test_q1():
     # Verify results
     assert results is not None
     assert len(results["results"]["bindings"]) > 0
+    print(len(results["results"]["bindings"]))
