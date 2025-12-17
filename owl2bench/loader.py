@@ -71,7 +71,9 @@ class WorldLoader:
         # Helper to get a human-friendly identifier from an IRI
         def ident(iri: URIRef) -> str:
             s = str(iri)
-            return s.rsplit('#', 1)[-1] if '#' in s else s.rstrip('/').rsplit('/', 1)[-1]
+            return (
+                s.rsplit("#", 1)[-1] if "#" in s else s.rstrip("/").rsplit("/", 1)[-1]
+            )
 
         # Universities
         for u in g.subjects(RDF.type, BENCH.University):
@@ -80,7 +82,9 @@ class WorldLoader:
             uni = University(identifier=u_id, name=u_name)
 
             # Colleges via hasCollege / hasWomenCollege and inverses isCollegeOf / isWomenCollegeOf
-            college_nodes = set(g.objects(u, BENCH.hasCollege)) | set(g.objects(u, BENCH.hasWomenCollege))
+            college_nodes = set(g.objects(u, BENCH.hasCollege)) | set(
+                g.objects(u, BENCH.hasWomenCollege)
+            )
             # Inverses: find colleges where c is isCollegeOf or isWomenCollegeOf u
             college_nodes |= set(g.subjects(BENCH.isCollegeOf, u))
             college_nodes |= set(g.subjects(BENCH.isWomenCollegeOf, u))
@@ -94,9 +98,13 @@ class WorldLoader:
                     c_name = self._label_or_fallback(g, c, default=c_id)
                     # women-only flag via type WomenCollege
                     is_women_only = (c, RDF.type, BENCH.WomenCollege) in g
-                    college = College(identifier=c_id, name=c_name, is_women_only=is_women_only)
+                    college = College(
+                        identifier=c_id, name=c_name, is_women_only=is_women_only
+                    )
                     # Departments (hasDepartment) and inverse isDepartmentOf
-                    dept_nodes = set(g.objects(c, BENCH.hasDepartment)) | set(g.subjects(BENCH.isDepartmentOf, c))
+                    dept_nodes = set(g.objects(c, BENCH.hasDepartment)) | set(
+                        g.subjects(BENCH.isDepartmentOf, c)
+                    )
                     dept_objs: List[Department] = []
                     for d in dept_nodes:
                         if not isinstance(d, URIRef):
@@ -142,9 +150,13 @@ class WorldLoader:
                 continue
             person = persons_index.get(p)
             if person is None:
-                first = self._required_dataprop(g, p, BENCH.hasFirstName, "hasFirstName")
+                first = self._required_dataprop(
+                    g, p, BENCH.hasFirstName, "hasFirstName"
+                )
                 last = self._required_dataprop(g, p, BENCH.hasLastName, "hasLastName")
-                email = self._required_dataprop(g, p, BENCH.hasEmailAddress, "hasEmailAddress")
+                email = self._required_dataprop(
+                    g, p, BENCH.hasEmailAddress, "hasEmailAddress"
+                )
                 # Gender: Woman/Man classes
                 is_woman: Optional[bool]
                 if (p, RDF.type, BENCH.Woman) in g:
@@ -168,6 +180,19 @@ class WorldLoader:
                     hometown=hometown,
                 )
                 persons_index[p] = person
+
+        # Link person-to-person relationships (object properties)
+        # Currently we support: bench:knows
+        for s, _, o in g.triples((None, BENCH.knows, None)):
+            if not isinstance(s, URIRef) or not isinstance(o, URIRef):
+                continue
+            src = persons_index.get(s)
+            dst = persons_index.get(o)
+            if src is None or dst is None:
+                continue
+            # Avoid duplicates
+            if all(existing.identifier != dst.identifier for existing in src.knows):
+                src.knows.append(dst)
 
         # Assemble world
         world = World()
@@ -201,7 +226,9 @@ class WorldLoader:
     def _required_dataprop(g: Graph, s: URIRef, p: URIRef, name: str) -> str:
         lit = next(g.objects(s, p), None)
         if not isinstance(lit, Literal):
-            raise MappingError(f"Missing required data property {name} for subject {s}.")
+            raise MappingError(
+                f"Missing required data property {name} for subject {s}."
+            )
         return str(lit)
 
     @staticmethod
