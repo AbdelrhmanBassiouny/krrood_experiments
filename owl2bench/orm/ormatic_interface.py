@@ -11,6 +11,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     JSON,
+    Table,
 )
 from sqlalchemy.orm import relationship, Mapped, mapped_column, DeclarativeBase
 
@@ -30,6 +31,183 @@ class Base(DeclarativeBase):
     }
 
 
+# Association tables for many-to-many relationships
+collegedao_departments_association = Table(
+    "collegedao_departments_association",
+    Base.metadata,
+    Column("source_collegedao_id", ForeignKey("CollegeDAO.database_id")),
+    Column("target_departmentdao_id", ForeignKey("DepartmentDAO.database_id")),
+)
+departmentdao_courses_association = Table(
+    "departmentdao_courses_association",
+    Base.metadata,
+    Column("source_departmentdao_id", ForeignKey("DepartmentDAO.database_id")),
+    Column("target_coursedao_id", ForeignKey("CourseDAO.database_id")),
+)
+departmentdao_programs_association = Table(
+    "departmentdao_programs_association",
+    Base.metadata,
+    Column("source_departmentdao_id", ForeignKey("DepartmentDAO.database_id")),
+    Column("target_programdao_id", ForeignKey("ProgramDAO.database_id")),
+)
+departmentdao_undergraduate_students_association = Table(
+    "departmentdao_undergraduate_students_association",
+    Base.metadata,
+    Column("source_departmentdao_id", ForeignKey("DepartmentDAO.database_id")),
+    Column("target_studentdao_id", ForeignKey("StudentDAO.database_id")),
+)
+departmentdao_postgraduate_students_association = Table(
+    "departmentdao_postgraduate_students_association",
+    Base.metadata,
+    Column("source_departmentdao_id", ForeignKey("DepartmentDAO.database_id")),
+    Column("target_studentdao_id", ForeignKey("StudentDAO.database_id")),
+)
+departmentdao_phd_students_association = Table(
+    "departmentdao_phd_students_association",
+    Base.metadata,
+    Column("source_departmentdao_id", ForeignKey("DepartmentDAO.database_id")),
+    Column("target_studentdao_id", ForeignKey("StudentDAO.database_id")),
+)
+departmentdao_employees_association = Table(
+    "departmentdao_employees_association",
+    Base.metadata,
+    Column("source_departmentdao_id", ForeignKey("DepartmentDAO.database_id")),
+    Column("target_employeedao_id", ForeignKey("EmployeeDAO.database_id")),
+)
+departmentdao_research_groups_association = Table(
+    "departmentdao_research_groups_association",
+    Base.metadata,
+    Column("source_departmentdao_id", ForeignKey("DepartmentDAO.database_id")),
+    Column("target_researchgroupdao_id", ForeignKey("ResearchGroupDAO.database_id")),
+)
+persondao_knows_association = Table(
+    "persondao_knows_association",
+    Base.metadata,
+    Column("source_persondao_id", ForeignKey("PersonDAO.database_id")),
+    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
+)
+persondao_likes_association = Table(
+    "persondao_likes_association",
+    Base.metadata,
+    Column("source_persondao_id", ForeignKey("PersonDAO.database_id")),
+    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
+)
+persondao_loves_association = Table(
+    "persondao_loves_association",
+    Base.metadata,
+    Column("source_persondao_id", ForeignKey("PersonDAO.database_id")),
+    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
+)
+persondao_dislikes_association = Table(
+    "persondao_dislikes_association",
+    Base.metadata,
+    Column("source_persondao_id", ForeignKey("PersonDAO.database_id")),
+    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
+)
+persondao_is_crazy_about_association = Table(
+    "persondao_is_crazy_about_association",
+    Base.metadata,
+    Column("source_persondao_id", ForeignKey("PersonDAO.database_id")),
+    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
+)
+publicationdao_authors_association = Table(
+    "publicationdao_authors_association",
+    Base.metadata,
+    Column("source_publicationdao_id", ForeignKey("PublicationDAO.database_id")),
+    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
+)
+researchgroupdao_members_association = Table(
+    "researchgroupdao_members_association",
+    Base.metadata,
+    Column("source_researchgroupdao_id", ForeignKey("ResearchGroupDAO.database_id")),
+    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
+)
+researchgroupdao_publications_association = Table(
+    "researchgroupdao_publications_association",
+    Base.metadata,
+    Column("source_researchgroupdao_id", ForeignKey("ResearchGroupDAO.database_id")),
+    Column("target_publicationdao_id", ForeignKey("PublicationDAO.database_id")),
+)
+studentdao_advisors_association = Table(
+    "studentdao_advisors_association",
+    Base.metadata,
+    Column("source_studentdao_id", ForeignKey("StudentDAO.database_id")),
+    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
+)
+universitydao_colleges_association = Table(
+    "universitydao_colleges_association",
+    Base.metadata,
+    Column("source_universitydao_id", ForeignKey("UniversityDAO.database_id")),
+    Column("target_collegedao_id", ForeignKey("CollegeDAO.database_id")),
+)
+universitydao_publications_association = Table(
+    "universitydao_publications_association",
+    Base.metadata,
+    Column("source_universitydao_id", ForeignKey("UniversityDAO.database_id")),
+    Column("target_publicationdao_id", ForeignKey("PublicationDAO.database_id")),
+)
+worlddao_universities_association = Table(
+    "worlddao_universities_association",
+    Base.metadata,
+    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
+    Column("target_universitydao_id", ForeignKey("UniversityDAO.database_id")),
+)
+worlddao_colleges_association = Table(
+    "worlddao_colleges_association",
+    Base.metadata,
+    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
+    Column("target_collegedao_id", ForeignKey("CollegeDAO.database_id")),
+)
+worlddao_departments_association = Table(
+    "worlddao_departments_association",
+    Base.metadata,
+    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
+    Column("target_departmentdao_id", ForeignKey("DepartmentDAO.database_id")),
+)
+worlddao_programs_association = Table(
+    "worlddao_programs_association",
+    Base.metadata,
+    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
+    Column("target_programdao_id", ForeignKey("ProgramDAO.database_id")),
+)
+worlddao_courses_association = Table(
+    "worlddao_courses_association",
+    Base.metadata,
+    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
+    Column("target_coursedao_id", ForeignKey("CourseDAO.database_id")),
+)
+worlddao_persons_association = Table(
+    "worlddao_persons_association",
+    Base.metadata,
+    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
+    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
+)
+worlddao_students_association = Table(
+    "worlddao_students_association",
+    Base.metadata,
+    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
+    Column("target_studentdao_id", ForeignKey("StudentDAO.database_id")),
+)
+worlddao_employees_association = Table(
+    "worlddao_employees_association",
+    Base.metadata,
+    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
+    Column("target_employeedao_id", ForeignKey("EmployeeDAO.database_id")),
+)
+worlddao_research_groups_association = Table(
+    "worlddao_research_groups_association",
+    Base.metadata,
+    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
+    Column("target_researchgroupdao_id", ForeignKey("ResearchGroupDAO.database_id")),
+)
+worlddao_publications_association = Table(
+    "worlddao_publications_association",
+    Base.metadata,
+    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
+    Column("target_publicationdao_id", ForeignKey("PublicationDAO.database_id")),
+)
+
+
 class CollegeDAO(Base, DataAccessObject[owl2bench.models.College]):
 
     __tablename__ = "CollegeDAO"
@@ -44,21 +222,12 @@ class CollegeDAO(Base, DataAccessObject[owl2bench.models.College]):
     name: Mapped[builtins.str] = mapped_column(String(255), use_existing_column=True)
     is_women_only: Mapped[builtins.bool] = mapped_column(use_existing_column=True)
 
-    universitydao_colleges_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("UniversityDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-    worlddao_colleges_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("WorldDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-
     departments: Mapped[typing.List[DepartmentDAO]] = relationship(
         "DepartmentDAO",
-        foreign_keys="[DepartmentDAO.collegedao_departments_id]",
-        post_update=True,
+        secondary="collegedao_departments_association",
+        primaryjoin="CollegeDAO.database_id == collegedao_departments_association.c.source_collegedao_id",
+        secondaryjoin="DepartmentDAO.database_id == collegedao_departments_association.c.target_departmentdao_id",
+        cascade="save-update, merge",
     )
 
 
@@ -75,17 +244,6 @@ class CourseDAO(Base, DataAccessObject[owl2bench.models.Course]):
     )
     title: Mapped[builtins.str] = mapped_column(String(255), use_existing_column=True)
 
-    departmentdao_courses_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("DepartmentDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-    worlddao_courses_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("WorldDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-
 
 class DepartmentDAO(Base, DataAccessObject[owl2bench.models.Department]):
 
@@ -100,51 +258,54 @@ class DepartmentDAO(Base, DataAccessObject[owl2bench.models.Department]):
     )
     name: Mapped[builtins.str] = mapped_column(String(255), use_existing_column=True)
 
-    collegedao_departments_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("CollegeDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-    worlddao_departments_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("WorldDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-
     courses: Mapped[typing.List[CourseDAO]] = relationship(
         "CourseDAO",
-        foreign_keys="[CourseDAO.departmentdao_courses_id]",
-        post_update=True,
+        secondary="departmentdao_courses_association",
+        primaryjoin="DepartmentDAO.database_id == departmentdao_courses_association.c.source_departmentdao_id",
+        secondaryjoin="CourseDAO.database_id == departmentdao_courses_association.c.target_coursedao_id",
+        cascade="save-update, merge",
     )
     programs: Mapped[typing.List[ProgramDAO]] = relationship(
         "ProgramDAO",
-        foreign_keys="[ProgramDAO.departmentdao_programs_id]",
-        post_update=True,
+        secondary="departmentdao_programs_association",
+        primaryjoin="DepartmentDAO.database_id == departmentdao_programs_association.c.source_departmentdao_id",
+        secondaryjoin="ProgramDAO.database_id == departmentdao_programs_association.c.target_programdao_id",
+        cascade="save-update, merge",
     )
     undergraduate_students: Mapped[typing.List[StudentDAO]] = relationship(
         "StudentDAO",
-        foreign_keys="[StudentDAO.departmentdao_undergraduate_students_id]",
-        post_update=True,
+        secondary="departmentdao_undergraduate_students_association",
+        primaryjoin="DepartmentDAO.database_id == departmentdao_undergraduate_students_association.c.source_departmentdao_id",
+        secondaryjoin="StudentDAO.database_id == departmentdao_undergraduate_students_association.c.target_studentdao_id",
+        cascade="save-update, merge",
     )
     postgraduate_students: Mapped[typing.List[StudentDAO]] = relationship(
         "StudentDAO",
-        foreign_keys="[StudentDAO.departmentdao_postgraduate_students_id]",
-        post_update=True,
+        secondary="departmentdao_postgraduate_students_association",
+        primaryjoin="DepartmentDAO.database_id == departmentdao_postgraduate_students_association.c.source_departmentdao_id",
+        secondaryjoin="StudentDAO.database_id == departmentdao_postgraduate_students_association.c.target_studentdao_id",
+        cascade="save-update, merge",
     )
     phd_students: Mapped[typing.List[StudentDAO]] = relationship(
         "StudentDAO",
-        foreign_keys="[StudentDAO.departmentdao_phd_students_id]",
-        post_update=True,
+        secondary="departmentdao_phd_students_association",
+        primaryjoin="DepartmentDAO.database_id == departmentdao_phd_students_association.c.source_departmentdao_id",
+        secondaryjoin="StudentDAO.database_id == departmentdao_phd_students_association.c.target_studentdao_id",
+        cascade="save-update, merge",
     )
     employees: Mapped[typing.List[EmployeeDAO]] = relationship(
         "EmployeeDAO",
-        foreign_keys="[EmployeeDAO.departmentdao_employees_id]",
-        post_update=True,
+        secondary="departmentdao_employees_association",
+        primaryjoin="DepartmentDAO.database_id == departmentdao_employees_association.c.source_departmentdao_id",
+        secondaryjoin="EmployeeDAO.database_id == departmentdao_employees_association.c.target_employeedao_id",
+        cascade="save-update, merge",
     )
     research_groups: Mapped[typing.List[ResearchGroupDAO]] = relationship(
         "ResearchGroupDAO",
-        foreign_keys="[ResearchGroupDAO.departmentdao_research_groups_id]",
-        post_update=True,
+        secondary="departmentdao_research_groups_association",
+        primaryjoin="DepartmentDAO.database_id == departmentdao_research_groups_association.c.source_departmentdao_id",
+        secondaryjoin="ResearchGroupDAO.database_id == departmentdao_research_groups_association.c.target_researchgroupdao_id",
+        cascade="save-update, merge",
     )
 
 
@@ -161,18 +322,8 @@ class EmployeeDAO(Base, DataAccessObject[owl2bench.models.Employee]):
         String(255), use_existing_column=True
     )
 
-    departmentdao_employees_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("DepartmentDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
     person_id: Mapped[int] = mapped_column(
         ForeignKey("PersonDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-    worlddao_employees_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("WorldDAO.database_id", use_alter=True),
         nullable=True,
         use_existing_column=True,
     )
@@ -205,68 +356,40 @@ class PersonDAO(Base, DataAccessObject[owl2bench.models.Person]):
         String(255), use_existing_column=True
     )
 
-    persondao_knows_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("PersonDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-    persondao_likes_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("PersonDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-    persondao_loves_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("PersonDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-    persondao_dislikes_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("PersonDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-    persondao_is_crazy_about_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("PersonDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-    publicationdao_authors_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("PublicationDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-    researchgroupdao_members_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("ResearchGroupDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-    studentdao_advisors_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("StudentDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-    worlddao_persons_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("WorldDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-
     knows: Mapped[typing.List[PersonDAO]] = relationship(
-        "PersonDAO", foreign_keys="[PersonDAO.persondao_knows_id]", post_update=True
+        "PersonDAO",
+        secondary="persondao_knows_association",
+        primaryjoin="PersonDAO.database_id == persondao_knows_association.c.source_persondao_id",
+        secondaryjoin="PersonDAO.database_id == persondao_knows_association.c.target_persondao_id",
+        cascade="save-update, merge",
     )
     likes: Mapped[typing.List[PersonDAO]] = relationship(
-        "PersonDAO", foreign_keys="[PersonDAO.persondao_likes_id]", post_update=True
+        "PersonDAO",
+        secondary="persondao_likes_association",
+        primaryjoin="PersonDAO.database_id == persondao_likes_association.c.source_persondao_id",
+        secondaryjoin="PersonDAO.database_id == persondao_likes_association.c.target_persondao_id",
+        cascade="save-update, merge",
     )
     loves: Mapped[typing.List[PersonDAO]] = relationship(
-        "PersonDAO", foreign_keys="[PersonDAO.persondao_loves_id]", post_update=True
+        "PersonDAO",
+        secondary="persondao_loves_association",
+        primaryjoin="PersonDAO.database_id == persondao_loves_association.c.source_persondao_id",
+        secondaryjoin="PersonDAO.database_id == persondao_loves_association.c.target_persondao_id",
+        cascade="save-update, merge",
     )
     dislikes: Mapped[typing.List[PersonDAO]] = relationship(
-        "PersonDAO", foreign_keys="[PersonDAO.persondao_dislikes_id]", post_update=True
+        "PersonDAO",
+        secondary="persondao_dislikes_association",
+        primaryjoin="PersonDAO.database_id == persondao_dislikes_association.c.source_persondao_id",
+        secondaryjoin="PersonDAO.database_id == persondao_dislikes_association.c.target_persondao_id",
+        cascade="save-update, merge",
     )
     is_crazy_about: Mapped[typing.List[PersonDAO]] = relationship(
         "PersonDAO",
-        foreign_keys="[PersonDAO.persondao_is_crazy_about_id]",
-        post_update=True,
+        secondary="persondao_is_crazy_about_association",
+        primaryjoin="PersonDAO.database_id == persondao_is_crazy_about_association.c.source_persondao_id",
+        secondaryjoin="PersonDAO.database_id == persondao_is_crazy_about_association.c.target_persondao_id",
+        cascade="save-update, merge",
     )
 
 
@@ -283,17 +406,6 @@ class ProgramDAO(Base, DataAccessObject[owl2bench.models.Program]):
     )
     name: Mapped[builtins.str] = mapped_column(String(255), use_existing_column=True)
 
-    departmentdao_programs_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("DepartmentDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-    worlddao_programs_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("WorldDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-
 
 class PublicationDAO(Base, DataAccessObject[owl2bench.models.Publication]):
 
@@ -309,30 +421,12 @@ class PublicationDAO(Base, DataAccessObject[owl2bench.models.Publication]):
     title: Mapped[builtins.str] = mapped_column(String(255), use_existing_column=True)
     year: Mapped[builtins.int] = mapped_column(use_existing_column=True)
 
-    researchgroupdao_publications_id: Mapped[typing.Optional[builtins.int]] = (
-        mapped_column(
-            ForeignKey("ResearchGroupDAO.database_id", use_alter=True),
-            nullable=True,
-            use_existing_column=True,
-        )
-    )
-    universitydao_publications_id: Mapped[typing.Optional[builtins.int]] = (
-        mapped_column(
-            ForeignKey("UniversityDAO.database_id", use_alter=True),
-            nullable=True,
-            use_existing_column=True,
-        )
-    )
-    worlddao_publications_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("WorldDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-
     authors: Mapped[typing.List[PersonDAO]] = relationship(
         "PersonDAO",
-        foreign_keys="[PersonDAO.publicationdao_authors_id]",
-        post_update=True,
+        secondary="publicationdao_authors_association",
+        primaryjoin="PublicationDAO.database_id == publicationdao_authors_association.c.source_publicationdao_id",
+        secondaryjoin="PersonDAO.database_id == publicationdao_authors_association.c.target_persondao_id",
+        cascade="save-update, merge",
     )
 
 
@@ -349,28 +443,19 @@ class ResearchGroupDAO(Base, DataAccessObject[owl2bench.models.ResearchGroup]):
     )
     name: Mapped[builtins.str] = mapped_column(String(255), use_existing_column=True)
 
-    departmentdao_research_groups_id: Mapped[typing.Optional[builtins.int]] = (
-        mapped_column(
-            ForeignKey("DepartmentDAO.database_id", use_alter=True),
-            nullable=True,
-            use_existing_column=True,
-        )
-    )
-    worlddao_research_groups_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("WorldDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-
     members: Mapped[typing.List[PersonDAO]] = relationship(
         "PersonDAO",
-        foreign_keys="[PersonDAO.researchgroupdao_members_id]",
-        post_update=True,
+        secondary="researchgroupdao_members_association",
+        primaryjoin="ResearchGroupDAO.database_id == researchgroupdao_members_association.c.source_researchgroupdao_id",
+        secondaryjoin="PersonDAO.database_id == researchgroupdao_members_association.c.target_persondao_id",
+        cascade="save-update, merge",
     )
     publications: Mapped[typing.List[PublicationDAO]] = relationship(
         "PublicationDAO",
-        foreign_keys="[PublicationDAO.researchgroupdao_publications_id]",
-        post_update=True,
+        secondary="researchgroupdao_publications_association",
+        primaryjoin="ResearchGroupDAO.database_id == researchgroupdao_publications_association.c.source_researchgroupdao_id",
+        secondaryjoin="PublicationDAO.database_id == researchgroupdao_publications_association.c.target_publicationdao_id",
+        cascade="save-update, merge",
     )
 
 
@@ -384,34 +469,8 @@ class StudentDAO(Base, DataAccessObject[owl2bench.models.Student]):
 
     level: Mapped[builtins.str] = mapped_column(String(255), use_existing_column=True)
 
-    departmentdao_undergraduate_students_id: Mapped[typing.Optional[builtins.int]] = (
-        mapped_column(
-            ForeignKey("DepartmentDAO.database_id", use_alter=True),
-            nullable=True,
-            use_existing_column=True,
-        )
-    )
-    departmentdao_postgraduate_students_id: Mapped[typing.Optional[builtins.int]] = (
-        mapped_column(
-            ForeignKey("DepartmentDAO.database_id", use_alter=True),
-            nullable=True,
-            use_existing_column=True,
-        )
-    )
-    departmentdao_phd_students_id: Mapped[typing.Optional[builtins.int]] = (
-        mapped_column(
-            ForeignKey("DepartmentDAO.database_id", use_alter=True),
-            nullable=True,
-            use_existing_column=True,
-        )
-    )
     person_id: Mapped[int] = mapped_column(
         ForeignKey("PersonDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-    worlddao_students_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("WorldDAO.database_id", use_alter=True),
         nullable=True,
         use_existing_column=True,
     )
@@ -420,7 +479,11 @@ class StudentDAO(Base, DataAccessObject[owl2bench.models.Student]):
         "PersonDAO", uselist=False, foreign_keys=[person_id], post_update=True
     )
     advisors: Mapped[typing.List[PersonDAO]] = relationship(
-        "PersonDAO", foreign_keys="[PersonDAO.studentdao_advisors_id]", post_update=True
+        "PersonDAO",
+        secondary="studentdao_advisors_association",
+        primaryjoin="StudentDAO.database_id == studentdao_advisors_association.c.source_studentdao_id",
+        secondaryjoin="PersonDAO.database_id == studentdao_advisors_association.c.target_persondao_id",
+        cascade="save-update, merge",
     )
 
 
@@ -437,21 +500,19 @@ class UniversityDAO(Base, DataAccessObject[owl2bench.models.University]):
     )
     name: Mapped[builtins.str] = mapped_column(String(255), use_existing_column=True)
 
-    worlddao_universities_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
-        ForeignKey("WorldDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-
     colleges: Mapped[typing.List[CollegeDAO]] = relationship(
         "CollegeDAO",
-        foreign_keys="[CollegeDAO.universitydao_colleges_id]",
-        post_update=True,
+        secondary="universitydao_colleges_association",
+        primaryjoin="UniversityDAO.database_id == universitydao_colleges_association.c.source_universitydao_id",
+        secondaryjoin="CollegeDAO.database_id == universitydao_colleges_association.c.target_collegedao_id",
+        cascade="save-update, merge",
     )
     publications: Mapped[typing.List[PublicationDAO]] = relationship(
         "PublicationDAO",
-        foreign_keys="[PublicationDAO.universitydao_publications_id]",
-        post_update=True,
+        secondary="universitydao_publications_association",
+        primaryjoin="UniversityDAO.database_id == universitydao_publications_association.c.source_universitydao_id",
+        secondaryjoin="PublicationDAO.database_id == universitydao_publications_association.c.target_publicationdao_id",
+        cascade="save-update, merge",
     )
 
 
@@ -465,41 +526,71 @@ class WorldDAO(Base, DataAccessObject[owl2bench.models.World]):
 
     universities: Mapped[typing.List[UniversityDAO]] = relationship(
         "UniversityDAO",
-        foreign_keys="[UniversityDAO.worlddao_universities_id]",
-        post_update=True,
+        secondary="worlddao_universities_association",
+        primaryjoin="WorldDAO.database_id == worlddao_universities_association.c.source_worlddao_id",
+        secondaryjoin="UniversityDAO.database_id == worlddao_universities_association.c.target_universitydao_id",
+        cascade="save-update, merge",
     )
     colleges: Mapped[typing.List[CollegeDAO]] = relationship(
-        "CollegeDAO", foreign_keys="[CollegeDAO.worlddao_colleges_id]", post_update=True
+        "CollegeDAO",
+        secondary="worlddao_colleges_association",
+        primaryjoin="WorldDAO.database_id == worlddao_colleges_association.c.source_worlddao_id",
+        secondaryjoin="CollegeDAO.database_id == worlddao_colleges_association.c.target_collegedao_id",
+        cascade="save-update, merge",
     )
     departments: Mapped[typing.List[DepartmentDAO]] = relationship(
         "DepartmentDAO",
-        foreign_keys="[DepartmentDAO.worlddao_departments_id]",
-        post_update=True,
+        secondary="worlddao_departments_association",
+        primaryjoin="WorldDAO.database_id == worlddao_departments_association.c.source_worlddao_id",
+        secondaryjoin="DepartmentDAO.database_id == worlddao_departments_association.c.target_departmentdao_id",
+        cascade="save-update, merge",
     )
     programs: Mapped[typing.List[ProgramDAO]] = relationship(
-        "ProgramDAO", foreign_keys="[ProgramDAO.worlddao_programs_id]", post_update=True
+        "ProgramDAO",
+        secondary="worlddao_programs_association",
+        primaryjoin="WorldDAO.database_id == worlddao_programs_association.c.source_worlddao_id",
+        secondaryjoin="ProgramDAO.database_id == worlddao_programs_association.c.target_programdao_id",
+        cascade="save-update, merge",
     )
     courses: Mapped[typing.List[CourseDAO]] = relationship(
-        "CourseDAO", foreign_keys="[CourseDAO.worlddao_courses_id]", post_update=True
+        "CourseDAO",
+        secondary="worlddao_courses_association",
+        primaryjoin="WorldDAO.database_id == worlddao_courses_association.c.source_worlddao_id",
+        secondaryjoin="CourseDAO.database_id == worlddao_courses_association.c.target_coursedao_id",
+        cascade="save-update, merge",
     )
     persons: Mapped[typing.List[PersonDAO]] = relationship(
-        "PersonDAO", foreign_keys="[PersonDAO.worlddao_persons_id]", post_update=True
+        "PersonDAO",
+        secondary="worlddao_persons_association",
+        primaryjoin="WorldDAO.database_id == worlddao_persons_association.c.source_worlddao_id",
+        secondaryjoin="PersonDAO.database_id == worlddao_persons_association.c.target_persondao_id",
+        cascade="save-update, merge",
     )
     students: Mapped[typing.List[StudentDAO]] = relationship(
-        "StudentDAO", foreign_keys="[StudentDAO.worlddao_students_id]", post_update=True
+        "StudentDAO",
+        secondary="worlddao_students_association",
+        primaryjoin="WorldDAO.database_id == worlddao_students_association.c.source_worlddao_id",
+        secondaryjoin="StudentDAO.database_id == worlddao_students_association.c.target_studentdao_id",
+        cascade="save-update, merge",
     )
     employees: Mapped[typing.List[EmployeeDAO]] = relationship(
         "EmployeeDAO",
-        foreign_keys="[EmployeeDAO.worlddao_employees_id]",
-        post_update=True,
+        secondary="worlddao_employees_association",
+        primaryjoin="WorldDAO.database_id == worlddao_employees_association.c.source_worlddao_id",
+        secondaryjoin="EmployeeDAO.database_id == worlddao_employees_association.c.target_employeedao_id",
+        cascade="save-update, merge",
     )
     research_groups: Mapped[typing.List[ResearchGroupDAO]] = relationship(
         "ResearchGroupDAO",
-        foreign_keys="[ResearchGroupDAO.worlddao_research_groups_id]",
-        post_update=True,
+        secondary="worlddao_research_groups_association",
+        primaryjoin="WorldDAO.database_id == worlddao_research_groups_association.c.source_worlddao_id",
+        secondaryjoin="ResearchGroupDAO.database_id == worlddao_research_groups_association.c.target_researchgroupdao_id",
+        cascade="save-update, merge",
     )
     publications: Mapped[typing.List[PublicationDAO]] = relationship(
         "PublicationDAO",
-        foreign_keys="[PublicationDAO.worlddao_publications_id]",
-        post_update=True,
+        secondary="worlddao_publications_association",
+        primaryjoin="WorldDAO.database_id == worlddao_publications_association.c.source_worlddao_id",
+        secondaryjoin="PublicationDAO.database_id == worlddao_publications_association.c.target_publicationdao_id",
+        cascade="save-update, merge",
     )
