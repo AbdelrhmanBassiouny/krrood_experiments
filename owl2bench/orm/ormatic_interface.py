@@ -344,14 +344,18 @@ class PersonDAO(Base, DataAccessObject[owl2bench.models.Person]):
     identifier: Mapped[builtins.str] = mapped_column(
         String(255), use_existing_column=True
     )
-    first_name: Mapped[builtins.str] = mapped_column(
+    first_name: Mapped[typing.Optional[builtins.str]] = mapped_column(
         String(255), use_existing_column=True
     )
-    last_name: Mapped[builtins.str] = mapped_column(
+    last_name: Mapped[typing.Optional[builtins.str]] = mapped_column(
         String(255), use_existing_column=True
     )
-    email: Mapped[builtins.str] = mapped_column(String(255), use_existing_column=True)
-    is_woman: Mapped[builtins.bool] = mapped_column(use_existing_column=True)
+    email: Mapped[typing.Optional[builtins.str]] = mapped_column(
+        String(255), use_existing_column=True
+    )
+    is_woman: Mapped[typing.Optional[builtins.bool]] = mapped_column(
+        use_existing_column=True
+    )
     hometown: Mapped[typing.Optional[builtins.str]] = mapped_column(
         String(255), use_existing_column=True
     )

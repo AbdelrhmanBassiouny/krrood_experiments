@@ -28,10 +28,10 @@ class Person(Symbol):
     """Represents a person and their basic attributes."""
 
     identifier: str
-    first_name: str
-    last_name: str
-    email: str
-    is_woman: bool
+    first_name: Optional[str]
+    last_name: Optional[str]
+    email: Optional[str]
+    is_woman: Optional[bool]
     hometown: Optional[str] = None
     knows: List[Person] = field(default_factory=list)
     likes: List[Person] = field(default_factory=list)
@@ -42,7 +42,9 @@ class Person(Symbol):
     @property
     def full_name(self) -> str:
         """Returns the full name for display purposes."""
-        return f"{self.first_name} {self.last_name}"
+        left = self.first_name or ""
+        right = self.last_name or ""
+        return f"{left} {right}".strip()
 
 
 @dataclass
@@ -59,19 +61,19 @@ class Student(Symbol):
         return self.person.identifier
 
     @property
-    def first_name(self) -> str:
+    def first_name(self) -> Optional[str]:
         return self.person.first_name
 
     @property
-    def last_name(self) -> str:
+    def last_name(self) -> Optional[str]:
         return self.person.last_name
 
     @property
-    def email(self) -> str:
+    def email(self) -> Optional[str]:
         return self.person.email
 
     @property
-    def is_woman(self) -> bool:
+    def is_woman(self) -> Optional[bool]:
         return self.person.is_woman
 
     @property
