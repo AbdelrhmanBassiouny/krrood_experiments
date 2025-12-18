@@ -344,10 +344,11 @@ class OwlToPythonConverter:
             ontology_base_class_name = ontology_base_class_name + "Ontology"
 
         role_cls_name = f"{ontology_base_class_name}Role"
+        krrood_role_cls_name = "Role[T]"
         classes_copy[role_cls_name] = {
             "name": role_cls_name,
             "superclasses": [
-                f"Role[T]",
+                krrood_role_cls_name,
                 ontology_base_class_name,
             ],
             "label": "Role class which represents a role that a persistent identifier can take on in a certain context",
@@ -393,8 +394,32 @@ class OwlToPythonConverter:
                 stack.extend(name_to_bases.get(base, []))
             info["all_base_classes"] = sorted(ancestors)
 
-        for info in classes_copy.values():
-            if info["name"] == "Chair":
+
+        classes_copy_2 = copy(classes_copy)
+        for info in classes_copy_2.values():
+            if role_cls_name in info["all_base_classes"]:
+                mixin_class_info = copy(info)
+                mixin_class_info["name"] = f"Is{info['name']}"
+                for sc in copy(mixin_class_info["all_base_classes"]):
+                    if sc == krrood_role_cls_name:
+                        continue
+                    if role_cls_name in classes_copy_2[sc]["all_base_classes"]:
+                        mixin_class_info["all_base_classes"].remove(sc)
+                        mixin_class_info["all_base_classes"].append(f"Is{sc}")
+
+                        if sc in mixin_class_info["superclasses"]:
+                            mixin_class_info["superclasses"].remove(sc)
+                            mixin_class_info["superclasses"].append(f"Is{sc}")
+
+                        if sc in mixin_class_info["base_classes"]:
+                            mixin_class_info["base_classes"].remove(sc)
+                            mixin_class_info["base_classes"].append(f"Is{sc}")
+
+                classes_copy[mixin_class_info["name"]] = mixin_class_info
+                classes_copy[info['name']]["superclasses"] = [mixin_class_info["name"]]
+                classes_copy[info['name']]["base_classes"] = [mixin_class_info["name"]]
+                classes_copy[info['name']]["all_base_classes"].append(mixin_class_info["name"])
+                classes_copy[info['name']]["role_taker"] = []
                 pass
 
         for name, info in classes_copy.items():

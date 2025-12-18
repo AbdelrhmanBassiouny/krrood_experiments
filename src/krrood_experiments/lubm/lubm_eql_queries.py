@@ -9,7 +9,7 @@ from krrood.entity_query_language.entity import (
     variable,
     set_of,
     contains,
-    variable_from,
+    variable_from, in_,
 )
 from krrood.entity_query_language.entity_result_processors import (
     a,

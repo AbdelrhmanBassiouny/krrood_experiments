@@ -302,35 +302,75 @@ class Department(Organization):
 
 
 @dataclass
-class Director(UnivBenchOntologyRole[Person]):
-    """director"""
-    # Role taker
-    person: Person
-    # is the head of
-    head_of: Set[Program] = field(default_factory=set)
-
-    def __hash__(self):
-        return hash(id(self))
-
-
-
-@dataclass
-class Employee(UnivBenchOntologyRole[Person]):
-    """Employee"""
-    # Role taker
-    person: Person
-    # Works For
-    works_for: Set[Organization] = field(default_factory=set)
-
-    def __hash__(self):
-        return hash(id(self))
-
-
-
-@dataclass
 class Institute(Organization):
     """institute"""
     ...
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class IsDirector(UnivBenchOntologyRole[Person]):
+    """director"""
+    # Role taker
+    person: Person
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class IsEmployee(UnivBenchOntologyRole[Person]):
+    """Employee"""
+    # Role taker
+    person: Person
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class IsGraduateStudent(UnivBenchOntologyRole[Person]):
+    """graduate student"""
+    # Role taker
+    person: Person
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class IsResearchAssistant(UnivBenchOntologyRole[Person]):
+    """university research assistant"""
+    # Role taker
+    person: Person
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class IsStudent(UnivBenchOntologyRole[Person]):
+    """student"""
+    # Role taker
+    person: Person
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class IsTeachingAssistant(UnivBenchOntologyRole[Person]):
+    """university teaching assistant"""
+    # Role taker
+    person: Person
 
     def __hash__(self):
         return hash(id(self))
@@ -402,32 +442,6 @@ class Specification(Publication):
 
 
 @dataclass
-class Student(UnivBenchOntologyRole[Person]):
-    """student"""
-    # Role taker
-    person: Person
-    # is taking
-    takes_course: Set[Course] = field(default_factory=set)
-
-    def __hash__(self):
-        return hash(id(self))
-
-
-
-@dataclass
-class TeachingAssistant(UnivBenchOntologyRole[Person]):
-    """university teaching assistant"""
-    # Role taker
-    person: Person
-    # is a teaching assistant for
-    teaching_assistant_of: Set[Course] = field(default_factory=set)
-
-    def __hash__(self):
-        return hash(id(self))
-
-
-
-@dataclass
 class University(Organization):
     """university"""
     # has as an alumnus
@@ -449,16 +463,6 @@ class UnofficialPublication(Publication):
 
 
 @dataclass
-class AdministrativeStaff(Employee):
-    """administrative staff worker"""
-    ...
-
-    def __hash__(self):
-        return hash(id(self))
-
-
-
-@dataclass
 class ConferencePaper(Article):
     """conference paper"""
     ...
@@ -469,10 +473,21 @@ class ConferencePaper(Article):
 
 
 @dataclass
-class Faculty(Employee):
-    """faculty member"""
-    # teaches
-    teacher_of: Set[Course] = field(default_factory=set)
+class Director(IsDirector):
+    """director"""
+    # is the head of
+    head_of: Set[Program] = field(default_factory=set)
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class Employee(IsEmployee):
+    """Employee"""
+    # Works For
+    works_for: Set[Organization] = field(default_factory=set)
 
     def __hash__(self):
         return hash(id(self))
@@ -490,10 +505,29 @@ class GraduateCourse(Course):
 
 
 @dataclass
-class GraduateStudent(Student):
-    """graduate student"""
-    # is taking
-    takes_course: Set[GraduateCourse] = field(default_factory=set)
+class IsAdministrativeStaff(IsEmployee):
+    """administrative staff worker"""
+    ...
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class IsFaculty(IsEmployee):
+    """faculty member"""
+    ...
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class IsUndergraduateStudent(IsStudent):
+    """undergraduate student"""
+    ...
 
     def __hash__(self):
         return hash(id(self))
@@ -511,10 +545,21 @@ class JournalArticle(Article):
 
 
 @dataclass
-class ResearchAssistant(Employee):
-    """university research assistant"""
-    # Works For
-    works_for: Set[ResearchGroup] = field(default_factory=set)
+class Student(IsStudent):
+    """student"""
+    # is taking
+    takes_course: Set[Course] = field(default_factory=set)
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class TeachingAssistant(IsTeachingAssistant):
+    """university teaching assistant"""
+    # is a teaching assistant for
+    teaching_assistant_of: Set[Course] = field(default_factory=set)
 
     def __hash__(self):
         return hash(id(self))
@@ -532,8 +577,8 @@ class TechnicalReport(Article):
 
 
 @dataclass
-class UndergraduateStudent(Student):
-    """undergraduate student"""
+class AdministrativeStaff(IsAdministrativeStaff):
+    """administrative staff worker"""
     ...
 
     def __hash__(self):
@@ -542,7 +587,29 @@ class UndergraduateStudent(Student):
 
 
 @dataclass
-class ClericalStaff(AdministrativeStaff):
+class Faculty(IsFaculty):
+    """faculty member"""
+    # teaches
+    teacher_of: Set[Course] = field(default_factory=set)
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class GraduateStudent(IsGraduateStudent, Student):
+    """graduate student"""
+    # is taking
+    takes_course: Set[GraduateCourse] = field(default_factory=set)
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class IsClericalStaff(IsAdministrativeStaff):
     """clerical staff worker"""
     ...
 
@@ -552,7 +619,7 @@ class ClericalStaff(AdministrativeStaff):
 
 
 @dataclass
-class Lecturer(Faculty):
+class IsLecturer(IsFaculty):
     """lecturer"""
     ...
 
@@ -562,7 +629,7 @@ class Lecturer(Faculty):
 
 
 @dataclass
-class PostDoc(Faculty):
+class IsPostDoc(IsFaculty):
     """post doctorate"""
     ...
 
@@ -572,7 +639,137 @@ class PostDoc(Faculty):
 
 
 @dataclass
-class Professor(Faculty):
+class IsProfessor(IsFaculty):
+    """professor"""
+    ...
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class IsSystemsStaff(IsAdministrativeStaff):
+    """systems staff worker"""
+    ...
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class ResearchAssistant(IsResearchAssistant, Employee):
+    """university research assistant"""
+    # Works For
+    works_for: Set[ResearchGroup] = field(default_factory=set)
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class UndergraduateStudent(IsUndergraduateStudent):
+    """undergraduate student"""
+    ...
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class ClericalStaff(IsClericalStaff):
+    """clerical staff worker"""
+    ...
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class IsAssistantProfessor(IsProfessor):
+    """assistant professor"""
+    ...
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class IsAssociateProfessor(IsProfessor):
+    """associate professor"""
+    ...
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class IsChair(IsProfessor):
+    """chair"""
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class IsDean(IsProfessor):
+    """dean"""
+    ...
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class IsFullProfessor(IsProfessor):
+    """full professor"""
+    ...
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class IsVisitingProfessor(IsProfessor):
+    """visiting professor"""
+    ...
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class Lecturer(IsLecturer):
+    """lecturer"""
+    ...
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class PostDoc(IsPostDoc):
+    """post doctorate"""
+    ...
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class Professor(IsProfessor):
     """professor"""
     # is tenured:
     tenured: Optional[bool] = field(kw_only=True, default=None)
@@ -583,7 +780,7 @@ class Professor(Faculty):
 
 
 @dataclass
-class SystemsStaff(AdministrativeStaff):
+class SystemsStaff(IsSystemsStaff):
     """systems staff worker"""
     ...
 
@@ -593,7 +790,7 @@ class SystemsStaff(AdministrativeStaff):
 
 
 @dataclass
-class AssistantProfessor(Professor):
+class AssistantProfessor(IsAssistantProfessor):
     """assistant professor"""
     ...
 
@@ -603,7 +800,7 @@ class AssistantProfessor(Professor):
 
 
 @dataclass
-class AssociateProfessor(Professor):
+class AssociateProfessor(IsAssociateProfessor):
     """associate professor"""
     ...
 
@@ -613,7 +810,7 @@ class AssociateProfessor(Professor):
 
 
 @dataclass
-class Chair(Professor):
+class Chair(IsChair):
     """chair"""
     # is the head of
     head_of: Set[Department] = field(default_factory=set)
@@ -624,7 +821,7 @@ class Chair(Professor):
 
 
 @dataclass
-class Dean(Professor):
+class Dean(IsDean):
     """dean"""
     # is the head of
     head_of: Set[College] = field(default_factory=set)
@@ -635,7 +832,7 @@ class Dean(Professor):
 
 
 @dataclass
-class FullProfessor(Professor):
+class FullProfessor(IsFullProfessor):
     """full professor"""
     ...
 
@@ -645,7 +842,7 @@ class FullProfessor(Professor):
 
 
 @dataclass
-class VisitingProfessor(Professor):
+class VisitingProfessor(IsVisitingProfessor):
     """visiting professor"""
     ...
 
@@ -671,13 +868,13 @@ Person.undergraduate_degree_from = UndergraduateDegreeFrom(Person, 'undergraduat
 Publication.publication_author = PublicationAuthor(Publication, 'publication_author')
 Publication.publication_research = PublicationResearch(Publication, 'publication_research')
 Schedule.listed_course = ListedCourse(Schedule, 'listed_course')
-Director.head_of = HeadOf(Director, 'head_of')
-Employee.works_for = WorksFor(Employee, 'works_for')
 ResearchGroup.research_project = ResearchProject(ResearchGroup, 'research_project')
 Software.software_documentation = SoftwareDocumentation(Software, 'software_documentation')
+University.has_alumnus = HasAlumnus(University, 'has_alumnus')
+Director.head_of = HeadOf(Director, 'head_of')
+Employee.works_for = WorksFor(Employee, 'works_for')
 Student.takes_course = TakesCourse(Student, 'takes_course')
 TeachingAssistant.teaching_assistant_of = TeachingAssistantOf(TeachingAssistant, 'teaching_assistant_of')
-University.has_alumnus = HasAlumnus(University, 'has_alumnus')
 Faculty.teacher_of = TeacherOf(Faculty, 'teacher_of')
 GraduateStudent.takes_course = TakesCourse(GraduateStudent, 'takes_course')
 ResearchAssistant.works_for = WorksFor(ResearchAssistant, 'works_for')
