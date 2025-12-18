@@ -38,7 +38,7 @@ from krrood_experiments.lubm.lubm_with_predicates import (
     ResearchGroup,
     UndergraduateStudent,
     AssistantProfessor,
-    FullProfessor,
+    FullProfessor, IsProfessor,
 )
 from krrood_experiments.lubm.owl_instances_loader import OwlInstancesRegistry
 
@@ -107,14 +107,13 @@ def get_eql_queries(
     # 4
     registry_classes = registry_._by_class if registry_ is not None else {}
     professor_classes = [
-        cls for cls in registry_classes.keys() if issubclass(cls, Professor)
+        cls for cls in registry_classes.keys() if issubclass(cls, IsProfessor)
     ]
     professor_instances = []
     for cls in professor_classes:
         professor_instances.extend(registry_._by_class[cls])
-    professor = variable(
-        Professor,
-        domain=professor_instances,
+    professor = variable_from(
+        professor_instances,
     )
     works_for = variable_from(professor.works_for)
     q4 = a(
