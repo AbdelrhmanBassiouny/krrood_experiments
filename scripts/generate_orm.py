@@ -7,7 +7,7 @@ from krrood.ormatic.ormatic import ORMatic
 from krrood.ormatic.utils import classes_of_module
 from krrood.utils import recursive_subclasses
 
-import owl2bench
+import owl2bench.models
 
 all_classes = classes_of_module(owl2bench.models)
 # only keep dataclasses

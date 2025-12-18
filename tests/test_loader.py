@@ -4,7 +4,7 @@ import warnings
 
 import pytest
 
-from owl2bench.loader import WorldLoader, MappingError, OntologyLoadError
+from owl2bench.loader import WorldLoader, OntologyLoadError
 
 
 def write_temp_ttl(tmp_path: Path) -> Path:
@@ -63,7 +63,7 @@ def test_world_loader_minimal_abox(tmp_path: Path):
     )
 
 
-def test_world_loader_missing_required_raises(tmp_path: Path):
+def test_world_loader_missing_optional_warning(tmp_path: Path):
     # Missing email
     ttl = textwrap.dedent(
         """
@@ -77,8 +77,17 @@ def test_world_loader_missing_required_raises(tmp_path: Path):
     p.write_text(ttl, encoding="utf-8")
 
     loader = WorldLoader()
-    with pytest.raises(MappingError):
-        loader.load(p)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        world = loader.load(p)
+        # At least one warning about missing properties should be raised
+        assert any("Missing data property" in str(warn.message) for warn in w)
+    # Should still load a person with None email
+    assert len(world.persons) == 1
+    person = world.persons[0]
+    assert person.first_name == "Alan"
+    assert person.last_name == "Turing"
+    assert person.email is None
 
 
 def test_world_loader_smoke_instances_file(owl2_dl1):
@@ -87,10 +96,10 @@ def test_world_loader_smoke_instances_file(owl2_dl1):
     assert len(owl2_dl1.persons) >= 1
     # Optional: if persons are present, basic field integrity
     for person in owl2_dl1.persons[:10]:
-        assert person.first_name
-        assert person.last_name
-        assert person.email
-        assert isinstance(person.is_woman, bool)
+        assert person.first_name is None or isinstance(person.first_name, str)
+        assert person.last_name is None or isinstance(person.last_name, str)
+        assert person.email is None or isinstance(person.email, str)
+        assert person.is_woman is None or isinstance(person.is_woman, bool)
 
 
 def test_world_loader_loads_knows_relationship(tmp_path: Path):

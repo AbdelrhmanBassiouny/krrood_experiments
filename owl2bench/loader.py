@@ -150,24 +150,34 @@ class WorldLoader:
                 continue
             person = persons_index.get(p)
             if person is None:
-                first = self._required_dataprop(
-                    g, p, BENCH.hasFirstName, "hasFirstName"
-                )
-                last = self._required_dataprop(g, p, BENCH.hasLastName, "hasLastName")
-                email = self._required_dataprop(
-                    g, p, BENCH.hasEmailAddress, "hasEmailAddress"
-                )
-                # Gender: Woman/Man classes
+
+                # Optional data properties with warnings when missing
+                def _opt_str_with_warn(prop: URIRef, name: str) -> Optional[str]:
+                    lit = self._optional_dataprop(g, p, prop)
+                    if lit is None:
+                        warnings.warn(
+                            f"Missing data property {name} for subject {p}; defaulting to None.",
+                            stacklevel=2,
+                        )
+                        return None
+                    return str(lit)
+
+                first = _opt_str_with_warn(BENCH.hasFirstName, "hasFirstName")
+                last = _opt_str_with_warn(BENCH.hasLastName, "hasLastName")
+                email = _opt_str_with_warn(BENCH.hasEmailAddress, "hasEmailAddress")
+
+                # Gender: Woman/Man classes → Optional[bool] with warning if absent
                 is_woman: Optional[bool]
                 if (p, RDF.type, BENCH.Woman) in g:
                     is_woman = True
                 elif (p, RDF.type, BENCH.Man) in g:
                     is_woman = False
                 else:
-                    # Gender is required in our models; raise unless you prefer Optional[bool]
-                    raise MappingError(
-                        f"Missing gender class (Woman/Man) for person {p}. Cannot map required field 'is_woman'."
+                    warnings.warn(
+                        f"Missing gender class (Woman/Man) for person {p}; defaulting to None.",
+                        stacklevel=2,
                     )
+                    is_woman = None
                 hometown_lit = self._optional_dataprop(g, p, BENCH.isFrom)
                 hometown = str(hometown_lit) if hometown_lit is not None else None
 
@@ -176,7 +186,7 @@ class WorldLoader:
                     first_name=first,
                     last_name=last,
                     email=email,
-                    is_woman=bool(is_woman),
+                    is_woman=is_woman,
                     hometown=hometown,
                 )
                 persons_index[p] = person

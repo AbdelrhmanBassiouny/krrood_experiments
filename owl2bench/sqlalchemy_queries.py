@@ -25,3 +25,6 @@ q1 = SQLAlchemyQuery(sparql_queries.q1, sqlalchemy_q1)
 
 sqlalchemy_q2 = select(researchgroupdao_members_association)
 q2 = SQLAlchemyQuery(sparql_queries.q2, sqlalchemy_q2)
+
+sqlalchemy_q3 = select(departmentdao_research_groups_association)
+q3 = SQLAlchemyQuery(sparql_queries.q3, sqlalchemy_q3)
