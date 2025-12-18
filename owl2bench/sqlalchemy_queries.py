@@ -14,7 +14,7 @@ class SQLAlchemyQuery:
     The sparql query this represents.
     """
 
-    query: Select
+    statement: Select
     """
     The sqlalchemy query to be executed.
     """
@@ -23,8 +23,13 @@ class SQLAlchemyQuery:
 sqlalchemy_q1 = select(persondao_knows_association)
 q1 = SQLAlchemyQuery(sparql_queries.q1, sqlalchemy_q1)
 
-sqlalchemy_q2 = select(researchgroupdao_members_association)
+sqlalchemy_q2 = select(worlddao_employees_association).union(
+    select(worlddao_students_association)
+)
 q2 = SQLAlchemyQuery(sparql_queries.q2, sqlalchemy_q2)
 
 sqlalchemy_q3 = select(departmentdao_research_groups_association)
 q3 = SQLAlchemyQuery(sparql_queries.q3, sqlalchemy_q3)
+
+
+all_queries = [q1, q2, q3]

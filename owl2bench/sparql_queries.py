@@ -33,7 +33,7 @@ class SPARQLQuery:
     The SPARQL query number.
     """
 
-    query: str
+    raw_sparql_string: str
     """
     The sparql query to be executed.
     """
@@ -67,7 +67,7 @@ PREFIXES = (
 
 q1 = SPARQLQuery(
     number=1,
-    query=PREFIXES
+    raw_sparql_string=PREFIXES
     + """
     SELECT  DISTINCT  ?x  ?y  WHERE { ?x  owl2bench:knows  ?y  }
     """,
@@ -78,7 +78,7 @@ q1 = SPARQLQuery(
 
 q2 = SPARQLQuery(
     number=2,
-    query=PREFIXES
+    raw_sparql_string=PREFIXES
     + """
     SELECT  DISTINCT  ?x  ?y  WHERE { ?x  owl2bench:isMemberOf  ?y  }
     """,
@@ -89,7 +89,7 @@ q2 = SPARQLQuery(
 
 q3 = SPARQLQuery(
     number=3,
-    query=PREFIXES
+    raw_sparql_string=PREFIXES
     + """
     SELECT  DISTINCT  ?x  ?y  WHERE { ?x  owl2bench:isPartOf  ?y  }
     """,
@@ -100,7 +100,7 @@ q3 = SPARQLQuery(
 
 q4 = SPARQLQuery(
     number=4,
-    query=PREFIXES
+    raw_sparql_string=PREFIXES
     + """
     SELECT  DISTINCT  ?x  ?y  WHERE { ?x  owl2bench:hasAge  ?y  }
     """,
@@ -111,7 +111,7 @@ q4 = SPARQLQuery(
 
 q5 = SPARQLQuery(
     number=5,
-    query=PREFIXES
+    raw_sparql_string=PREFIXES
     + """
     SELECT  DISTINCT  ?x  WHERE { ?x  rdf:type  owl2bench:T20CricketFan  }
     """,
@@ -122,7 +122,7 @@ q5 = SPARQLQuery(
 
 q6 = SPARQLQuery(
     number=6,
-    query="""
+    raw_sparql_string="""
     SELECT DISTINCT ?x ?y WHERE { ?x rdf:type owl2bench:SelfAwarePerson  }
     """,
     description="Find all the instances of class SelfAwarePerson. SelfAwarePerson is a Person who knows themselves.",
@@ -132,7 +132,7 @@ q6 = SPARQLQuery(
 
 q7 = SPARQLQuery(
     number=7,
-    query=PREFIXES
+    raw_sparql_string=PREFIXES
     + """
     SELECT  DISTINCT  ?x  ?y  WHERE { ?x  owl2bench:hasAlumnus  ?y  }
     """,
@@ -143,7 +143,7 @@ q7 = SPARQLQuery(
 
 q8 = SPARQLQuery(
     number=8,
-    query=PREFIXES
+    raw_sparql_string=PREFIXES
     + """
     SELECT  DISTINCT  ?x  ?y  WHERE  {  ?x  owl2bench:isAffiliatedOrganizationOf  ?y  }
     """,
@@ -154,7 +154,7 @@ q8 = SPARQLQuery(
 
 q9 = SPARQLQuery(
     number=9,
-    query=PREFIXES
+    raw_sparql_string=PREFIXES
     + """
     SELECT DISTINCT ?x WHERE { ?x owl2bench:hasCollegeDiscipline owl2bench:NonScience }
     """,
@@ -165,7 +165,7 @@ q9 = SPARQLQuery(
 
 q10 = SPARQLQuery(
     number=10,
-    query=PREFIXES
+    raw_sparql_string=PREFIXES
     + """
     SELECT  DISTINCT  ?x  ?y  WHERE  { ?x  owl2bench:hasCollaborationWith ?y  }
     """,
@@ -176,7 +176,7 @@ q10 = SPARQLQuery(
 
 q11 = SPARQLQuery(
     number=11,
-    query=PREFIXES
+    raw_sparql_string=PREFIXES
     + """
     SELECT  DISTINCT  ?x  ?y  WHERE { ?x  owl2bench:isAdvisedBy  ?y  }
     """,
@@ -188,7 +188,7 @@ q11 = SPARQLQuery(
 
 q12 = SPARQLQuery(
     number=12,
-    query=PREFIXES
+    raw_sparql_string=PREFIXES
     + """
     SELECT  DISTINCT  ?x  WHERE { ?x  rdf:type  owl2bench:Person}
     """,
@@ -199,7 +199,7 @@ q12 = SPARQLQuery(
 
 q13 = SPARQLQuery(
     number=13,
-    query=PREFIXES
+    raw_sparql_string=PREFIXES
     + """
     SELECT  DISTINCT  ?x  WHERE { ?x  rdf:type  owl2bench:WomanCollege}
     """,
@@ -210,7 +210,7 @@ q13 = SPARQLQuery(
 
 q14 = SPARQLQuery(
     number=14,
-    query=PREFIXES
+    raw_sparql_string=PREFIXES
     + """
     SELECT  DISTINCT  ?x  WHERE { ?x  rdf:type  owl2bench:LeisureStudent}
     """,
@@ -221,7 +221,7 @@ q14 = SPARQLQuery(
 
 q15 = SPARQLQuery(
     number=15,
-    query=PREFIXES
+    raw_sparql_string=PREFIXES
     + """
     SELECT  DISTINCT  ?x  WHERE {?x  owl2bench:isHeadOf  ?y}
     """,
@@ -232,7 +232,7 @@ q15 = SPARQLQuery(
 
 q16 = SPARQLQuery(
     number=16,
-    query=PREFIXES
+    raw_sparql_string=PREFIXES
     + """
     SELECT  DISTINCT  ?x  WHERE {?x  owl2bench:hasHead  ?y}
     """,
@@ -243,7 +243,7 @@ q16 = SPARQLQuery(
 
 q17 = SPARQLQuery(
     number=17,
-    query=PREFIXES
+    raw_sparql_string=PREFIXES
     + """
     SELECT  DISTINCT  ?x  WHERE {?x  rdf:type  :UGStudent}
     """,
@@ -254,7 +254,7 @@ q17 = SPARQLQuery(
 
 q18 = SPARQLQuery(
     number=18,
-    query=PREFIXES
+    raw_sparql_string=PREFIXES
     + """
     SELECT DISTINCT ?x WHERE { ?x rdf:type :PeopleWithManyHobbies}
     """,
@@ -265,7 +265,7 @@ q18 = SPARQLQuery(
 
 q19 = SPARQLQuery(
     number=19,
-    query=PREFIXES
+    raw_sparql_string=PREFIXES
     + """
     SELECT  DISTINCT  ?x  WHERE { ?x  rdf:type  owl2bench:Faculty  }
     """,
@@ -276,7 +276,7 @@ q19 = SPARQLQuery(
 
 q20 = SPARQLQuery(
     number=20,
-    query=PREFIXES
+    raw_sparql_string=PREFIXES
     + """
     SELECT  DISTINCT  ?x  ?y  WHERE  {?x  owl2bench:hasSameHomeTownWith  ?y  }
     """,
@@ -287,7 +287,7 @@ q20 = SPARQLQuery(
 
 q21 = SPARQLQuery(
     number=21,
-    query=PREFIXES
+    raw_sparql_string=PREFIXES
     + """
     SELECT DISTINCT ?x ?y WHERE {?x rdf:type owl2bench:Student. ?x owl2bench:isStudentOf ?y. ?y owl2bench:isPartOf ?z . ?z owl2bench:hasCollegeDiscipline owl2bench:Engineering}
     """,
@@ -298,7 +298,7 @@ q21 = SPARQLQuery(
 
 q22 = SPARQLQuery(
     number=22,
-    query=PREFIXES
+    raw_sparql_string=PREFIXES
     + """
     SELECT  DISTINCT  ?s  ?c  WHERE  {?s  rdf:type  owl2bench:Student.  ?x rdf:type  owl2bench:Organization.  ?x  owl2bench:hasDean  ?z.  ?z  owl2bench:teachesCourse  ?c.  ?s owl2bench:takesCourse  ?c  }
     """,

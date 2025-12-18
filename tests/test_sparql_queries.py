@@ -17,7 +17,7 @@ def test_query(query_obj):
     sparql.setReturnFormat(JSON)
 
     # Execute query
-    sparql.setQuery(query_obj.query)
+    sparql.setQuery(query_obj.raw_sparql_string)
     results = sparql.query().convert()
 
     # Verify results
