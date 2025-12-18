@@ -400,6 +400,7 @@ class OwlToPythonConverter:
             if role_cls_name in info["all_base_classes"]:
                 mixin_class_info = deepcopy(info)
                 mixin_class_info["name"] = f"Is{info['name']}"
+                mixin_class_info["is_mixin"] = True
                 for sc in copy(mixin_class_info["all_base_classes"]):
                     if sc == krrood_role_cls_name:
                         continue
@@ -927,6 +928,8 @@ class OwlToPythonConverter:
                 info["base_classes"].append(
                     f"{role_cls_name}[{info['role_taker'][0]['cls_name']}]"
                 )
+            if "is_mixin" in info:
+                info["base_classes"].append("ABC")
 
         template_dir = os.path.dirname(__file__)
         env = Environment(

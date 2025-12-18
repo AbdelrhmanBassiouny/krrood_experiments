@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing_extensions import List, Optional, Union, Any, Set, Generic, TypeVar, Type
+from abc import ABC
 
 from krrood.entity_query_language.predicate import Symbol
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
@@ -312,7 +313,7 @@ class Institute(Organization):
 
 
 @dataclass
-class IsDirector(UnivBenchOntologyRole[Person]):
+class IsDirector(UnivBenchOntologyRole[Person], ABC):
     """director"""
     # Role taker
     person: Person
@@ -325,7 +326,7 @@ class IsDirector(UnivBenchOntologyRole[Person]):
 
 
 @dataclass
-class IsEmployee(UnivBenchOntologyRole[Person]):
+class IsEmployee(UnivBenchOntologyRole[Person], ABC):
     """Employee"""
     # Role taker
     person: Person
@@ -338,7 +339,7 @@ class IsEmployee(UnivBenchOntologyRole[Person]):
 
 
 @dataclass
-class IsStudent(UnivBenchOntologyRole[Person]):
+class IsStudent(UnivBenchOntologyRole[Person], ABC):
     """student"""
     # Role taker
     person: Person
@@ -351,7 +352,7 @@ class IsStudent(UnivBenchOntologyRole[Person]):
 
 
 @dataclass
-class IsTeachingAssistant(UnivBenchOntologyRole[Person]):
+class IsTeachingAssistant(UnivBenchOntologyRole[Person], ABC):
     """university teaching assistant"""
     # Role taker
     person: Person
@@ -489,7 +490,7 @@ class GraduateCourse(Course):
 
 
 @dataclass
-class IsAdministrativeStaff(IsEmployee):
+class IsAdministrativeStaff(IsEmployee, ABC):
     """administrative staff worker"""
     ...
 
@@ -499,7 +500,7 @@ class IsAdministrativeStaff(IsEmployee):
 
 
 @dataclass
-class IsFaculty(IsEmployee):
+class IsFaculty(IsEmployee, ABC):
     """faculty member"""
     # teaches
     teacher_of: Set[Course] = field(default_factory=set)
@@ -510,7 +511,7 @@ class IsFaculty(IsEmployee):
 
 
 @dataclass
-class IsGraduateStudent(IsStudent):
+class IsGraduateStudent(IsStudent, ABC):
     """graduate student"""
     # is taking
     takes_course: Set[GraduateCourse] = field(default_factory=set)
@@ -521,7 +522,7 @@ class IsGraduateStudent(IsStudent):
 
 
 @dataclass
-class IsResearchAssistant(IsEmployee):
+class IsResearchAssistant(IsEmployee, ABC):
     """university research assistant"""
     # Works For
     works_for: Set[ResearchGroup] = field(default_factory=set)
@@ -532,7 +533,7 @@ class IsResearchAssistant(IsEmployee):
 
 
 @dataclass
-class IsUndergraduateStudent(IsStudent):
+class IsUndergraduateStudent(IsStudent, ABC):
     """undergraduate student"""
     ...
 
@@ -612,7 +613,7 @@ class GraduateStudent(IsGraduateStudent):
 
 
 @dataclass
-class IsClericalStaff(IsAdministrativeStaff):
+class IsClericalStaff(IsAdministrativeStaff, ABC):
     """clerical staff worker"""
     ...
 
@@ -622,7 +623,7 @@ class IsClericalStaff(IsAdministrativeStaff):
 
 
 @dataclass
-class IsLecturer(IsFaculty):
+class IsLecturer(IsFaculty, ABC):
     """lecturer"""
     ...
 
@@ -632,7 +633,7 @@ class IsLecturer(IsFaculty):
 
 
 @dataclass
-class IsPostDoc(IsFaculty):
+class IsPostDoc(IsFaculty, ABC):
     """post doctorate"""
     ...
 
@@ -642,7 +643,7 @@ class IsPostDoc(IsFaculty):
 
 
 @dataclass
-class IsProfessor(IsFaculty):
+class IsProfessor(IsFaculty, ABC):
     """professor"""
     # is tenured:
     tenured: Optional[bool] = field(kw_only=True, default=None)
@@ -653,7 +654,7 @@ class IsProfessor(IsFaculty):
 
 
 @dataclass
-class IsSystemsStaff(IsAdministrativeStaff):
+class IsSystemsStaff(IsAdministrativeStaff, ABC):
     """systems staff worker"""
     ...
 
@@ -693,7 +694,7 @@ class ClericalStaff(IsClericalStaff):
 
 
 @dataclass
-class IsAssistantProfessor(IsProfessor):
+class IsAssistantProfessor(IsProfessor, ABC):
     """assistant professor"""
     ...
 
@@ -703,7 +704,7 @@ class IsAssistantProfessor(IsProfessor):
 
 
 @dataclass
-class IsAssociateProfessor(IsProfessor):
+class IsAssociateProfessor(IsProfessor, ABC):
     """associate professor"""
     ...
 
@@ -713,7 +714,7 @@ class IsAssociateProfessor(IsProfessor):
 
 
 @dataclass
-class IsChair(IsProfessor):
+class IsChair(IsProfessor, ABC):
     """chair"""
     # is the head of
     head_of: Set[Department] = field(default_factory=set)
@@ -724,7 +725,7 @@ class IsChair(IsProfessor):
 
 
 @dataclass
-class IsDean(IsProfessor):
+class IsDean(IsProfessor, ABC):
     """dean"""
     # is the head of
     head_of: Set[College] = field(default_factory=set)
@@ -735,7 +736,7 @@ class IsDean(IsProfessor):
 
 
 @dataclass
-class IsFullProfessor(IsProfessor):
+class IsFullProfessor(IsProfessor, ABC):
     """full professor"""
     ...
 
@@ -745,7 +746,7 @@ class IsFullProfessor(IsProfessor):
 
 
 @dataclass
-class IsVisitingProfessor(IsProfessor):
+class IsVisitingProfessor(IsProfessor, ABC):
     """visiting professor"""
     ...
 
