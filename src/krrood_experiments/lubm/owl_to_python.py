@@ -393,6 +393,10 @@ class OwlToPythonConverter:
                 stack.extend(name_to_bases.get(base, []))
             info["all_base_classes"] = sorted(ancestors)
 
+        for info in classes_copy.values():
+            if info["name"] == "Chair":
+                pass
+
         for name, info in classes_copy.items():
             if role_cls_name in info["base_classes"]:
                 if any(
