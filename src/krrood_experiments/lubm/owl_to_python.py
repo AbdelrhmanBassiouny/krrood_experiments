@@ -420,7 +420,6 @@ class OwlToPythonConverter:
                 classes_copy[info['name']]["base_classes"] = [mixin_class_info["name"]]
                 classes_copy[info['name']]["all_base_classes"].append(mixin_class_info["name"])
                 classes_copy[info['name']]["role_taker"] = []
-                classes_copy[info['name']]["mixin"] = mixin_class_info["name"]
                 pass
 
         for name, info in classes_copy.items():
@@ -548,6 +547,51 @@ class OwlToPythonConverter:
             info["ranges"] = sorted(rng_map.get(name, set()))
             info["range_uris"] = list(rng_uri_map.get(name, set()))
             info["declared_domains"] = sorted(declared_dom_map.get(name, set()))
+
+        # Create specialized properties for class-specific range restrictions (object properties only)
+        specialized_props: Dict[str, Dict] = {}
+        for cls_name, props in property_restrictions.items():
+            for prop_name, rng_names in props.items():
+                base = properties_copy.get(prop_name)
+                if not base or base.get("type") != "ObjectProperty":
+                    continue
+                if rng_names.issubset(
+                    set(self.properties[prop_name].get("ranges", []))
+                ):
+                    continue
+                # Remove this class from the base property's declared domains (we will attach a specialized one)
+                base_dd = list(base.get("declared_domains", []))
+                if cls_name in base_dd:
+                    base_dd.remove(cls_name)
+                    base["declared_domains"] = base_dd
+                for rng_name in sorted(rng_names):
+                    spec_key = prop_name + "{" + rng_name + "}"
+                    if spec_key in properties_copy or spec_key in specialized_props:
+                        continue
+                    spec = {
+                        "name": prop_name,
+                        "uri": base.get("uri", ""),
+                        "type": "ObjectProperty",
+                        "domains": [cls_name],
+                        "ranges": [rng_name],
+                        "range_uris": [],
+                        "label": base.get("label"),
+                        "comment": base.get("comment"),
+                        "field_name": base.get("field_name"),
+                        "descriptor_name": self._to_pascal_case(
+                            base.get("descriptor_name", prop_name)
+                        ),  # + self._to_pascal_case(rng_name),
+                        "superproperties": [prop_name],
+                        "inverses": [],
+                        "inverse_of": None,
+                        "is_transitive": base.get("is_transitive", False),
+                        "declared_domains": [cls_name],
+                        "is_specialized": True,
+                    }
+                    specialized_props[spec_key] = spec
+
+        # Merge specialized properties
+        properties_copy.update(specialized_props)
 
         # Add uri data property to the ontology base class
         if "uri" not in properties_copy:
