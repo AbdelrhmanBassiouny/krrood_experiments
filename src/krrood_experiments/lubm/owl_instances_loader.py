@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from collections import defaultdict
+from copy import copy
 from dataclasses import fields, is_dataclass
 from types import ModuleType
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union
@@ -350,6 +351,12 @@ def load_instances(
 
         if base_desc is not None:
             possible_roles = list(PropertyDescriptor.all_domains[base_desc])
+            for pr in copy(possible_roles):
+                if not ABC in pr.__bases__:
+                    break
+                possible_roles.remove(pr)
+                subclass_roles = [pr_cls for pr_cls in recursive_subclasses(pr) if not ABC in pr_cls.__bases__]
+                possible_roles.extend(subclass_roles)
             if len(possible_roles) == 1:
                 new_role_class = possible_roles[0]
             else:
