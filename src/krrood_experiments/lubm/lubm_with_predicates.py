@@ -475,8 +475,7 @@ class ConferencePaper(Article):
 @dataclass
 class Director(IsDirector):
     """director"""
-    # is the head of
-    head_of: Set[Organization] = field(default_factory=set)
+    ...
 
     def __hash__(self):
         return hash(id(self))
@@ -486,8 +485,7 @@ class Director(IsDirector):
 @dataclass
 class Employee(IsEmployee):
     """Employee"""
-    # Works For
-    works_for: Set[Organization] = field(default_factory=set)
+    ...
 
     def __hash__(self):
         return hash(id(self))
@@ -507,8 +505,7 @@ class GraduateCourse(Course):
 @dataclass
 class GraduateStudent(IsGraduateStudent):
     """graduate student"""
-    # is taking
-    takes_course: Set[Course] = field(default_factory=set)
+    ...
 
     def __hash__(self):
         return hash(id(self))
@@ -580,8 +577,7 @@ class Student(IsStudent):
 @dataclass
 class TeachingAssistant(IsTeachingAssistant):
     """university teaching assistant"""
-    # is a teaching assistant for
-    teaching_assistant_of: Set[Course] = field(default_factory=set)
+    ...
 
     def __hash__(self):
         return hash(id(self))
@@ -611,8 +607,7 @@ class AdministrativeStaff(IsAdministrativeStaff):
 @dataclass
 class Faculty(IsFaculty):
     """faculty member"""
-    # teaches
-    teacher_of: Set[Course] = field(default_factory=set)
+    ...
 
     def __hash__(self):
         return hash(id(self))
@@ -771,8 +766,7 @@ class PostDoc(IsPostDoc):
 @dataclass
 class Professor(IsProfessor):
     """professor"""
-    # is tenured:
-    tenured: Optional[bool] = field(kw_only=True, default=None)
+    ...
 
     def __hash__(self):
         return hash(id(self))
@@ -812,8 +806,7 @@ class AssociateProfessor(IsAssociateProfessor):
 @dataclass
 class Chair(IsChair):
     """chair"""
-    # is the head of
-    head_of: Set[Organization] = field(default_factory=set)
+    ...
 
     def __hash__(self):
         return hash(id(self))
@@ -871,12 +864,6 @@ Schedule.listed_course = ListedCourse(Schedule, 'listed_course')
 ResearchGroup.research_project = ResearchProject(ResearchGroup, 'research_project')
 Software.software_documentation = SoftwareDocumentation(Software, 'software_documentation')
 University.has_alumnus = HasAlumnus(University, 'has_alumnus')
-Director.head_of = HeadOf(Director, 'head_of')
-Employee.works_for = WorksFor(Employee, 'works_for')
-GraduateStudent.takes_course = TakesCourse(GraduateStudent, 'takes_course')
 ResearchAssistant.works_for = WorksFor(ResearchAssistant, 'works_for')
 Student.takes_course = TakesCourse(Student, 'takes_course')
-TeachingAssistant.teaching_assistant_of = TeachingAssistantOf(TeachingAssistant, 'teaching_assistant_of')
-Faculty.teacher_of = TeacherOf(Faculty, 'teacher_of')
-Chair.head_of = HeadOf(Chair, 'head_of')
 Dean.head_of = HeadOf(Dean, 'head_of')

@@ -748,6 +748,22 @@ class OwlToPythonConverter:
                 else:
                     info["data_type_hint_inner"] = py_types_unique[0]
 
+        for prop_name, p in properties_copy.items():
+            declared_domains = p.get("declared_domains", [])
+            domains = p.get("domains", [])
+            for cls_name in declared_domains:
+                if cls_name not in classes_copy:
+                    continue
+                if "mixin" in classes_copy[cls_name]:
+                    properties_copy[prop_name]["declared_domains"].remove(cls_name)
+                    properties_copy[prop_name]["declared_domains"].append(classes_copy[cls_name]["mixin"])
+            for cls_name in domains:
+                if cls_name not in classes_copy:
+                    continue
+                if "mixin" in classes_copy[cls_name]:
+                    properties_copy[prop_name]["domains"].remove(cls_name)
+                    properties_copy[prop_name]["domains"].append(classes_copy[cls_name]["mixin"])
+
         # Decide which properties to declare on each class (avoid duplicates)
         for cls_name, cls_info in classes_copy.items():
             ancestors = set(cls_info.get("all_base_classes", []))
