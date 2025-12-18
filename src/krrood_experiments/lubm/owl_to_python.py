@@ -1,7 +1,7 @@
 import os
 import re
 from collections import defaultdict
-from copy import copy
+from copy import copy, deepcopy
 from typing import Dict, List, Callable, Optional, Any
 
 import rdflib
@@ -398,7 +398,7 @@ class OwlToPythonConverter:
         classes_copy_2 = copy(classes_copy)
         for info in classes_copy_2.values():
             if role_cls_name in info["all_base_classes"]:
-                mixin_class_info = copy(info)
+                mixin_class_info = deepcopy(info)
                 mixin_class_info["name"] = f"Is{info['name']}"
                 for sc in copy(mixin_class_info["all_base_classes"]):
                     if sc == krrood_role_cls_name:
@@ -420,6 +420,7 @@ class OwlToPythonConverter:
                 classes_copy[info['name']]["base_classes"] = [mixin_class_info["name"]]
                 classes_copy[info['name']]["all_base_classes"].append(mixin_class_info["name"])
                 classes_copy[info['name']]["role_taker"] = []
+                classes_copy[info['name']]["mixin"] = mixin_class_info["name"]
                 pass
 
         for name, info in classes_copy.items():
@@ -793,8 +794,8 @@ class OwlToPythonConverter:
                     info["data_type_hint_inner"] = py_types_unique[0]
 
         for prop_name, p in properties_copy.items():
-            declared_domains = p.get("declared_domains", [])
-            domains = p.get("domains", [])
+            declared_domains = copy(p.get("declared_domains", []))
+            domains = copy(p.get("domains", []))
             for cls_name in declared_domains:
                 if cls_name not in classes_copy:
                     continue
