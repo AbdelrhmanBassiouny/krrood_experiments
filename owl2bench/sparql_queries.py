@@ -78,8 +78,9 @@ q1 = SPARQLQuery(
 
 q2 = SPARQLQuery(
     number=2,
-    query="""
-    SELECT  DISTINCT  ?x  ?y  WHERE { ?x  :isMemberOf  ?y  }
+    query=PREFIXES
+    + """
+    SELECT  DISTINCT  ?x  ?y  WHERE { ?x  owl2bench:isMemberOf  ?y  }
     """,
     description="Find Person instances who are member (Student or Employee) of some Organization.",
     construct_involved="ObjectPropertyChain.",
@@ -88,8 +89,9 @@ q2 = SPARQLQuery(
 
 q3 = SPARQLQuery(
     number=3,
-    query="""
-    SELECT  DISTINCT  ?x  ?y  WHERE { ?x  :isPartOf  ?y  }
+    query=PREFIXES
+    + """
+    SELECT  DISTINCT  ?x  ?y  WHERE { ?x  owl2bench:isPartOf  ?y  }
     """,
     description="Find the instances of Organization which is a Part Of any other Organization.",
     construct_involved="isPartOf is a Transitive Object Property. Domain(Organization), Range(Organization).",
@@ -98,8 +100,9 @@ q3 = SPARQLQuery(
 
 q4 = SPARQLQuery(
     number=4,
-    query="""
-    SELECT  DISTINCT  ?x  ?y  WHERE { ?x  :hasAge  ?y  }
+    query=PREFIXES
+    + """
+    SELECT  DISTINCT  ?x  ?y  WHERE { ?x  owl2bench:hasAge  ?y  }
     """,
     description="Find the age of all the Person instances.",
     construct_involved="hasAge is a Functional Data Property. Domain(Person), Range(xsd:nonNegativeInteger).",
@@ -108,8 +111,9 @@ q4 = SPARQLQuery(
 
 q5 = SPARQLQuery(
     number=5,
-    query="""
-    SELECT  DISTINCT  ?x  WHERE { ?x  rdf:type  :T20CricketFan  }
+    query=PREFIXES
+    + """
+    SELECT  DISTINCT  ?x  WHERE { ?x  rdf:type  owl2bench:T20CricketFan  }
     """,
     description="Find all the instances of class T20CricketFan. T20CricketFan is a Person who is crazy about T20Cricket. {T20Cricket} is an instance of Class Cricket.",
     construct_involved="ObjectHasValue.",
@@ -119,7 +123,7 @@ q5 = SPARQLQuery(
 q6 = SPARQLQuery(
     number=6,
     query="""
-    SELECT DISTINCT ?x ?y WHERE { ?x rdf:type :SelfAwarePerson  }
+    SELECT DISTINCT ?x ?y WHERE { ?x rdf:type owl2bench:SelfAwarePerson  }
     """,
     description="Find all the instances of class SelfAwarePerson. SelfAwarePerson is a Person who knows themselves.",
     construct_involved="ObjectHasSelf.",
@@ -128,8 +132,9 @@ q6 = SPARQLQuery(
 
 q7 = SPARQLQuery(
     number=7,
-    query="""
-    SELECT  DISTINCT  ?x  ?y  WHERE { ?x  :hasAlumnus  ?y  }
+    query=PREFIXES
+    + """
+    SELECT  DISTINCT  ?x  ?y  WHERE { ?x  owl2bench:hasAlumnus  ?y  }
     """,
     description="Find all the alumni of a University.",
     construct_involved=" hasAlumnus is an Inverse Object Property of hasDegreeFrom. Domain(University), Range(Person).",
@@ -138,8 +143,9 @@ q7 = SPARQLQuery(
 
 q8 = SPARQLQuery(
     number=8,
-    query="""
-    SELECT  DISTINCT  ?x  ?y  WHERE  {  ?x  :isAffiliatedOrganizationOf  ?y  }
+    query=PREFIXES
+    + """
+    SELECT  DISTINCT  ?x  ?y  WHERE  {  ?x  owl2bench:isAffiliatedOrganizationOf  ?y  }
     """,
     description="Find Affiliations of all the Organizations.",
     construct_involved="isAffiliatedOrganizationOf is an Asymmetric Object Property. Domain(Organization), Range(Organization).",
@@ -148,8 +154,9 @@ q8 = SPARQLQuery(
 
 q9 = SPARQLQuery(
     number=9,
-    query="""
-    SELECT DISTINCT ?x WHERE { ?x :hasCollegeDiscipline :NonScience }
+    query=PREFIXES
+    + """
+    SELECT DISTINCT ?x WHERE { ?x owl2bench:hasCollegeDiscipline owl2bench:NonScience }
     """,
     description="Find all the colleges having Non-Science discipline. NonScience is something which is not Science",
     construct_involved="ObjectComplementOf",
@@ -158,8 +165,9 @@ q9 = SPARQLQuery(
 
 q10 = SPARQLQuery(
     number=10,
-    query="""
-    SELECT  DISTINCT  ?x  ?y  WHERE  { ?x  :hasCollaborationWith ?y  }
+    query=PREFIXES
+    + """
+    SELECT  DISTINCT  ?x  ?y  WHERE  { ?x  owl2bench:hasCollaborationWith ?y  }
     """,
     description=" Find all the instances who has Collaboration with any other instance. The query performs search across universities.",
     construct_involved="hasCollaborationWith is a Symmetric Object Property. Domain(Person), Range(Person).",
@@ -168,8 +176,9 @@ q10 = SPARQLQuery(
 
 q11 = SPARQLQuery(
     number=11,
-    query="""
-    SELECT  DISTINCT  ?x  ?y  WHERE { ?x  :isAdvisedBy  ?y  }
+    query=PREFIXES
+    + """
+    SELECT  DISTINCT  ?x  ?y  WHERE { ?x  owl2bench:isAdvisedBy  ?y  }
     """,
     description="Find all the instances who are advised by some other instance.",
     construct_involved=" isAdvisedBy  is an Irreflexive Object Property. Domain(Person), Range(Person)",
@@ -179,8 +188,9 @@ q11 = SPARQLQuery(
 
 q12 = SPARQLQuery(
     number=12,
-    query="""
-    SELECT  DISTINCT  ?x  WHERE { ?x  rdf:type  :Person}
+    query=PREFIXES
+    + """
+    SELECT  DISTINCT  ?x  WHERE { ?x  rdf:type  owl2bench:Person}
     """,
     description="Find all the instances of class Person. A Person is union of Man and Woman.",
     construct_involved="ObjectUnionOf",
@@ -189,8 +199,9 @@ q12 = SPARQLQuery(
 
 q13 = SPARQLQuery(
     number=13,
-    query="""
-    SELECT  DISTINCT  ?x  WHERE { ?x  rdf:type  :WomanCollege}
+    query=PREFIXES
+    + """
+    SELECT  DISTINCT  ?x  WHERE { ?x  rdf:type  owl2bench:WomanCollege}
     """,
     description="Find all the instances of class WomanCollege. WomanCollege is a College which has only Woman Students.",
     construct_involved="AllValuesFrom",
@@ -199,8 +210,9 @@ q13 = SPARQLQuery(
 
 q14 = SPARQLQuery(
     number=14,
-    query="""
-    SELECT  DISTINCT  ?x  WHERE { ?x  rdf:type  :LeisureStudent}
+    query=PREFIXES
+    + """
+    SELECT  DISTINCT  ?x  WHERE { ?x  rdf:type  owl2bench:LeisureStudent}
     """,
     description="Find all the instances of class LeisureStudent. Leisure student is a Student who takes Maximum one course.",
     construct_involved="ObjectMaxCardinality",
@@ -209,8 +221,9 @@ q14 = SPARQLQuery(
 
 q15 = SPARQLQuery(
     number=15,
-    query="""
-    SELECT  DISTINCT  ?x  WHERE {?x  :isHeadOf  ?y}
+    query=PREFIXES
+    + """
+    SELECT  DISTINCT  ?x  WHERE {?x  owl2bench:isHeadOf  ?y}
     """,
     description="Find the head of all the Organization.",
     construct_involved="isHeadOf is an Inverse Functional Object Property. Domain(Person), Range(Organization).",
@@ -219,8 +232,9 @@ q15 = SPARQLQuery(
 
 q16 = SPARQLQuery(
     number=16,
-    query="""
-    SELECT  DISTINCT  ?x  WHERE {?x  :hasHead  ?y}
+    query=PREFIXES
+    + """
+    SELECT  DISTINCT  ?x  WHERE {?x  owl2bench:hasHead  ?y}
     """,
     description="Find all the Organizations who has head.",
     construct_involved="hasHead is a Functional Object Property. Domain(Organization), Range(Person).",
@@ -229,7 +243,8 @@ q16 = SPARQLQuery(
 
 q17 = SPARQLQuery(
     number=17,
-    query="""
+    query=PREFIXES
+    + """
     SELECT  DISTINCT  ?x  WHERE {?x  rdf:type  :UGStudent}
     """,
     description="Find all the instances of class UGStudent. UGStudent is a Student who enrolls in exactly one UGProgram.",
@@ -239,7 +254,8 @@ q17 = SPARQLQuery(
 
 q18 = SPARQLQuery(
     number=18,
-    query="""
+    query=PREFIXES
+    + """
     SELECT DISTINCT ?x WHERE { ?x rdf:type :PeopleWithManyHobbies}
     """,
     description="Find all the instances of class PeopleWithManyHobbies. PeopleWithManyHobbies is a Person who has minimum 3 Hobbies.",
@@ -249,8 +265,9 @@ q18 = SPARQLQuery(
 
 q19 = SPARQLQuery(
     number=19,
-    query="""
-    SELECT  DISTINCT  ?x  WHERE { ?x  rdf:type  :Faculty  }
+    query=PREFIXES
+    + """
+    SELECT  DISTINCT  ?x  WHERE { ?x  rdf:type  owl2bench:Faculty  }
     """,
     description="Find all the instances of class Faculty. A Faculty is an Employee who teaches some Course.",
     construct_involved="ObjectSomeValuesFrom",
@@ -259,8 +276,9 @@ q19 = SPARQLQuery(
 
 q20 = SPARQLQuery(
     number=20,
-    query="""
-    SELECT  DISTINCT  ?x  ?y  WHERE  {?x  :hasSameHomeTownWith  ?y  }
+    query=PREFIXES
+    + """
+    SELECT  DISTINCT  ?x  ?y  WHERE  {?x  owl2bench:hasSameHomeTownWith  ?y  }
     """,
     description="Find all the instances who have same home town with any other instance. The query performs search across universities.",
     construct_involved=None,
@@ -269,8 +287,9 @@ q20 = SPARQLQuery(
 
 q21 = SPARQLQuery(
     number=21,
-    query="""
-    SELECT DISTINCT ?x ?y WHERE {?x rdf:type :Student. ?x :isStudentOf ?y. ?y :isPartOf ?z . ?z :hasCollegeDiscipline :Engineering}
+    query=PREFIXES
+    + """
+    SELECT DISTINCT ?x ?y WHERE {?x rdf:type owl2bench:Student. ?x owl2bench:isStudentOf ?y. ?y owl2bench:isPartOf ?z . ?z owl2bench:hasCollegeDiscipline owl2bench:Engineering}
     """,
     description="Find all the Engineering Students. The Query performs search across all the universities.",
     construct_involved=None,
@@ -279,8 +298,9 @@ q21 = SPARQLQuery(
 
 q22 = SPARQLQuery(
     number=22,
-    query="""
-    SELECT  DISTINCT  ?s  ?c  WHERE  {?s  rdf:type  :Student.  ?x rdf:type  :Organization.  ?x  :hasDean  ?z.  ?z  :teachesCourse  ?c.  ?s :takesCourse  ?c  }
+    query=PREFIXES
+    + """
+    SELECT  DISTINCT  ?s  ?c  WHERE  {?s  rdf:type  owl2bench:Student.  ?x rdf:type  owl2bench:Organization.  ?x  owl2bench:hasDean  ?z.  ?z  owl2bench:teachesCourse  ?c.  ?s owl2bench:takesCourse  ?c  }
     """,
     description="Find all the students who took course taught by the Dean of the Organization. The Query performs search across all the universities.",
     construct_involved=None,

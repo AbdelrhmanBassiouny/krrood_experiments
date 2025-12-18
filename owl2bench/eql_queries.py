@@ -7,7 +7,7 @@ from krrood.entity_query_language.symbolic import (
     SymbolicExpression,
 )
 
-from owl2bench import World, Person
+from owl2bench.models import World, Person
 from . import sparql_queries
 
 
