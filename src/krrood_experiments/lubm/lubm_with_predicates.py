@@ -476,7 +476,7 @@ class ConferencePaper(Article):
 class Director(IsDirector):
     """director"""
     # is the head of
-    head_of: Set[Program] = field(default_factory=set)
+    head_of: Set[Organization] = field(default_factory=set)
 
     def __hash__(self):
         return hash(id(self))
@@ -498,6 +498,17 @@ class Employee(IsEmployee):
 class GraduateCourse(Course):
     """Graduate Level Courses"""
     ...
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class GraduateStudent(IsGraduateStudent):
+    """graduate student"""
+    # is taking
+    takes_course: Set[Course] = field(default_factory=set)
 
     def __hash__(self):
         return hash(id(self))
@@ -538,6 +549,17 @@ class IsUndergraduateStudent(IsStudent):
 class JournalArticle(Article):
     """journal article"""
     ...
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class ResearchAssistant(IsResearchAssistant):
+    """university research assistant"""
+    # Works For
+    works_for: Set[Organization] = field(default_factory=set)
 
     def __hash__(self):
         return hash(id(self))
@@ -598,17 +620,6 @@ class Faculty(IsFaculty):
 
 
 @dataclass
-class GraduateStudent(IsGraduateStudent, Student):
-    """graduate student"""
-    # is taking
-    takes_course: Set[GraduateCourse] = field(default_factory=set)
-
-    def __hash__(self):
-        return hash(id(self))
-
-
-
-@dataclass
 class IsClericalStaff(IsAdministrativeStaff):
     """clerical staff worker"""
     ...
@@ -652,17 +663,6 @@ class IsProfessor(IsFaculty):
 class IsSystemsStaff(IsAdministrativeStaff):
     """systems staff worker"""
     ...
-
-    def __hash__(self):
-        return hash(id(self))
-
-
-
-@dataclass
-class ResearchAssistant(IsResearchAssistant, Employee):
-    """university research assistant"""
-    # Works For
-    works_for: Set[ResearchGroup] = field(default_factory=set)
 
     def __hash__(self):
         return hash(id(self))
@@ -813,7 +813,7 @@ class AssociateProfessor(IsAssociateProfessor):
 class Chair(IsChair):
     """chair"""
     # is the head of
-    head_of: Set[Department] = field(default_factory=set)
+    head_of: Set[Organization] = field(default_factory=set)
 
     def __hash__(self):
         return hash(id(self))
@@ -824,7 +824,7 @@ class Chair(IsChair):
 class Dean(IsDean):
     """dean"""
     # is the head of
-    head_of: Set[College] = field(default_factory=set)
+    head_of: Set[Organization] = field(default_factory=set)
 
     def __hash__(self):
         return hash(id(self))
@@ -873,10 +873,10 @@ Software.software_documentation = SoftwareDocumentation(Software, 'software_docu
 University.has_alumnus = HasAlumnus(University, 'has_alumnus')
 Director.head_of = HeadOf(Director, 'head_of')
 Employee.works_for = WorksFor(Employee, 'works_for')
+GraduateStudent.takes_course = TakesCourse(GraduateStudent, 'takes_course')
+ResearchAssistant.works_for = WorksFor(ResearchAssistant, 'works_for')
 Student.takes_course = TakesCourse(Student, 'takes_course')
 TeachingAssistant.teaching_assistant_of = TeachingAssistantOf(TeachingAssistant, 'teaching_assistant_of')
 Faculty.teacher_of = TeacherOf(Faculty, 'teacher_of')
-GraduateStudent.takes_course = TakesCourse(GraduateStudent, 'takes_course')
-ResearchAssistant.works_for = WorksFor(ResearchAssistant, 'works_for')
 Chair.head_of = HeadOf(Chair, 'head_of')
 Dean.head_of = HeadOf(Dean, 'head_of')
