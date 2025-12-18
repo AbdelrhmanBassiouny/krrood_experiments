@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from owl2bench import WorldLoader
+from owl2bench.loader import WorldLoader
 
 
 @pytest.fixture(scope="session")

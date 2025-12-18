@@ -23,4 +23,4 @@ def test_q1(owl2_dl1):
     stmt = select(persondao_knows_association)
 
     result = session.scalars(stmt)
-    print(len(list(result)))
+    assert len(list(result)) > 0
