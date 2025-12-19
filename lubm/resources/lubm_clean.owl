@@ -397,6 +397,11 @@
 <rdfs:label>is a role for</rdfs:label>
 <rdfs:domain rdf:resource="#Role"/>
 </owl:ObjectProperty>
+<owl:ObjectProperty rdf:ID="playsRole">
+<rdfs:label>plays a role of</rdfs:label>
+<rdfs:range rdf:resource="#Role"/>
+<owl:inverseOf rdf:resource="#roleFor"/>
+</owl:ObjectProperty>
 <owl:ObjectProperty rdf:ID="advisor">
 <rdfs:label>is being advised by</rdfs:label>
 <rdfs:domain rdf:resource="#Person"/>
