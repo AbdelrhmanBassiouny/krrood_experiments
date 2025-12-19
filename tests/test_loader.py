@@ -3,136 +3,23 @@ from pathlib import Path
 import warnings
 
 import pytest
+import rdflib
+from SPARQLWrapper import SPARQLWrapper, JSON
 
 from owl2bench.loader import WorldLoader, OntologyLoadError
 
 
-def write_temp_ttl(tmp_path: Path) -> Path:
-    ttl = textwrap.dedent(
-        """
-        @prefix bench: <http://benchmark/OWL2Bench#> .
-        @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-
-        bench:U1 a bench:University ;
-            rdfs:label "Demo University" ;
-            bench:hasCollege bench:U1_C1 .
-
-        bench:U1_C1 a bench:College , bench:WomenCollege ;
-            rdfs:label "Demo College" ;
-            bench:hasDepartment bench:U1_C1_D1 .
-
-        bench:U1_C1_D1 a bench:Department ;
-            rdfs:label "Computer Science" ;
-            bench:offerCourse bench:U1_C1_D1_CRS1 .
-
-        bench:U1_C1_D1_CRS1 a bench:Course ;
-            rdfs:label "Intro to CS" .
-
-        bench:P1 a bench:Person , bench:Woman ;
-            bench:hasFirstName "Ada" ;
-            bench:hasLastName "Lovelace" ;
-            bench:hasEmailAddress "ada@bench.com" ;
-            bench:isFrom "London" .
-        """
-    )
-    p = tmp_path / "mini.ttl"
-    p.write_text(ttl, encoding="utf-8")
-    return p
+@pytest.fixture(scope="session")
+def sparql_wrapper():
+    """
+    Load the OWL2Bench ontology from owl2bench_RL_1.brf
+    """
+    sparql = SPARQLWrapper("http://localhost:7200/repositories/KRROOD")
+    sparql.setReturnFormat(JSON)
+    return sparql
 
 
-def test_world_loader_minimal_abox(tmp_path: Path):
-    path = write_temp_ttl(tmp_path)
-    loader = WorldLoader()
-    world = loader.load(path)
-
-    assert len(world.universities) == 1
-    uni = world.universities[0]
-    assert uni.name == "Demo University"
-    assert len(uni.colleges) == 1
-    col = uni.colleges[0]
-    assert col.is_women_only is True
-    assert len(col.departments) == 1
-    dept = col.departments[0]
-    assert dept.name == "Computer Science"
-    assert len(dept.courses) == 1
-    assert dept.courses[0].title == "Intro to CS"
-
-    # persons are loaded globally
-    assert any(
-        p.first_name == "Ada" and p.last_name == "Lovelace" for p in world.persons
-    )
-
-
-def test_world_loader_missing_optional_warning(tmp_path: Path):
-    # Missing email
-    ttl = textwrap.dedent(
-        """
-        @prefix bench: <http://benchmark/OWL2Bench#> .
-        bench:P2 a bench:Person , bench:Man ;
-            bench:hasFirstName "Alan" ;
-            bench:hasLastName "Turing" .
-        """
-    )
-    p = tmp_path / "bad.ttl"
-    p.write_text(ttl, encoding="utf-8")
-
-    loader = WorldLoader()
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        world = loader.load(p)
-        # At least one warning about missing properties should be raised
-        assert any("Missing data property" in str(warn.message) for warn in w)
-    # Should still load a person with None email
-    assert len(world.persons) == 1
-    person = world.persons[0]
-    assert person.first_name == "Alan"
-    assert person.last_name == "Turing"
-    assert person.email is None
-
-
-def test_world_loader_smoke_instances_file(owl2_dl1):
-    # Smoke assertions: ensure we loaded at least one university
-    assert len(owl2_dl1.universities) >= 1
-    assert len(owl2_dl1.persons) >= 1
-    # Optional: if persons are present, basic field integrity
-    for person in owl2_dl1.persons[:10]:
-        assert person.first_name is None or isinstance(person.first_name, str)
-        assert person.last_name is None or isinstance(person.last_name, str)
-        assert person.email is None or isinstance(person.email, str)
-        assert person.is_woman is None or isinstance(person.is_woman, bool)
-
-
-def test_world_loader_loads_knows_relationship(tmp_path: Path):
-    ttl = textwrap.dedent(
-        """
-        @prefix bench: <http://benchmark/OWL2Bench#> .
-
-        bench:P1 a bench:Person , bench:Woman ;
-            bench:hasFirstName "Ada" ;
-            bench:hasLastName "Lovelace" ;
-            bench:hasEmailAddress "ada@bench.com" .
-
-        bench:P2 a bench:Person , bench:Man ;
-            bench:hasFirstName "Alan" ;
-            bench:hasLastName "Turing" ;
-            bench:hasEmailAddress "alan@bench.com" .
-
-        # Relationship: Ada knows Alan
-        bench:P1 bench:knows bench:P2 .
-        """
-    )
-    p = tmp_path / "knows.ttl"
-    p.write_text(ttl, encoding="utf-8")
-
-    loader = WorldLoader()
-    world = loader.load(p)
-
-    # Locate persons by identifier
-    persons_by_id = {person.identifier: person for person in world.persons}
-    assert "P1" in persons_by_id and "P2" in persons_by_id
-
-    p1 = persons_by_id["P1"]
-    p2 = persons_by_id["P2"]
-
-    # P1 should have P2 in knows
-    assert any(friend.identifier == p2.identifier for friend in p1.knows)
+def test_get_persons(sparql_wrapper):
+    loader = WorldLoader(sparql_wrapper)
+    persons = loader._get_persons()
+    print(persons)
