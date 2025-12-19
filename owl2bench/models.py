@@ -32,12 +32,12 @@ class Person(Symbol):
     last_name: Optional[str]
     email: Optional[str]
     is_woman: Optional[bool]
-    hometown: Optional[str] = None
     knows: List[Person] = field(default_factory=list)
     likes: List[Person] = field(default_factory=list)
     loves: List[Person] = field(default_factory=list)
     dislikes: List[Person] = field(default_factory=list)
     is_crazy_about: List[Person] = field(default_factory=list)
+    has_same_hometown_with: List[Person] = field(default_factory=list)
 
     @property
     def full_name(self) -> str:

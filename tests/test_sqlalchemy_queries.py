@@ -1,4 +1,5 @@
 import os
+import sys
 from tempfile import NamedTemporaryFile
 
 import SPARQLWrapper
@@ -15,32 +16,12 @@ from owl2bench.orm.ormatic_interface import *
 
 
 def get_world_from_graph_db():
-
-    ENDPOINT = "http://localhost:7200/repositories/KRROOD"
-
-    # 1) Pull all triples; enable reasoning if you want inferred triples too
-    sparql = SPARQLWrapper.SPARQLWrapper(ENDPOINT)
-    sparql.setQuery(
-        """
-        CONSTRUCT { ?s ?p ?o } WHERE { ?s ?p ?o }
-    """
-    )
-    sparql.setReturnFormat(SPARQLWrapper.TURTLE)
-    # GraphDB-specific optional flags
-    sparql.addParameter("infer", "true")  # include inferred statements (if desired)
-    sparql.addParameter("sameAs", "false")  # control sameAs expansion
-
-    raw_ttl = sparql.query().convert()  # returns bytes in TURTLE
-
-    # 2) Parse into an RDFLib graph (optional step, useful for validation)
-    g = Graph()
-    g.parse(data=raw_ttl.decode("utf-8"), format="turtle")
-
-    # 3) Serialize to a temp file and let WorldLoader read it
-    with NamedTemporaryFile(suffix=".ttl", delete=False) as tmp:
-        g.serialize(destination=tmp.name, format="turtle")
-        world = WorldLoader().load(tmp.name)
-    return world
+    sys.setrecursionlimit(10000)
+    sparql = SPARQLWrapper.SPARQLWrapper("http://localhost:7200/repositories/KRROOD")
+    sparql.setReturnFormat(SPARQLWrapper.JSON)
+    loader = WorldLoader(sparql)
+    loader.parse()
+    return loader.world
 
 
 @pytest.fixture(scope="session")
@@ -53,7 +34,8 @@ def sqlalchemy_session():
 
     world = get_world_from_graph_db()
 
-    dao = to_dao(world)
+    dao: WorldDAO = to_dao(world)
+
     session.add(dao)
     session.commit()
     return session
@@ -82,3 +64,7 @@ def test_query(sqlalchemy_session, sql_query_obj):
     sqlalchemy_result_len = len(sqlalchemy_result)
 
     assert sparql_result_len == sqlalchemy_result_len
+
+
+def test_db_setup(sqlalchemy_session):
+    assert sqlalchemy_session.query(WorldDAO).count() == 1

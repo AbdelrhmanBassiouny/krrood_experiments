@@ -21,7 +21,7 @@ import owl2bench.models
 import typing
 
 
-from krrood.ormatic.dao import DataAccessObject
+from krrood.ormatic.dao import DataAccessObject, ToDAOState
 from krrood.ormatic.custom_types import TypeType
 
 
@@ -106,6 +106,12 @@ persondao_dislikes_association = Table(
 )
 persondao_is_crazy_about_association = Table(
     "persondao_is_crazy_about_association",
+    Base.metadata,
+    Column("source_persondao_id", ForeignKey("PersonDAO.database_id")),
+    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
+)
+persondao_has_same_hometown_with_association = Table(
+    "persondao_has_same_hometown_with_association",
     Base.metadata,
     Column("source_persondao_id", ForeignKey("PersonDAO.database_id")),
     Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
@@ -356,9 +362,6 @@ class PersonDAO(Base, DataAccessObject[owl2bench.models.Person]):
     is_woman: Mapped[typing.Optional[builtins.bool]] = mapped_column(
         use_existing_column=True
     )
-    hometown: Mapped[typing.Optional[builtins.str]] = mapped_column(
-        String(255), use_existing_column=True
-    )
 
     knows: Mapped[typing.List[PersonDAO]] = relationship(
         "PersonDAO",
@@ -393,6 +396,13 @@ class PersonDAO(Base, DataAccessObject[owl2bench.models.Person]):
         secondary="persondao_is_crazy_about_association",
         primaryjoin="PersonDAO.database_id == persondao_is_crazy_about_association.c.source_persondao_id",
         secondaryjoin="PersonDAO.database_id == persondao_is_crazy_about_association.c.target_persondao_id",
+        cascade="save-update, merge",
+    )
+    has_same_hometown_with: Mapped[typing.List[PersonDAO]] = relationship(
+        "PersonDAO",
+        secondary="persondao_has_same_hometown_with_association",
+        primaryjoin="PersonDAO.database_id == persondao_has_same_hometown_with_association.c.source_persondao_id",
+        secondaryjoin="PersonDAO.database_id == persondao_has_same_hometown_with_association.c.target_persondao_id",
         cascade="save-update, merge",
     )
 
@@ -518,6 +528,22 @@ class UniversityDAO(Base, DataAccessObject[owl2bench.models.University]):
         secondaryjoin="PublicationDAO.database_id == universitydao_publications_association.c.target_publicationdao_id",
         cascade="save-update, merge",
     )
+
+    @classmethod
+    def to_dao(
+        cls, obj: owl2bench.models.World, state: ToDAOState = None
+    ) -> "WorldDAO":
+        """
+        Converts a World domain object to a WorldDAO, handling deep recursion.
+        """
+        import sys
+
+        old_limit = sys.getrecursionlimit()
+        sys.setrecursionlimit(10000)
+        try:
+            return super().to_dao(obj, state)
+        finally:
+            sys.setrecursionlimit(old_limit)
 
 
 class WorldDAO(Base, DataAccessObject[owl2bench.models.World]):
