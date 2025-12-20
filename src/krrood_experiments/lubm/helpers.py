@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from .lubm_eql_queries import QueryWithSelectables
 
 
-def generate_lubm_with_predicates():
+def generate_lubm_with_predicates(clean: bool = False):
     # Provide default overrides for common LUBM datatype properties
     _default_overrides = {
         "Person": {
@@ -48,7 +48,8 @@ def generate_lubm_with_predicates():
     resources_path = os.path.join(
         os.path.dirname(__file__), "..", "..", "..", "lubm", "resources"
     )
-    converter.load_ontology(os.path.join(resources_path, "lubm.owl"))
+    file_name = f"lubm_clean.owl" if clean else "lubm.owl"
+    converter.load_ontology(os.path.join(resources_path, file_name))
     # Save into the package module so tests import the updated code
     output_path = os.path.join(os.path.dirname(__file__), "lubm_with_predicates.py")
     converter.save_to_file(output_path)
