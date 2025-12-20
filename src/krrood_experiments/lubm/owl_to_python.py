@@ -206,34 +206,13 @@ class OwlToPythonConverter:
         for cls_uri in self.graph.subjects(RDF.type, OWL.Class):
             cls_name = self._uri_to_python_name(cls_uri)
             # direct subclass restrictions
-            superclass = None
-            on_prop = None
-            on_prop_role_for = None
             for restr in self.graph.objects(cls_uri, RDFS.subClassOf):
                 if restrictions_handler:
                     restrictions_handler(cls_name, restr)
                 # If restriction mentions a property, count this class as declared domain for that property
                 on_prop = self.graph.value(restr, OWL.onProperty)
-                if on_prop and self._uri_to_python_name(on_prop) == "roleFor":
-                    on_prop_role_for = on_prop
-                elif on_prop:
+                if on_prop:
                     declared_dom_map[self._uri_to_python_name(on_prop)].add(cls_name)
-                else:
-                    superclass = self._uri_to_python_name(restr)
-
-            if classes and on_prop_role_for:
-                # this means that this is likely a role, defined as a subclass and a restriction, with context being
-                # the restriction on the property (the restricted range type of the property)
-                class_info = classes.get(cls_name)
-                if class_info:
-                    class_info["role_taker"] = [
-                        {
-                            "cls_name": superclass,
-                            "field_name": self._to_snake_case(superclass),
-                        }
-                    ]
-                    if superclass in class_info["superclasses"]:
-                        class_info["superclasses"].remove(superclass)
 
             # restrictions inside intersectionOf
             for coll in self.graph.objects(cls_uri, OWL.intersectionOf):
@@ -342,8 +321,6 @@ class OwlToPythonConverter:
         }
 
         for info in classes_copy.values():
-            if info.get("role_taker"):
-                info["superclasses"].append(role_cls_name)
             info["base_classes"] = [
                 b for b in info.get("superclasses", []) if b != "Thing"
             ]
@@ -380,19 +357,6 @@ class OwlToPythonConverter:
                 ancestors.add(base)
                 stack.extend(name_to_bases.get(base, []))
             info["all_base_classes"] = sorted(ancestors)
-
-        for name, info in classes_copy.items():
-            if role_cls_name in info["base_classes"]:
-                if any(
-                    role_cls_name in classes_copy[sc]["all_base_classes"]
-                    for sc in info["base_classes"]
-                    if sc in classes_copy
-                ):
-                    try:
-                        info["add_role_taker"] = False
-                        info["base_classes"].remove(role_cls_name)
-                    except IndexError:
-                        pass
 
         # Prepare property descriptor bases and compute type-hint helpers
         properties_copy: Dict[str, Dict] = {
@@ -435,15 +399,21 @@ class OwlToPythonConverter:
             if not on_prop:
                 return
             prop_name = self._uri_to_python_name(on_prop)
-            if prop_name not in properties_copy:
-                return
-            dom_map[prop_name].add(for_class)
+            if prop_name in properties_copy:
+                dom_map[prop_name].add(for_class)
             some = self.graph.value(node, OWL.someValuesFrom) or self.graph.value(
                 node, OWL.allValuesFrom
             )
             if some:
                 try:
                     rng_name = self._uri_to_python_name(some)
+                    if prop_name == "roleFor":
+                        for_class_info = classes_copy.get(for_class)
+                        for_class_info['role_taker'] = {
+                            "class_name": rng_name,
+                            "field_name": self._to_snake_case(rng_name)
+                        }
+                        return
                     rng_map[prop_name].add(rng_name)
                     rng_uri_map[prop_name].add(some)
                     # Track per-class restriction to specialize properties later
@@ -867,7 +837,7 @@ class OwlToPythonConverter:
             if role_cls_name in info["base_classes"]:
                 info["base_classes"].remove(role_cls_name)
                 info["base_classes"].append(
-                    f"{role_cls_name}[{info['role_taker'][0]['cls_name']}]"
+                    f"{role_cls_name}[{info['role_taker']['class_name']}]"
                 )
 
         template_dir = os.path.dirname(__file__)
