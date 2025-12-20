@@ -297,6 +297,13 @@
 <owl:Class rdf:ID="Student">
 <rdfs:label>student</rdfs:label>
 <owl:intersectionOf rdf:parseType="Collection">
+<owl:Restriction>
+<owl:onProperty rdf:resource="#takesCourse"/>
+<owl:someValuesFrom>
+<owl:Class rdf:about="#Course"/>
+</owl:someValuesFrom>
+</owl:Restriction>
+</owl:intersectionOf>
 <rdfs:subClassOf>
     <owl:Restriction>
     <owl:onProperty rdf:resource="#roleFor"/>
@@ -306,13 +313,6 @@
     </owl:Restriction>
 </rdfs:subClassOf>
 <rdfs:subClassOf rdf:resource="#Role"/>
-<owl:Restriction>
-<owl:onProperty rdf:resource="#takesCourse"/>
-<owl:someValuesFrom>
-<owl:Class rdf:about="#Course"/>
-</owl:someValuesFrom>
-</owl:Restriction>
-</owl:intersectionOf>
 </owl:Class>
 <owl:Class rdf:ID="SystemsStaff">
 <rdfs:label>systems staff worker</rdfs:label>
