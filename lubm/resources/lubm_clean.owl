@@ -55,7 +55,12 @@
 <owl:Class rdf:ID="Chair">
 <rdfs:label>chair</rdfs:label>
 <owl:intersectionOf rdf:parseType="Collection">
-<owl:Class rdf:about="#Person"/>
+<owl:Restriction>
+    <owl:onProperty rdf:resource="#roleFor"/>
+    <owl:someValuesFrom>
+    <owl:Class rdf:about="#Professor"/>
+    </owl:someValuesFrom>
+    </owl:Restriction>
 <owl:Restriction>
 <owl:onProperty rdf:resource="#headOf"/>
 <owl:someValuesFrom>
@@ -63,14 +68,6 @@
 </owl:someValuesFrom>
 </owl:Restriction>
 </owl:intersectionOf>
-<rdfs:subClassOf>
-    <owl:Restriction>
-    <owl:onProperty rdf:resource="#roleFor"/>
-    <owl:someValuesFrom>
-    <owl:Class rdf:about="#Professor"/>
-    </owl:someValuesFrom>
-    </owl:Restriction>
-</rdfs:subClassOf>
 <rdfs:subClassOf rdf:resource="#Role"/>
 </owl:Class>
 <owl:Class rdf:ID="ClericalStaff">
@@ -124,7 +121,12 @@
 <owl:Class rdf:ID="Director">
 <rdfs:label>director</rdfs:label>
 <owl:intersectionOf rdf:parseType="Collection">
-<owl:Class rdf:about="#Person"/>
+<owl:Restriction>
+    <owl:onProperty rdf:resource="#roleFor"/>
+    <owl:someValuesFrom>
+    <owl:Class rdf:about="#Person"/>
+    </owl:someValuesFrom>
+</owl:Restriction>
 <owl:Restriction>
 <owl:onProperty rdf:resource="#headOf"/>
 <owl:someValuesFrom>
@@ -134,16 +136,21 @@
 </owl:intersectionOf>
 </owl:Class>
 <owl:Class rdf:ID="Employee">
-<rdfs:label>Employee</rdfs:label>
-<owl:intersectionOf rdf:parseType="Collection">
-<owl:Class rdf:about="#Person"/>
-<owl:Restriction>
-<owl:onProperty rdf:resource="#worksFor"/>
-<owl:someValuesFrom>
-<owl:Class rdf:about="#Organization"/>
-</owl:someValuesFrom>
-</owl:Restriction>
-</owl:intersectionOf>
+    <rdfs:label>Employee</rdfs:label>
+    <owl:intersectionOf rdf:parseType="Collection">
+        <owl:Restriction>
+            <owl:onProperty rdf:resource="#roleFor"/>
+            <owl:someValuesFrom>
+            <owl:Class rdf:about="#Person"/>
+            </owl:someValuesFrom>
+        </owl:Restriction>
+        <owl:Restriction>
+            <owl:onProperty rdf:resource="#worksFor"/>
+            <owl:someValuesFrom>
+            <owl:Class rdf:about="#Organization"/>
+            </owl:someValuesFrom>
+        </owl:Restriction>
+    </owl:intersectionOf>
 </owl:Class>
 <owl:Class rdf:ID="Faculty">
 <rdfs:label>faculty member</rdfs:label>
