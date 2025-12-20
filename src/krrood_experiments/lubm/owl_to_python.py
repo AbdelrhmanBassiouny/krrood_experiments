@@ -52,7 +52,7 @@ class OwlToPythonConverter:
             self.classes[class_info["name"]] = class_info
 
         for cls_name, cls_info in self.classes.items():
-            if not cls_info["role_taker"]:
+            if ("role_taker" not in cls_info) or (not cls_info["role_taker"]):
                 continue
             if any(
                 cls_info["role_taker"][0] in self.classes[sc]["role_taker"]
@@ -106,23 +106,9 @@ class OwlToPythonConverter:
         # Get superclasses from explicit rdfs:subClassOf
         superclasses: List[str] = []
         for superclass in self.graph.objects(class_uri, RDFS.subClassOf):
-            if isinstance(superclass, rdflib.URIRef):
-                superclasses.append(self._uri_to_python_name(superclass))
-
-        role_taker: List[Dict[str, str]] = []
-        for coll in self.graph.objects(class_uri, OWL.intersectionOf):
-            # Traverse RDF list
-            node = coll
-            while node and node != RDF.nil:
-                first = self.graph.value(node, RDF.first)
-                if isinstance(first, rdflib.URIRef):
-                    role_cls_name = self._uri_to_python_name(first)
-                    snake_cls_name = self._to_snake_case(role_cls_name)
-                    role_taker.append(
-                        {"cls_name": role_cls_name, "field_name": snake_cls_name}
-                    )
-                # move to next
-                node = self.graph.value(node, RDF.rest)
+            if not isinstance(superclass, rdflib.URIRef):
+                continue
+            superclasses.append(self._uri_to_python_name(superclass))
 
         # De-duplicate while preserving order
         seen = set()
@@ -141,7 +127,6 @@ class OwlToPythonConverter:
             "superclasses": unique_superclasses or ["Thing"],
             "label": label,
             "comment": self._get_comment(class_uri),
-            "role_taker": role_taker,
             "add_role_taker": True,
         }
 
@@ -223,17 +208,20 @@ class OwlToPythonConverter:
             # direct subclass restrictions
             superclass = None
             on_prop = None
+            on_prop_role_for = None
             for restr in self.graph.objects(cls_uri, RDFS.subClassOf):
                 if restrictions_handler:
                     restrictions_handler(cls_name, restr)
                 # If restriction mentions a property, count this class as declared domain for that property
                 on_prop = self.graph.value(restr, OWL.onProperty)
-                if on_prop:
+                if on_prop and self._uri_to_python_name(on_prop) == "roleFor":
+                    on_prop_role_for = on_prop
+                elif on_prop:
                     declared_dom_map[self._uri_to_python_name(on_prop)].add(cls_name)
                 else:
                     superclass = self._uri_to_python_name(restr)
 
-            if classes and superclass and on_prop:
+            if classes and on_prop_role_for:
                 # this means that this is likely a role, defined as a subclass and a restriction, with context being
                 # the restriction on the property (the restricted range type of the property)
                 class_info = classes.get(cls_name)
@@ -392,10 +380,6 @@ class OwlToPythonConverter:
                 ancestors.add(base)
                 stack.extend(name_to_bases.get(base, []))
             info["all_base_classes"] = sorted(ancestors)
-
-        for info in classes_copy.values():
-            if info["name"] == "Chair":
-                pass
 
         for name, info in classes_copy.items():
             if role_cls_name in info["base_classes"]:
@@ -914,4 +898,4 @@ class OwlToPythonConverter:
 if __name__ == "__main__":
     from krrood_experiments.lubm.helpers import generate_lubm_with_predicates
 
-    generate_lubm_with_predicates()
+    generate_lubm_with_predicates(clean=True)
