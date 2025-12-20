@@ -46,7 +46,6 @@
 </owl:someValuesFrom>
 </owl:Restriction>
 </rdfs:subClassOf>
-<rdfs:subClassOf rdf:resource="#Professor"/>
 <rdfs:subClassOf rdf:resource="#Role"/>
 </owl:Class>
 <owl:Class rdf:ID="Book">
@@ -343,7 +342,7 @@
     <owl:Class rdf:about="#Person"/>
     </owl:someValuesFrom>
     </owl:Restriction>
-<rdfs:subClassOf>
+</rdfs:subClassOf>
 <rdfs:subClassOf rdf:resource="#Role"/>
 </owl:Class>
 <owl:Class rdf:ID="TechnicalReport">
