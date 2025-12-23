@@ -73,6 +73,14 @@ class OrgPublication(PropertyDescriptor):
 
 
 @dataclass
+class PlaysRole(PropertyDescriptor, HasInverseProperty):
+    """plays a role of"""
+    @classmethod
+    def get_inverse(cls) -> Type[RoleFor]:
+        return RoleFor
+
+
+@dataclass
 class PublicationAuthor(PropertyDescriptor):
     """was written by"""
 
@@ -85,6 +93,14 @@ class PublicationResearch(PropertyDescriptor):
 @dataclass
 class ResearchProject(PropertyDescriptor):
     """has as a research project"""
+
+
+@dataclass
+class RoleFor(PropertyDescriptor, HasInverseProperty):
+    """is a role for"""
+    @classmethod
+    def get_inverse(cls) -> Type[PlaysRole]:
+        return PlaysRole
 
 
 @dataclass
@@ -302,19 +318,6 @@ class Department(Organization):
 
 
 @dataclass
-class Director(UnivBenchOntologyRole[Person]):
-    """director"""
-    # Role taker
-    person: Person
-    # is the head of
-    head_of: Set[Program] = field(default_factory=set)
-
-    def __hash__(self):
-        return hash(id(self))
-
-
-
-@dataclass
 class Employee(UnivBenchOntologyRole[Person]):
     """Employee"""
     # Role taker
@@ -439,9 +442,10 @@ class University(Organization):
 
 
 @dataclass
-class UnofficialPublication(Publication):
+class UnofficialPublication(UnivBenchOntologyRole[Publication]):
     """unnoficial publication"""
-    ...
+    # Role taker
+    publication: Publication
 
     def __hash__(self):
         return hash(id(self))
@@ -449,9 +453,10 @@ class UnofficialPublication(Publication):
 
 
 @dataclass
-class AdministrativeStaff(Employee):
+class AdministrativeStaff(UnivBenchOntologyRole[Employee]):
     """administrative staff worker"""
-    ...
+    # Role taker
+    employee: Employee
 
     def __hash__(self):
         return hash(id(self))
@@ -469,8 +474,21 @@ class ConferencePaper(Article):
 
 
 @dataclass
-class Faculty(Employee):
+class Director(Employee):
+    """director"""
+    # is the head of
+    head_of: Set[Program] = field(default_factory=set)
+
+    def __hash__(self):
+        return hash(id(self))
+
+
+
+@dataclass
+class Faculty(UnivBenchOntologyRole[Employee]):
     """faculty member"""
+    # Role taker
+    employee: Employee
     # teaches
     teacher_of: Set[Course] = field(default_factory=set)
 
@@ -532,9 +550,10 @@ class TechnicalReport(Article):
 
 
 @dataclass
-class UndergraduateStudent(Student):
+class UndergraduateStudent(UnivBenchOntologyRole[Student]):
     """undergraduate student"""
-    ...
+    # Role taker
+    student: Student
 
     def __hash__(self):
         return hash(id(self))
@@ -542,9 +561,10 @@ class UndergraduateStudent(Student):
 
 
 @dataclass
-class ClericalStaff(AdministrativeStaff):
+class ClericalStaff(UnivBenchOntologyRole[AdministrativeStaff]):
     """clerical staff worker"""
-    ...
+    # Role taker
+    administrative_staff: AdministrativeStaff
 
     def __hash__(self):
         return hash(id(self))
@@ -552,9 +572,10 @@ class ClericalStaff(AdministrativeStaff):
 
 
 @dataclass
-class Lecturer(Faculty):
+class Lecturer(UnivBenchOntologyRole[Faculty]):
     """lecturer"""
-    ...
+    # Role taker
+    faculty: Faculty
 
     def __hash__(self):
         return hash(id(self))
@@ -562,9 +583,10 @@ class Lecturer(Faculty):
 
 
 @dataclass
-class PostDoc(Faculty):
+class PostDoc(UnivBenchOntologyRole[Faculty]):
     """post doctorate"""
-    ...
+    # Role taker
+    faculty: Faculty
 
     def __hash__(self):
         return hash(id(self))
@@ -572,8 +594,10 @@ class PostDoc(Faculty):
 
 
 @dataclass
-class Professor(Faculty):
+class Professor(UnivBenchOntologyRole[Faculty]):
     """professor"""
+    # Role taker
+    faculty: Faculty
     # is tenured:
     tenured: Optional[bool] = field(kw_only=True, default=None)
 
@@ -583,9 +607,10 @@ class Professor(Faculty):
 
 
 @dataclass
-class SystemsStaff(AdministrativeStaff):
+class SystemsStaff(UnivBenchOntologyRole[AdministrativeStaff]):
     """systems staff worker"""
-    ...
+    # Role taker
+    administrative_staff: AdministrativeStaff
 
     def __hash__(self):
         return hash(id(self))
@@ -593,9 +618,10 @@ class SystemsStaff(AdministrativeStaff):
 
 
 @dataclass
-class AssistantProfessor(Professor):
+class AssistantProfessor(UnivBenchOntologyRole[Professor]):
     """assistant professor"""
-    ...
+    # Role taker
+    professor: Professor
 
     def __hash__(self):
         return hash(id(self))
@@ -603,9 +629,10 @@ class AssistantProfessor(Professor):
 
 
 @dataclass
-class AssociateProfessor(Professor):
+class AssociateProfessor(UnivBenchOntologyRole[Professor]):
     """associate professor"""
-    ...
+    # Role taker
+    professor: Professor
 
     def __hash__(self):
         return hash(id(self))
@@ -613,8 +640,10 @@ class AssociateProfessor(Professor):
 
 
 @dataclass
-class Chair(Professor):
+class Chair(UnivBenchOntologyRole[Professor]):
     """chair"""
+    # Role taker
+    professor: Professor
     # is the head of
     head_of: Set[Department] = field(default_factory=set)
 
@@ -624,8 +653,10 @@ class Chair(Professor):
 
 
 @dataclass
-class Dean(Professor):
+class Dean(UnivBenchOntologyRole[Professor]):
     """dean"""
+    # Role taker
+    professor: Professor
     # is the head of
     head_of: Set[College] = field(default_factory=set)
 
@@ -635,9 +666,10 @@ class Dean(Professor):
 
 
 @dataclass
-class FullProfessor(Professor):
+class FullProfessor(UnivBenchOntologyRole[Professor]):
     """full professor"""
-    ...
+    # Role taker
+    professor: Professor
 
     def __hash__(self):
         return hash(id(self))
@@ -645,9 +677,10 @@ class FullProfessor(Professor):
 
 
 @dataclass
-class VisitingProfessor(Professor):
+class VisitingProfessor(UnivBenchOntologyRole[Professor]):
     """visiting professor"""
-    ...
+    # Role taker
+    professor: Professor
 
     def __hash__(self):
         return hash(id(self))
@@ -671,13 +704,13 @@ Person.undergraduate_degree_from = UndergraduateDegreeFrom(Person, 'undergraduat
 Publication.publication_author = PublicationAuthor(Publication, 'publication_author')
 Publication.publication_research = PublicationResearch(Publication, 'publication_research')
 Schedule.listed_course = ListedCourse(Schedule, 'listed_course')
-Director.head_of = HeadOf(Director, 'head_of')
 Employee.works_for = WorksFor(Employee, 'works_for')
 ResearchGroup.research_project = ResearchProject(ResearchGroup, 'research_project')
 Software.software_documentation = SoftwareDocumentation(Software, 'software_documentation')
 Student.takes_course = TakesCourse(Student, 'takes_course')
 TeachingAssistant.teaching_assistant_of = TeachingAssistantOf(TeachingAssistant, 'teaching_assistant_of')
 University.has_alumnus = HasAlumnus(University, 'has_alumnus')
+Director.head_of = HeadOf(Director, 'head_of')
 Faculty.teacher_of = TeacherOf(Faculty, 'teacher_of')
 GraduateStudent.takes_course = TakesCourse(GraduateStudent, 'takes_course')
 ResearchAssistant.works_for = WorksFor(ResearchAssistant, 'works_for')
