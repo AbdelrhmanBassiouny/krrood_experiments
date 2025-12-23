@@ -2,12 +2,27 @@ import os
 import re
 from collections import defaultdict
 from copy import copy
+from enum import Enum
 from typing import Dict, List, Callable, Optional, Any
 
 import rdflib
 from jinja2 import Environment, FileSystemLoader
 from krrood import logger
 from rdflib.namespace import RDF, RDFS, OWL, XSD
+
+
+class SubsumptionType(Enum):
+    SUBTYPE = "subtype"
+    """
+    It is a subtype of the given class (e.g. Math is a subtype of Course). This is the equivalent to OOP 
+    inheritance..
+    """
+    ROLE = "role"
+    """
+    It is a role that a persistent identifier can take on in a certain context 
+    (e.g. Student is a role that a Person can take on in the context of taking a course).
+    Thi is the equivalent to OOP composition.
+    """
 
 
 class OwlToPythonConverter:
@@ -431,6 +446,11 @@ class OwlToPythonConverter:
         # Walk class restrictions
         self._walk_restrictions(declared_dom_map, _handle_restriction)
 
+        for info in classes_copy.values():
+            if "Role" in info.get("base_classes", []):
+                info["base_classes"].remove("Role")
+                info["base_classes"].append(role_cls_name)
+
         # Fixed-point propagate via subPropertyOf and inverseOf (for types/ranges), but do NOT add to declared domains
         changed = True
         while changed:
@@ -726,6 +746,8 @@ class OwlToPythonConverter:
             ancestors = set(cls_info.get("all_base_classes", []))
             declared: List[str] = []
             for prop_name, p in properties_copy.items():
+                if prop_name == "roleFor":
+                    continue
                 declared_domains = p.get("declared_domains", [])
                 domains = p.get("domains", [])
                 if declared_domains:
@@ -753,65 +775,141 @@ class OwlToPythonConverter:
                     declared.append(prop_name)
             cls_info["declared_properties"] = declared
 
+        name_to_super_properties = {
+            name: set(info["superproperties"]) for name, info in properties_copy.items()
+        }
+        for name, info in properties_copy.items():
+            ancestors_of_properties = set()
+            stack = list(info["superproperties"])
+            while stack:
+                base = stack.pop()
+                if base in ancestors_of_properties:
+                    continue
+                ancestors_of_properties.add(base)
+                stack.extend(name_to_super_properties.get(base, []))
+            info["all_superproperties"] = sorted(ancestors_of_properties)
+
+
+        name_to_all_bases = {
+            name: set(info["all_base_classes"]) for name, info in classes_copy.items()
+        }
+        for name, info in classes_copy.items():
+            ancestors_of_all_bases = set()
+            stack = list(info["all_base_classes"])
+            if "role_taker" in info and info["role_taker"]:
+                stack.append(info["role_taker"]["class_name"])
+            while stack:
+                base = stack.pop()
+                if base in ancestors_of_all_bases:
+                    continue
+                ancestors_of_all_bases.add(base)
+                stack.extend(name_to_all_bases.get(base, []))
+                if base not in classes_copy:
+                    continue
+                base_info = classes_copy[base]
+                if "role_taker" in base_info and base_info["role_taker"]:
+                    stack.append(base_info["role_taker"]["class_name"])
+            info["all_base_classes_including_role_takers"] = sorted(ancestors_of_all_bases)
+
         # find implicit sub types by checking if the class properties match and have ranges that are subtypes
-        # of of the other class property
-        for cls_name, cls_info in classes_copy.items():
-            for prop_name in cls_info.get("declared_properties", []):
-                prop_info = properties_copy.get(prop_name)
-                for other_cls_name, other_cls_info in classes_copy.items():
-                    if other_cls_name == cls_name:
-                        continue
-                    for other_prop_name in other_cls_info.get(
-                        "declared_properties", []
+        # of the other class property
+        for parent_cls_name, parent_cls_info in classes_copy.items():
+            parent_props_names = parent_cls_info.get("declared_properties", [])
+            parent_props_names_filtered = {prop.split("{")[0] for prop in parent_props_names}
+            for child_cls_name, child_cls_info in classes_copy.items():
+                if parent_cls_name == child_cls_name:
+                    continue
+                if parent_cls_name in child_cls_info.get("all_base_classes_including_role_takers", []):
+                    continue
+                if child_cls_name in parent_cls_info.get("all_base_classes_including_role_takers", []):
+                    continue
+                child_props_names = child_cls_info.get("declared_properties", [])
+                child_props_names_filtered = {prop.split("{")[0] for prop in child_props_names}
+                matched_prop_names = parent_props_names_filtered.intersection(child_props_names_filtered)
+                for parent_prop_name in parent_props_names:
+                    for child_prop_name in child_props_names:
+                        child_prop_info = properties_copy.get(child_prop_name)
+                        parent_prop_info = properties_copy.get(parent_prop_name)
+                        parent_prop_filtered_name = parent_prop_name.split("{")[0]
+                        if (
+                                child_prop_info["type"] == "DataProperty"
+                                or parent_prop_info["type"] == "DataProperty"
+                        ):
+                            continue
+                        if parent_prop_filtered_name not in child_prop_info["all_superproperties"]:
+                            continue
+                        child_prop_range = child_prop_info["object_range_hint"]
+                        parent_prop_range = parent_prop_info["object_range_hint"]
+                        if parent_prop_range not in ancestors_map[child_prop_range]:
+                            if parent_prop_filtered_name in matched_prop_names:
+                                matched_prop_names.remove(parent_prop_filtered_name)
+                            continue
+                        matched_prop_names.add(parent_prop_filtered_name)
+                if not matched_prop_names:
+                    continue
+                if matched_prop_names == parent_props_names_filtered:
+                    if "role_taker" in parent_cls_info and parent_cls_info["role_taker"]:
+                        if "role_taker" in child_cls_info and child_cls_info["role_taker"]:
+                            if child_cls_info["role_taker"]["class_name"] != parent_cls_info["role_taker"]["class_name"]:
+                                continue
+                        else:
+                            continue
+                    subsumption_type = SubsumptionType.SUBTYPE
+                else:
+                    subsumption_type = SubsumptionType.ROLE
+                # for prop_name in copy(matched_prop_names):
+                #     parent_prop_name = [prop for prop in parent_props_names if prop.split("{")[0] == prop_name][0]
+                #     child_prop_name = [prop for prop in child_props_names if prop.split("{")[0] == prop_name][0]
+                #     child_prop_info = properties_copy.get(child_prop_name)
+                #     parent_prop_info = properties_copy.get(parent_prop_name)
+                #     if (
+                #         child_prop_info["type"] == "DataProperty"
+                #         or parent_prop_info["type"] == "DataProperty"
+                #     ):
+                #         continue
+                #     child_prop_range = child_prop_info["object_range_hint"]
+                #     parent_prop_range = parent_prop_info["object_range_hint"]
+                #     if parent_prop_range not in ancestors_map[child_prop_range]:
+                #         matched_prop_names.remove(prop_name)
+                if not matched_prop_names:
+                    continue
+                child_info = classes_copy[child_cls_name]
+                parent_info = classes_copy[parent_cls_name]
+                if ontology_base_class_name in child_info[
+                    "base_classes"]:
+                    child_info["base_classes"].remove(ontology_base_class_name)
+                if subsumption_type == SubsumptionType.ROLE:
+                    child_info["role_taker"] = {
+                        "class_name": parent_cls_name,
+                        "field_name": self._to_snake_case(parent_cls_name),
+                    }
+                    if role_cls_name not in child_info["all_base_classes"]:
+                        child_info["base_classes"].append(role_cls_name)
+                        child_info["all_base_classes"].append(role_cls_name)
+                    child_info["all_base_classes_including_role_takers"].append(parent_cls_name)
+                else:
+                    if (
+                        role_cls_name in parent_info["base_classes"]
+                        and role_cls_name in child_info["base_classes"]
                     ):
-                        if other_prop_name.split("{")[0] != prop_name.split("{")[0]:
-                            continue
-                        other_prop_info = properties_copy.get(other_prop_name)
-                        if (
-                            other_prop_info["type"] == "DataProperty"
-                            or prop_info["type"] == "DataProperty"
-                        ):
-                            continue
-                        other_prop_range = other_prop_info["object_range_hint"]
-                        prop_range = prop_info["object_range_hint"]
-                        parent_name = None
-                        child_name = None
-                        if prop_range in ancestors_map[other_prop_range]:
-                            parent_name = cls_name
-                            child_name = other_cls_name
-                        elif other_prop_range in ancestors_map[prop_range]:
-                            parent_name = other_cls_name
-                            child_name = cls_name
-                        if not parent_name:
-                            continue
-                        child_info = classes_copy[child_name]
-                        parent_info = classes_copy[parent_name]
-                        if ontology_base_class_name in child_info["superclasses"]:
-                            child_info["superclasses"].remove(ontology_base_class_name)
-                        if ontology_base_class_name in child_info["base_classes"]:
-                            child_info["base_classes"].remove(ontology_base_class_name)
-                        if (
-                            role_cls_name in parent_info["superclasses"]
-                            and role_cls_name in child_info["superclasses"]
-                        ):
-                            child_info["superclasses"].remove(role_cls_name)
-                        if (
-                            role_cls_name in parent_info["base_classes"]
-                            and role_cls_name in child_info["base_classes"]
-                        ):
-                            child_info["base_classes"].remove(role_cls_name)
-                        if parent_name not in child_info["superclasses"]:
-                            child_info["superclasses"].append(parent_name)
-                            child_info["base_classes"].append(parent_name)
-                        for rt in copy(child_info["role_taker"]):
-                            if rt in parent_info["role_taker"]:
-                                child_info["role_taker"].remove(rt)
-                        for prop in copy(child_info["declared_properties"]):
-                            if prop in parent_info["declared_properties"]:
-                                child_info["declared_properties"].remove(prop)
+                        child_info["base_classes"].remove(role_cls_name)
+                    if parent_cls_name not in child_info["base_classes"]:
+                        child_info["base_classes"].append(parent_cls_name)
+                        child_info["all_base_classes"].append(parent_cls_name)
+                        child_info["all_base_classes_including_role_takers"].append(parent_cls_name)
+                    rt = child_info["role_taker"]
+                    if rt and rt == parent_info["role_taker"]:
+                        child_info["role_taker"] = {}
+                    for prop in copy(child_info["declared_properties"]):
+                        if prop in parent_info["declared_properties"]:
+                            child_info["declared_properties"].remove(prop)
 
         # Start with base-class-only topological order
-        classes_order = self._topological_order(classes_copy, dep_key="base_classes")
+        for cls_name, cls_info in classes_copy.items():
+            cls_info["base_classes_for_topological_sort"] = cls_info["base_classes"][:]
+            if "role_taker" in cls_info and cls_info["role_taker"]:
+                cls_info["base_classes_for_topological_sort"].append(cls_info["role_taker"]["class_name"])
+        classes_order = self._topological_order(classes_copy, dep_key="base_classes_for_topological_sort")
 
         # Note: we deliberately do not reorder by object-range dependencies to avoid
         # violating base-class ordering and creating oscillations. Forward references
@@ -839,6 +937,11 @@ class OwlToPythonConverter:
                 info["base_classes"].append(
                     f"{role_cls_name}[{info['role_taker']['class_name']}]"
                 )
+        if "Role" in classes_copy:
+            del classes_copy["Role"]
+
+        if "Role" in classes_order:
+            classes_order.remove("Role")
 
         template_dir = os.path.dirname(__file__)
         env = Environment(
