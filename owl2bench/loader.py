@@ -8,19 +8,7 @@ from typing import Dict, List, Optional
 from SPARQLWrapper import SPARQLWrapper
 from rdflib import Graph, Namespace, RDF, RDFS, URIRef, Literal
 
-from .models import (
-    World,
-    University,
-    College,
-    Department,
-    Course,
-    Person,
-    Student,
-    Employee,
-    Program,
-    Publication,
-    ResearchGroup,
-)
+from .model.base import *
 
 
 class OntologyLoadError(Exception):
@@ -115,47 +103,3 @@ class WorldLoader:
                 )
             )
         return persons
-
-    def _update_inter_person_relationships(self):
-        """
-        Get all relationships (knows, likes, loves, dislikes, is_crazy_about, has_same_hometown_with)
-        between persons and update the respective relationships in all the persons of the world.
-        """
-        query = (
-            PREFIXES
-            + """
-            SELECT ?s ?p ?o WHERE {
-                VALUES ?p { owl2bench:knows owl2bench:likes owl2bench:loves owl2bench:dislikes owl2bench:isCrazyAbout owl2bench:hasSameHomeTownWith }
-                ?s ?p ?o .
-            }
-            """
-        )
-        self.sparql_wrapper.setQuery(query)
-        results = self.sparql_wrapper.query().convert()
-        bindings = results["results"]["bindings"]
-
-        person_map: Dict[str, Person] = {p.identifier: p for p in self.world.persons}
-
-        for b in bindings:
-            subject_iri = str(b["s"]["value"])
-            predicate_iri = str(b["p"]["value"])
-            object_iri = str(b["o"]["value"])
-
-            subject = person_map.get(subject_iri)
-            target = person_map.get(object_iri)
-
-            if not (subject and target):
-                continue
-
-            if predicate_iri.endswith("knows"):
-                subject.knows.append(target)
-            elif predicate_iri.endswith("likes"):
-                subject.likes.append(target)
-            elif predicate_iri.endswith("loves"):
-                subject.loves.append(target)
-            elif predicate_iri.endswith("dislikes"):
-                subject.dislikes.append(target)
-            elif predicate_iri.endswith("isCrazyAbout"):
-                subject.is_crazy_about.append(target)
-            elif predicate_iri.endswith("hasSameHomeTownWith"):
-                subject.has_same_hometown_with.append(target)
