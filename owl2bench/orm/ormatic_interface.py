@@ -17,11 +17,16 @@ from sqlalchemy.orm import relationship, Mapped, mapped_column, DeclarativeBase
 
 import builtins
 import krrood.ormatic.custom_types
-import owl2bench.models
+import owl2bench.model.base
+import owl2bench.model.college_disciplines
+import owl2bench.model.interests
+import owl2bench.model.organizations
+import owl2bench.model.programs
+import owl2bench.model.publications
 import typing
 
 
-from krrood.ormatic.dao import DataAccessObject, ToDAOState
+from krrood.ormatic.dao import DataAccessObject
 from krrood.ormatic.custom_types import TypeType
 
 
@@ -32,408 +37,994 @@ class Base(DeclarativeBase):
 
 
 # Association tables for many-to-many relationships
-collegedao_departments_association = Table(
-    "collegedao_departments_association",
-    Base.metadata,
-    Column("source_collegedao_id", ForeignKey("CollegeDAO.database_id")),
-    Column("target_departmentdao_id", ForeignKey("DepartmentDAO.database_id")),
-)
-departmentdao_courses_association = Table(
-    "departmentdao_courses_association",
-    Base.metadata,
-    Column("source_departmentdao_id", ForeignKey("DepartmentDAO.database_id")),
-    Column("target_coursedao_id", ForeignKey("CourseDAO.database_id")),
-)
-departmentdao_programs_association = Table(
-    "departmentdao_programs_association",
-    Base.metadata,
-    Column("source_departmentdao_id", ForeignKey("DepartmentDAO.database_id")),
-    Column("target_programdao_id", ForeignKey("ProgramDAO.database_id")),
-)
-departmentdao_undergraduate_students_association = Table(
-    "departmentdao_undergraduate_students_association",
-    Base.metadata,
-    Column("source_departmentdao_id", ForeignKey("DepartmentDAO.database_id")),
-    Column("target_studentdao_id", ForeignKey("StudentDAO.database_id")),
-)
-departmentdao_postgraduate_students_association = Table(
-    "departmentdao_postgraduate_students_association",
-    Base.metadata,
-    Column("source_departmentdao_id", ForeignKey("DepartmentDAO.database_id")),
-    Column("target_studentdao_id", ForeignKey("StudentDAO.database_id")),
-)
-departmentdao_phd_students_association = Table(
-    "departmentdao_phd_students_association",
-    Base.metadata,
-    Column("source_departmentdao_id", ForeignKey("DepartmentDAO.database_id")),
-    Column("target_studentdao_id", ForeignKey("StudentDAO.database_id")),
-)
-departmentdao_employees_association = Table(
-    "departmentdao_employees_association",
-    Base.metadata,
-    Column("source_departmentdao_id", ForeignKey("DepartmentDAO.database_id")),
-    Column("target_employeedao_id", ForeignKey("EmployeeDAO.database_id")),
-)
-departmentdao_research_groups_association = Table(
-    "departmentdao_research_groups_association",
-    Base.metadata,
-    Column("source_departmentdao_id", ForeignKey("DepartmentDAO.database_id")),
-    Column("target_researchgroupdao_id", ForeignKey("ResearchGroupDAO.database_id")),
-)
-persondao_knows_association = Table(
-    "persondao_knows_association",
-    Base.metadata,
-    Column("source_persondao_id", ForeignKey("PersonDAO.database_id")),
-    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
-)
-persondao_likes_association = Table(
-    "persondao_likes_association",
-    Base.metadata,
-    Column("source_persondao_id", ForeignKey("PersonDAO.database_id")),
-    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
-)
-persondao_loves_association = Table(
-    "persondao_loves_association",
-    Base.metadata,
-    Column("source_persondao_id", ForeignKey("PersonDAO.database_id")),
-    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
-)
-persondao_dislikes_association = Table(
-    "persondao_dislikes_association",
-    Base.metadata,
-    Column("source_persondao_id", ForeignKey("PersonDAO.database_id")),
-    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
-)
-persondao_is_crazy_about_association = Table(
-    "persondao_is_crazy_about_association",
-    Base.metadata,
-    Column("source_persondao_id", ForeignKey("PersonDAO.database_id")),
-    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
-)
-persondao_has_same_hometown_with_association = Table(
-    "persondao_has_same_hometown_with_association",
-    Base.metadata,
-    Column("source_persondao_id", ForeignKey("PersonDAO.database_id")),
-    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
-)
 publicationdao_authors_association = Table(
     "publicationdao_authors_association",
     Base.metadata,
     Column("source_publicationdao_id", ForeignKey("PublicationDAO.database_id")),
     Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
 )
-researchgroupdao_members_association = Table(
-    "researchgroupdao_members_association",
-    Base.metadata,
-    Column("source_researchgroupdao_id", ForeignKey("ResearchGroupDAO.database_id")),
-    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
-)
-researchgroupdao_publications_association = Table(
-    "researchgroupdao_publications_association",
-    Base.metadata,
-    Column("source_researchgroupdao_id", ForeignKey("ResearchGroupDAO.database_id")),
-    Column("target_publicationdao_id", ForeignKey("PublicationDAO.database_id")),
-)
-studentdao_advisors_association = Table(
-    "studentdao_advisors_association",
-    Base.metadata,
-    Column("source_studentdao_id", ForeignKey("StudentDAO.database_id")),
-    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
-)
-universitydao_colleges_association = Table(
-    "universitydao_colleges_association",
+universitydao_alumni_association = Table(
+    "universitydao_alumni_association",
     Base.metadata,
     Column("source_universitydao_id", ForeignKey("UniversityDAO.database_id")),
-    Column("target_collegedao_id", ForeignKey("CollegeDAO.database_id")),
-)
-universitydao_publications_association = Table(
-    "universitydao_publications_association",
-    Base.metadata,
-    Column("source_universitydao_id", ForeignKey("UniversityDAO.database_id")),
-    Column("target_publicationdao_id", ForeignKey("PublicationDAO.database_id")),
-)
-worlddao_universities_association = Table(
-    "worlddao_universities_association",
-    Base.metadata,
-    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
-    Column("target_universitydao_id", ForeignKey("UniversityDAO.database_id")),
-)
-worlddao_colleges_association = Table(
-    "worlddao_colleges_association",
-    Base.metadata,
-    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
-    Column("target_collegedao_id", ForeignKey("CollegeDAO.database_id")),
-)
-worlddao_departments_association = Table(
-    "worlddao_departments_association",
-    Base.metadata,
-    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
-    Column("target_departmentdao_id", ForeignKey("DepartmentDAO.database_id")),
-)
-worlddao_programs_association = Table(
-    "worlddao_programs_association",
-    Base.metadata,
-    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
-    Column("target_programdao_id", ForeignKey("ProgramDAO.database_id")),
-)
-worlddao_courses_association = Table(
-    "worlddao_courses_association",
-    Base.metadata,
-    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
-    Column("target_coursedao_id", ForeignKey("CourseDAO.database_id")),
-)
-worlddao_persons_association = Table(
-    "worlddao_persons_association",
-    Base.metadata,
-    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
     Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
-)
-worlddao_students_association = Table(
-    "worlddao_students_association",
-    Base.metadata,
-    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
-    Column("target_studentdao_id", ForeignKey("StudentDAO.database_id")),
-)
-worlddao_employees_association = Table(
-    "worlddao_employees_association",
-    Base.metadata,
-    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
-    Column("target_employeedao_id", ForeignKey("EmployeeDAO.database_id")),
-)
-worlddao_research_groups_association = Table(
-    "worlddao_research_groups_association",
-    Base.metadata,
-    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
-    Column("target_researchgroupdao_id", ForeignKey("ResearchGroupDAO.database_id")),
-)
-worlddao_publications_association = Table(
-    "worlddao_publications_association",
-    Base.metadata,
-    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
-    Column("target_publicationdao_id", ForeignKey("PublicationDAO.database_id")),
 )
 
 
-class CollegeDAO(Base, DataAccessObject[owl2bench.models.College]):
+class IdentifiedEntityDAO(
+    Base, DataAccessObject[owl2bench.model.base.IdentifiedEntity]
+):
+
+    __tablename__ = "IdentifiedEntityDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        Integer, primary_key=True, use_existing_column=True
+    )
+
+    identifier: Mapped[builtins.str] = mapped_column(
+        String(255), use_existing_column=True
+    )
+
+    polymorphic_type: Mapped[str] = mapped_column(
+        String(255), nullable=False, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_on": "polymorphic_type",
+        "polymorphic_identity": "IdentifiedEntityDAO",
+    }
+
+
+class CollegeDisciplineDAO(
+    IdentifiedEntityDAO, DataAccessObject[owl2bench.model.base.CollegeDiscipline]
+):
+
+    __tablename__ = "CollegeDisciplineDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(IdentifiedEntityDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "CollegeDisciplineDAO",
+        "inherit_condition": database_id == IdentifiedEntityDAO.database_id,
+    }
+
+
+class EngineeringDAO(
+    CollegeDisciplineDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.Engineering],
+):
+
+    __tablename__ = "EngineeringDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(CollegeDisciplineDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "EngineeringDAO",
+        "inherit_condition": database_id == CollegeDisciplineDAO.database_id,
+    }
+
+
+class AeronauticalEngineeringDAO(
+    EngineeringDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.AeronauticalEngineering],
+):
+
+    __tablename__ = "AeronauticalEngineeringDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(EngineeringDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "AeronauticalEngineeringDAO",
+        "inherit_condition": database_id == EngineeringDAO.database_id,
+    }
+
+
+class BiomedicalEngineeringDAO(
+    EngineeringDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.BiomedicalEngineering],
+):
+
+    __tablename__ = "BiomedicalEngineeringDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(EngineeringDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "BiomedicalEngineeringDAO",
+        "inherit_condition": database_id == EngineeringDAO.database_id,
+    }
+
+
+class ChemicalEngineeringDAO(
+    EngineeringDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.ChemicalEngineering],
+):
+
+    __tablename__ = "ChemicalEngineeringDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(EngineeringDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "ChemicalEngineeringDAO",
+        "inherit_condition": database_id == EngineeringDAO.database_id,
+    }
+
+
+class CivilEngineeringDAO(
+    EngineeringDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.CivilEngineering],
+):
+
+    __tablename__ = "CivilEngineeringDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(EngineeringDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "CivilEngineeringDAO",
+        "inherit_condition": database_id == EngineeringDAO.database_id,
+    }
+
+
+class ComputerEngineeringDAO(
+    EngineeringDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.ComputerEngineering],
+):
+
+    __tablename__ = "ComputerEngineeringDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(EngineeringDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "ComputerEngineeringDAO",
+        "inherit_condition": database_id == EngineeringDAO.database_id,
+    }
+
+
+class ElectricalEngineeringDAO(
+    EngineeringDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.ElectricalEngineering],
+):
+
+    __tablename__ = "ElectricalEngineeringDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(EngineeringDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "ElectricalEngineeringDAO",
+        "inherit_condition": database_id == EngineeringDAO.database_id,
+    }
+
+
+class FineArtsDAO(
+    CollegeDisciplineDAO, DataAccessObject[owl2bench.model.college_disciplines.FineArts]
+):
+
+    __tablename__ = "FineArtsDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(CollegeDisciplineDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "FineArtsDAO",
+        "inherit_condition": database_id == CollegeDisciplineDAO.database_id,
+    }
+
+
+class ArchitectureDAO(
+    FineArtsDAO, DataAccessObject[owl2bench.model.college_disciplines.Architecture]
+):
+
+    __tablename__ = "ArchitectureDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(FineArtsDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "ArchitectureDAO",
+        "inherit_condition": database_id == FineArtsDAO.database_id,
+    }
+
+
+class AsianArtsDAO(
+    FineArtsDAO, DataAccessObject[owl2bench.model.college_disciplines.AsianArts]
+):
+
+    __tablename__ = "AsianArtsDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(FineArtsDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "AsianArtsDAO",
+        "inherit_condition": database_id == FineArtsDAO.database_id,
+    }
+
+
+class DramaDAO(
+    FineArtsDAO, DataAccessObject[owl2bench.model.college_disciplines.Drama]
+):
+
+    __tablename__ = "DramaDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(FineArtsDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "DramaDAO",
+        "inherit_condition": database_id == FineArtsDAO.database_id,
+    }
+
+
+class HumanitiesAndSocialDAO(
+    CollegeDisciplineDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.HumanitiesAndSocial],
+):
+
+    __tablename__ = "HumanitiesAndSocialDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(CollegeDisciplineDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "HumanitiesAndSocialDAO",
+        "inherit_condition": database_id == CollegeDisciplineDAO.database_id,
+    }
+
+
+class AnthropologyDAO(
+    HumanitiesAndSocialDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.Anthropology],
+):
+
+    __tablename__ = "AnthropologyDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(HumanitiesAndSocialDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "AnthropologyDAO",
+        "inherit_condition": database_id == HumanitiesAndSocialDAO.database_id,
+    }
+
+
+class EconomicsDAO(
+    HumanitiesAndSocialDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.Economics],
+):
+
+    __tablename__ = "EconomicsDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(HumanitiesAndSocialDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "EconomicsDAO",
+        "inherit_condition": database_id == HumanitiesAndSocialDAO.database_id,
+    }
+
+
+class EnglishDAO(
+    HumanitiesAndSocialDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.English],
+):
+
+    __tablename__ = "EnglishDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(HumanitiesAndSocialDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "EnglishDAO",
+        "inherit_condition": database_id == HumanitiesAndSocialDAO.database_id,
+    }
+
+
+class HistoryDAO(
+    HumanitiesAndSocialDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.History],
+):
+
+    __tablename__ = "HistoryDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(HumanitiesAndSocialDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "HistoryDAO",
+        "inherit_condition": database_id == HumanitiesAndSocialDAO.database_id,
+    }
+
+
+class HumanitiesDAO(
+    HumanitiesAndSocialDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.Humanities],
+):
+
+    __tablename__ = "HumanitiesDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(HumanitiesAndSocialDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "HumanitiesDAO",
+        "inherit_condition": database_id == HumanitiesAndSocialDAO.database_id,
+    }
+
+
+class IndustryEngineeringDAO(
+    EngineeringDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.IndustryEngineering],
+):
+
+    __tablename__ = "IndustryEngineeringDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(EngineeringDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "IndustryEngineeringDAO",
+        "inherit_condition": database_id == EngineeringDAO.database_id,
+    }
+
+
+class InterestDAO(IdentifiedEntityDAO, DataAccessObject[owl2bench.model.base.Interest]):
+
+    __tablename__ = "InterestDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(IdentifiedEntityDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "InterestDAO",
+        "inherit_condition": database_id == IdentifiedEntityDAO.database_id,
+    }
+
+
+class GameDAO(InterestDAO, DataAccessObject[owl2bench.model.interests.Game]):
+
+    __tablename__ = "GameDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(InterestDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "GameDAO",
+        "inherit_condition": database_id == InterestDAO.database_id,
+    }
+
+
+class LatinArtsDAO(
+    FineArtsDAO, DataAccessObject[owl2bench.model.college_disciplines.LatinArts]
+):
+
+    __tablename__ = "LatinArtsDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(FineArtsDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "LatinArtsDAO",
+        "inherit_condition": database_id == FineArtsDAO.database_id,
+    }
+
+
+class LinguisticsDAO(
+    HumanitiesAndSocialDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.Linguistics],
+):
+
+    __tablename__ = "LinguisticsDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(HumanitiesAndSocialDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "LinguisticsDAO",
+        "inherit_condition": database_id == HumanitiesAndSocialDAO.database_id,
+    }
+
+
+class ManagementDAO(
+    CollegeDisciplineDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.Management],
+):
+
+    __tablename__ = "ManagementDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(CollegeDisciplineDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "ManagementDAO",
+        "inherit_condition": database_id == CollegeDisciplineDAO.database_id,
+    }
+
+
+class DesignManagementDAO(
+    ManagementDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.DesignManagement],
+):
+
+    __tablename__ = "DesignManagementDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(ManagementDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "DesignManagementDAO",
+        "inherit_condition": database_id == ManagementDAO.database_id,
+    }
+
+
+class FinancialAndAccountingManagementDAO(
+    ManagementDAO,
+    DataAccessObject[
+        owl2bench.model.college_disciplines.FinancialAndAccountingManagement
+    ],
+):
+
+    __tablename__ = "FinancialAndAccountingManagementDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(ManagementDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "FinancialAndAccountingManagementDAO",
+        "inherit_condition": database_id == ManagementDAO.database_id,
+    }
+
+
+class HumanResourceManagementDAO(
+    ManagementDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.HumanResourceManagement],
+):
+
+    __tablename__ = "HumanResourceManagementDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(ManagementDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "HumanResourceManagementDAO",
+        "inherit_condition": database_id == ManagementDAO.database_id,
+    }
+
+
+class MarketingManagementDAO(
+    ManagementDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.MarketingManagement],
+):
+
+    __tablename__ = "MarketingManagementDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(ManagementDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "MarketingManagementDAO",
+        "inherit_condition": database_id == ManagementDAO.database_id,
+    }
+
+
+class MaterialScienceEngineeringDAO(
+    EngineeringDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.MaterialScienceEngineering],
+):
+
+    __tablename__ = "MaterialScienceEngineeringDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(EngineeringDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "MaterialScienceEngineeringDAO",
+        "inherit_condition": database_id == EngineeringDAO.database_id,
+    }
+
+
+class MechanicalEngineeringDAO(
+    EngineeringDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.MechanicalEngineering],
+):
+
+    __tablename__ = "MechanicalEngineeringDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(EngineeringDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "MechanicalEngineeringDAO",
+        "inherit_condition": database_id == EngineeringDAO.database_id,
+    }
+
+
+class MediaArtsAndSciencesDAO(
+    FineArtsDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.MediaArtsAndSciences],
+):
+
+    __tablename__ = "MediaArtsAndSciencesDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(FineArtsDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "MediaArtsAndSciencesDAO",
+        "inherit_condition": database_id == FineArtsDAO.database_id,
+    }
+
+
+class MedievalArtsDAO(
+    FineArtsDAO, DataAccessObject[owl2bench.model.college_disciplines.MedievalArts]
+):
+
+    __tablename__ = "MedievalArtsDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(FineArtsDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "MedievalArtsDAO",
+        "inherit_condition": database_id == FineArtsDAO.database_id,
+    }
+
+
+class ModernArtsDAO(
+    FineArtsDAO, DataAccessObject[owl2bench.model.college_disciplines.ModernArts]
+):
+
+    __tablename__ = "ModernArtsDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(FineArtsDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "ModernArtsDAO",
+        "inherit_condition": database_id == FineArtsDAO.database_id,
+    }
+
+
+class ModernLanguagesDAO(
+    HumanitiesAndSocialDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.ModernLanguages],
+):
+
+    __tablename__ = "ModernLanguagesDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(HumanitiesAndSocialDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "ModernLanguagesDAO",
+        "inherit_condition": database_id == HumanitiesAndSocialDAO.database_id,
+    }
+
+
+class MovieDAO(InterestDAO, DataAccessObject[owl2bench.model.interests.Movie]):
+
+    __tablename__ = "MovieDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(InterestDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "MovieDAO",
+        "inherit_condition": database_id == InterestDAO.database_id,
+    }
+
+
+class MusicDAO(InterestDAO, DataAccessObject[owl2bench.model.interests.Music]):
+
+    __tablename__ = "MusicDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(InterestDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "MusicDAO",
+        "inherit_condition": database_id == InterestDAO.database_id,
+    }
+
+
+class MusicsClassDAO(
+    FineArtsDAO, DataAccessObject[owl2bench.model.college_disciplines.MusicsClass]
+):
+
+    __tablename__ = "MusicsClassDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(FineArtsDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "MusicsClassDAO",
+        "inherit_condition": database_id == FineArtsDAO.database_id,
+    }
+
+
+class OperationsManagementDAO(
+    ManagementDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.OperationsManagement],
+):
+
+    __tablename__ = "OperationsManagementDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(ManagementDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "OperationsManagementDAO",
+        "inherit_condition": database_id == ManagementDAO.database_id,
+    }
+
+
+class OrganizationDAO(
+    IdentifiedEntityDAO, DataAccessObject[owl2bench.model.base.Organization]
+):
+
+    __tablename__ = "OrganizationDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(IdentifiedEntityDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "OrganizationDAO",
+        "inherit_condition": database_id == IdentifiedEntityDAO.database_id,
+    }
+
+
+class CollegeDAO(
+    OrganizationDAO, DataAccessObject[owl2bench.model.organizations.College]
+):
 
     __tablename__ = "CollegeDAO"
 
     database_id: Mapped[builtins.int] = mapped_column(
-        Integer, primary_key=True, use_existing_column=True
+        ForeignKey(OrganizationDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
     )
 
-    identifier: Mapped[builtins.str] = mapped_column(
-        String(255), use_existing_column=True
-    )
-    name: Mapped[builtins.str] = mapped_column(String(255), use_existing_column=True)
-    is_women_only: Mapped[builtins.bool] = mapped_column(use_existing_column=True)
-
-    departments: Mapped[typing.List[DepartmentDAO]] = relationship(
-        "DepartmentDAO",
-        secondary="collegedao_departments_association",
-        primaryjoin="CollegeDAO.database_id == collegedao_departments_association.c.source_collegedao_id",
-        secondaryjoin="DepartmentDAO.database_id == collegedao_departments_association.c.target_departmentdao_id",
-        cascade="save-update, merge",
-    )
+    __mapper_args__ = {
+        "polymorphic_identity": "CollegeDAO",
+        "inherit_condition": database_id == OrganizationDAO.database_id,
+    }
 
 
-class CourseDAO(Base, DataAccessObject[owl2bench.models.Course]):
-
-    __tablename__ = "CourseDAO"
-
-    database_id: Mapped[builtins.int] = mapped_column(
-        Integer, primary_key=True, use_existing_column=True
-    )
-
-    identifier: Mapped[builtins.str] = mapped_column(
-        String(255), use_existing_column=True
-    )
-    title: Mapped[builtins.str] = mapped_column(String(255), use_existing_column=True)
-
-
-class DepartmentDAO(Base, DataAccessObject[owl2bench.models.Department]):
+class DepartmentDAO(
+    OrganizationDAO, DataAccessObject[owl2bench.model.organizations.Department]
+):
 
     __tablename__ = "DepartmentDAO"
 
     database_id: Mapped[builtins.int] = mapped_column(
-        Integer, primary_key=True, use_existing_column=True
-    )
-
-    identifier: Mapped[builtins.str] = mapped_column(
-        String(255), use_existing_column=True
-    )
-    name: Mapped[builtins.str] = mapped_column(String(255), use_existing_column=True)
-
-    courses: Mapped[typing.List[CourseDAO]] = relationship(
-        "CourseDAO",
-        secondary="departmentdao_courses_association",
-        primaryjoin="DepartmentDAO.database_id == departmentdao_courses_association.c.source_departmentdao_id",
-        secondaryjoin="CourseDAO.database_id == departmentdao_courses_association.c.target_coursedao_id",
-        cascade="save-update, merge",
-    )
-    programs: Mapped[typing.List[ProgramDAO]] = relationship(
-        "ProgramDAO",
-        secondary="departmentdao_programs_association",
-        primaryjoin="DepartmentDAO.database_id == departmentdao_programs_association.c.source_departmentdao_id",
-        secondaryjoin="ProgramDAO.database_id == departmentdao_programs_association.c.target_programdao_id",
-        cascade="save-update, merge",
-    )
-    undergraduate_students: Mapped[typing.List[StudentDAO]] = relationship(
-        "StudentDAO",
-        secondary="departmentdao_undergraduate_students_association",
-        primaryjoin="DepartmentDAO.database_id == departmentdao_undergraduate_students_association.c.source_departmentdao_id",
-        secondaryjoin="StudentDAO.database_id == departmentdao_undergraduate_students_association.c.target_studentdao_id",
-        cascade="save-update, merge",
-    )
-    postgraduate_students: Mapped[typing.List[StudentDAO]] = relationship(
-        "StudentDAO",
-        secondary="departmentdao_postgraduate_students_association",
-        primaryjoin="DepartmentDAO.database_id == departmentdao_postgraduate_students_association.c.source_departmentdao_id",
-        secondaryjoin="StudentDAO.database_id == departmentdao_postgraduate_students_association.c.target_studentdao_id",
-        cascade="save-update, merge",
-    )
-    phd_students: Mapped[typing.List[StudentDAO]] = relationship(
-        "StudentDAO",
-        secondary="departmentdao_phd_students_association",
-        primaryjoin="DepartmentDAO.database_id == departmentdao_phd_students_association.c.source_departmentdao_id",
-        secondaryjoin="StudentDAO.database_id == departmentdao_phd_students_association.c.target_studentdao_id",
-        cascade="save-update, merge",
-    )
-    employees: Mapped[typing.List[EmployeeDAO]] = relationship(
-        "EmployeeDAO",
-        secondary="departmentdao_employees_association",
-        primaryjoin="DepartmentDAO.database_id == departmentdao_employees_association.c.source_departmentdao_id",
-        secondaryjoin="EmployeeDAO.database_id == departmentdao_employees_association.c.target_employeedao_id",
-        cascade="save-update, merge",
-    )
-    research_groups: Mapped[typing.List[ResearchGroupDAO]] = relationship(
-        "ResearchGroupDAO",
-        secondary="departmentdao_research_groups_association",
-        primaryjoin="DepartmentDAO.database_id == departmentdao_research_groups_association.c.source_departmentdao_id",
-        secondaryjoin="ResearchGroupDAO.database_id == departmentdao_research_groups_association.c.target_researchgroupdao_id",
-        cascade="save-update, merge",
-    )
-
-
-class EmployeeDAO(Base, DataAccessObject[owl2bench.models.Employee]):
-
-    __tablename__ = "EmployeeDAO"
-
-    database_id: Mapped[builtins.int] = mapped_column(
-        Integer, primary_key=True, use_existing_column=True
-    )
-
-    role: Mapped[builtins.str] = mapped_column(String(255), use_existing_column=True)
-    rank: Mapped[typing.Optional[builtins.str]] = mapped_column(
-        String(255), use_existing_column=True
-    )
-
-    person_id: Mapped[int] = mapped_column(
-        ForeignKey("PersonDAO.database_id", use_alter=True),
-        nullable=True,
+        ForeignKey(OrganizationDAO.database_id),
+        primary_key=True,
         use_existing_column=True,
     )
 
-    person: Mapped[PersonDAO] = relationship(
-        "PersonDAO", uselist=False, foreign_keys=[person_id], post_update=True
+    __mapper_args__ = {
+        "polymorphic_identity": "DepartmentDAO",
+        "inherit_condition": database_id == OrganizationDAO.database_id,
+    }
+
+
+class PaintingDAO(InterestDAO, DataAccessObject[owl2bench.model.interests.Painting]):
+
+    __tablename__ = "PaintingDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(InterestDAO.database_id), primary_key=True, use_existing_column=True
     )
 
+    __mapper_args__ = {
+        "polymorphic_identity": "PaintingDAO",
+        "inherit_condition": database_id == InterestDAO.database_id,
+    }
 
-class PersonDAO(Base, DataAccessObject[owl2bench.models.Person]):
+
+class PerformingArtsDAO(
+    FineArtsDAO, DataAccessObject[owl2bench.model.college_disciplines.PerformingArts]
+):
+
+    __tablename__ = "PerformingArtsDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(FineArtsDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "PerformingArtsDAO",
+        "inherit_condition": database_id == FineArtsDAO.database_id,
+    }
+
+
+class PersonDAO(IdentifiedEntityDAO, DataAccessObject[owl2bench.model.base.Person]):
 
     __tablename__ = "PersonDAO"
 
     database_id: Mapped[builtins.int] = mapped_column(
-        Integer, primary_key=True, use_existing_column=True
+        ForeignKey(IdentifiedEntityDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
     )
 
-    identifier: Mapped[builtins.str] = mapped_column(
+    first_name: Mapped[builtins.str] = mapped_column(
         String(255), use_existing_column=True
     )
-    first_name: Mapped[typing.Optional[builtins.str]] = mapped_column(
+    last_name: Mapped[builtins.str] = mapped_column(
         String(255), use_existing_column=True
     )
-    last_name: Mapped[typing.Optional[builtins.str]] = mapped_column(
+    telephone_number: Mapped[builtins.str] = mapped_column(
         String(255), use_existing_column=True
     )
-    email: Mapped[typing.Optional[builtins.str]] = mapped_column(
+    age: Mapped[builtins.int] = mapped_column(use_existing_column=True)
+    e_mail_address: Mapped[builtins.str] = mapped_column(
         String(255), use_existing_column=True
     )
-    is_woman: Mapped[typing.Optional[builtins.bool]] = mapped_column(
-        use_existing_column=True
+    title: Mapped[typing.Optional[builtins.str]] = mapped_column(
+        String(255), use_existing_column=True
     )
 
-    knows: Mapped[typing.List[PersonDAO]] = relationship(
-        "PersonDAO",
-        secondary="persondao_knows_association",
-        primaryjoin="PersonDAO.database_id == persondao_knows_association.c.source_persondao_id",
-        secondaryjoin="PersonDAO.database_id == persondao_knows_association.c.target_persondao_id",
-        cascade="save-update, merge",
-    )
-    likes: Mapped[typing.List[PersonDAO]] = relationship(
-        "PersonDAO",
-        secondary="persondao_likes_association",
-        primaryjoin="PersonDAO.database_id == persondao_likes_association.c.source_persondao_id",
-        secondaryjoin="PersonDAO.database_id == persondao_likes_association.c.target_persondao_id",
-        cascade="save-update, merge",
-    )
-    loves: Mapped[typing.List[PersonDAO]] = relationship(
-        "PersonDAO",
-        secondary="persondao_loves_association",
-        primaryjoin="PersonDAO.database_id == persondao_loves_association.c.source_persondao_id",
-        secondaryjoin="PersonDAO.database_id == persondao_loves_association.c.target_persondao_id",
-        cascade="save-update, merge",
-    )
-    dislikes: Mapped[typing.List[PersonDAO]] = relationship(
-        "PersonDAO",
-        secondary="persondao_dislikes_association",
-        primaryjoin="PersonDAO.database_id == persondao_dislikes_association.c.source_persondao_id",
-        secondaryjoin="PersonDAO.database_id == persondao_dislikes_association.c.target_persondao_id",
-        cascade="save-update, merge",
-    )
-    is_crazy_about: Mapped[typing.List[PersonDAO]] = relationship(
-        "PersonDAO",
-        secondary="persondao_is_crazy_about_association",
-        primaryjoin="PersonDAO.database_id == persondao_is_crazy_about_association.c.source_persondao_id",
-        secondaryjoin="PersonDAO.database_id == persondao_is_crazy_about_association.c.target_persondao_id",
-        cascade="save-update, merge",
-    )
-    has_same_hometown_with: Mapped[typing.List[PersonDAO]] = relationship(
-        "PersonDAO",
-        secondary="persondao_has_same_hometown_with_association",
-        primaryjoin="PersonDAO.database_id == persondao_has_same_hometown_with_association.c.source_persondao_id",
-        secondaryjoin="PersonDAO.database_id == persondao_has_same_hometown_with_association.c.target_persondao_id",
-        cascade="save-update, merge",
-    )
+    __mapper_args__ = {
+        "polymorphic_identity": "PersonDAO",
+        "inherit_condition": database_id == IdentifiedEntityDAO.database_id,
+    }
 
 
-class ProgramDAO(Base, DataAccessObject[owl2bench.models.Program]):
+class PetroleumlEngineeringDAO(
+    EngineeringDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.PetroleumlEngineering],
+):
+
+    __tablename__ = "PetroleumlEngineeringDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(EngineeringDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "PetroleumlEngineeringDAO",
+        "inherit_condition": database_id == EngineeringDAO.database_id,
+    }
+
+
+class PhilosophyDAO(
+    HumanitiesAndSocialDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.Philosophy],
+):
+
+    __tablename__ = "PhilosophyDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(HumanitiesAndSocialDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "PhilosophyDAO",
+        "inherit_condition": database_id == HumanitiesAndSocialDAO.database_id,
+    }
+
+
+class ProgramDAO(IdentifiedEntityDAO, DataAccessObject[owl2bench.model.base.Program]):
 
     __tablename__ = "ProgramDAO"
 
     database_id: Mapped[builtins.int] = mapped_column(
-        Integer, primary_key=True, use_existing_column=True
+        ForeignKey(IdentifiedEntityDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
     )
 
-    identifier: Mapped[builtins.str] = mapped_column(
-        String(255), use_existing_column=True
+    __mapper_args__ = {
+        "polymorphic_identity": "ProgramDAO",
+        "inherit_condition": database_id == IdentifiedEntityDAO.database_id,
+    }
+
+
+class PhDProgramDAO(ProgramDAO, DataAccessObject[owl2bench.model.programs.PhDProgram]):
+
+    __tablename__ = "PhDProgramDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(ProgramDAO.database_id), primary_key=True, use_existing_column=True
     )
-    name: Mapped[builtins.str] = mapped_column(String(255), use_existing_column=True)
+
+    __mapper_args__ = {
+        "polymorphic_identity": "PhDProgramDAO",
+        "inherit_condition": database_id == ProgramDAO.database_id,
+    }
 
 
-class PublicationDAO(Base, DataAccessObject[owl2bench.models.Publication]):
+class PostgraduateProgramDAO(
+    ProgramDAO, DataAccessObject[owl2bench.model.programs.PostgraduateProgram]
+):
+
+    __tablename__ = "PostgraduateProgramDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(ProgramDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "PostgraduateProgramDAO",
+        "inherit_condition": database_id == ProgramDAO.database_id,
+    }
+
+
+class ProjectManagementDAO(
+    ManagementDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.ProjectManagement],
+):
+
+    __tablename__ = "ProjectManagementDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(ManagementDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "ProjectManagementDAO",
+        "inherit_condition": database_id == ManagementDAO.database_id,
+    }
+
+
+class PsychologyDAO(
+    HumanitiesAndSocialDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.Psychology],
+):
+
+    __tablename__ = "PsychologyDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(HumanitiesAndSocialDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "PsychologyDAO",
+        "inherit_condition": database_id == HumanitiesAndSocialDAO.database_id,
+    }
+
+
+class PublicRelationsManagementDAO(
+    ManagementDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.PublicRelationsManagement],
+):
+
+    __tablename__ = "PublicRelationsManagementDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(ManagementDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "PublicRelationsManagementDAO",
+        "inherit_condition": database_id == ManagementDAO.database_id,
+    }
+
+
+class PublicationDAO(
+    IdentifiedEntityDAO, DataAccessObject[owl2bench.model.base.Publication]
+):
 
     __tablename__ = "PublicationDAO"
 
     database_id: Mapped[builtins.int] = mapped_column(
-        Integer, primary_key=True, use_existing_column=True
+        ForeignKey(IdentifiedEntityDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
     )
-
-    identifier: Mapped[builtins.str] = mapped_column(
-        String(255), use_existing_column=True
-    )
-    title: Mapped[builtins.str] = mapped_column(String(255), use_existing_column=True)
-    year: Mapped[builtins.int] = mapped_column(use_existing_column=True)
 
     authors: Mapped[typing.List[PersonDAO]] = relationship(
         "PersonDAO",
@@ -443,184 +1034,506 @@ class PublicationDAO(Base, DataAccessObject[owl2bench.models.Publication]):
         cascade="save-update, merge",
     )
 
+    __mapper_args__ = {
+        "polymorphic_identity": "PublicationDAO",
+        "inherit_condition": database_id == IdentifiedEntityDAO.database_id,
+    }
 
-class ResearchGroupDAO(Base, DataAccessObject[owl2bench.models.ResearchGroup]):
+
+class ArticleDAO(
+    PublicationDAO, DataAccessObject[owl2bench.model.publications.Article]
+):
+
+    __tablename__ = "ArticleDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(PublicationDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "ArticleDAO",
+        "inherit_condition": database_id == PublicationDAO.database_id,
+    }
+
+
+class ConferencePaperDAO(
+    ArticleDAO, DataAccessObject[owl2bench.model.publications.ConferencePaper]
+):
+
+    __tablename__ = "ConferencePaperDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(ArticleDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "ConferencePaperDAO",
+        "inherit_condition": database_id == ArticleDAO.database_id,
+    }
+
+
+class JournalArticleDAO(
+    ArticleDAO, DataAccessObject[owl2bench.model.publications.JournalArticle]
+):
+
+    __tablename__ = "JournalArticleDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(ArticleDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "JournalArticleDAO",
+        "inherit_condition": database_id == ArticleDAO.database_id,
+    }
+
+
+class BookDAO(PublicationDAO, DataAccessObject[owl2bench.model.publications.Book]):
+
+    __tablename__ = "BookDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(PublicationDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "BookDAO",
+        "inherit_condition": database_id == PublicationDAO.database_id,
+    }
+
+
+class ManualDAO(PublicationDAO, DataAccessObject[owl2bench.model.publications.Manual]):
+
+    __tablename__ = "ManualDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(PublicationDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "ManualDAO",
+        "inherit_condition": database_id == PublicationDAO.database_id,
+    }
+
+
+class ReadingDAO(InterestDAO, DataAccessObject[owl2bench.model.interests.Reading]):
+
+    __tablename__ = "ReadingDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(InterestDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "ReadingDAO",
+        "inherit_condition": database_id == InterestDAO.database_id,
+    }
+
+
+class ReligionsDAO(
+    HumanitiesAndSocialDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.Religions],
+):
+
+    __tablename__ = "ReligionsDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(HumanitiesAndSocialDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "ReligionsDAO",
+        "inherit_condition": database_id == HumanitiesAndSocialDAO.database_id,
+    }
+
+
+class ResearchGroupDAO(
+    OrganizationDAO, DataAccessObject[owl2bench.model.organizations.ResearchGroup]
+):
 
     __tablename__ = "ResearchGroupDAO"
 
     database_id: Mapped[builtins.int] = mapped_column(
-        Integer, primary_key=True, use_existing_column=True
-    )
-
-    identifier: Mapped[builtins.str] = mapped_column(
-        String(255), use_existing_column=True
-    )
-    name: Mapped[builtins.str] = mapped_column(String(255), use_existing_column=True)
-
-    members: Mapped[typing.List[PersonDAO]] = relationship(
-        "PersonDAO",
-        secondary="researchgroupdao_members_association",
-        primaryjoin="ResearchGroupDAO.database_id == researchgroupdao_members_association.c.source_researchgroupdao_id",
-        secondaryjoin="PersonDAO.database_id == researchgroupdao_members_association.c.target_persondao_id",
-        cascade="save-update, merge",
-    )
-    publications: Mapped[typing.List[PublicationDAO]] = relationship(
-        "PublicationDAO",
-        secondary="researchgroupdao_publications_association",
-        primaryjoin="ResearchGroupDAO.database_id == researchgroupdao_publications_association.c.source_researchgroupdao_id",
-        secondaryjoin="PublicationDAO.database_id == researchgroupdao_publications_association.c.target_publicationdao_id",
-        cascade="save-update, merge",
-    )
-
-
-class StudentDAO(Base, DataAccessObject[owl2bench.models.Student]):
-
-    __tablename__ = "StudentDAO"
-
-    database_id: Mapped[builtins.int] = mapped_column(
-        Integer, primary_key=True, use_existing_column=True
-    )
-
-    level: Mapped[builtins.str] = mapped_column(String(255), use_existing_column=True)
-
-    person_id: Mapped[int] = mapped_column(
-        ForeignKey("PersonDAO.database_id", use_alter=True),
-        nullable=True,
+        ForeignKey(OrganizationDAO.database_id),
+        primary_key=True,
         use_existing_column=True,
     )
 
-    person: Mapped[PersonDAO] = relationship(
-        "PersonDAO", uselist=False, foreign_keys=[person_id], post_update=True
-    )
-    advisors: Mapped[typing.List[PersonDAO]] = relationship(
-        "PersonDAO",
-        secondary="studentdao_advisors_association",
-        primaryjoin="StudentDAO.database_id == studentdao_advisors_association.c.source_studentdao_id",
-        secondaryjoin="PersonDAO.database_id == studentdao_advisors_association.c.target_persondao_id",
-        cascade="save-update, merge",
-    )
+    __mapper_args__ = {
+        "polymorphic_identity": "ResearchGroupDAO",
+        "inherit_condition": database_id == OrganizationDAO.database_id,
+    }
 
 
-class UniversityDAO(Base, DataAccessObject[owl2bench.models.University]):
+class RiskManagementDAO(
+    ManagementDAO, DataAccessObject[owl2bench.model.college_disciplines.RiskManagement]
+):
+
+    __tablename__ = "RiskManagementDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(ManagementDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "RiskManagementDAO",
+        "inherit_condition": database_id == ManagementDAO.database_id,
+    }
+
+
+class SalesManagementDAO(
+    ManagementDAO, DataAccessObject[owl2bench.model.college_disciplines.SalesManagement]
+):
+
+    __tablename__ = "SalesManagementDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(ManagementDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "SalesManagementDAO",
+        "inherit_condition": database_id == ManagementDAO.database_id,
+    }
+
+
+class SoftwareDAO(
+    PublicationDAO, DataAccessObject[owl2bench.model.publications.Software]
+):
+
+    __tablename__ = "SoftwareDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(PublicationDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "SoftwareDAO",
+        "inherit_condition": database_id == PublicationDAO.database_id,
+    }
+
+
+class SpecificationDAO(
+    PublicationDAO, DataAccessObject[owl2bench.model.publications.Specification]
+):
+
+    __tablename__ = "SpecificationDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(PublicationDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "SpecificationDAO",
+        "inherit_condition": database_id == PublicationDAO.database_id,
+    }
+
+
+class SportsDAO(InterestDAO, DataAccessObject[owl2bench.model.interests.Sports]):
+
+    __tablename__ = "SportsDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(InterestDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "SportsDAO",
+        "inherit_condition": database_id == InterestDAO.database_id,
+    }
+
+
+class BadmintonDAO(SportsDAO, DataAccessObject[owl2bench.model.interests.Badminton]):
+
+    __tablename__ = "BadmintonDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(SportsDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "BadmintonDAO",
+        "inherit_condition": database_id == SportsDAO.database_id,
+    }
+
+
+class BasketBallDAO(SportsDAO, DataAccessObject[owl2bench.model.interests.BasketBall]):
+
+    __tablename__ = "BasketBallDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(SportsDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "BasketBallDAO",
+        "inherit_condition": database_id == SportsDAO.database_id,
+    }
+
+
+class CricketDAO(SportsDAO, DataAccessObject[owl2bench.model.interests.Cricket]):
+
+    __tablename__ = "CricketDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(SportsDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "CricketDAO",
+        "inherit_condition": database_id == SportsDAO.database_id,
+    }
+
+
+class FootBallDAO(SportsDAO, DataAccessObject[owl2bench.model.interests.FootBall]):
+
+    __tablename__ = "FootBallDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(SportsDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "FootBallDAO",
+        "inherit_condition": database_id == SportsDAO.database_id,
+    }
+
+
+class SupplyChainManagementDAO(
+    ManagementDAO,
+    DataAccessObject[owl2bench.model.college_disciplines.SupplyChainManagement],
+):
+
+    __tablename__ = "SupplyChainManagementDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(ManagementDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "SupplyChainManagementDAO",
+        "inherit_condition": database_id == ManagementDAO.database_id,
+    }
+
+
+class SwimmingDAO(SportsDAO, DataAccessObject[owl2bench.model.interests.Swimming]):
+
+    __tablename__ = "SwimmingDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(SportsDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "SwimmingDAO",
+        "inherit_condition": database_id == SportsDAO.database_id,
+    }
+
+
+class TechnicalReportDAO(
+    ArticleDAO, DataAccessObject[owl2bench.model.publications.TechnicalReport]
+):
+
+    __tablename__ = "TechnicalReportDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(ArticleDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "TechnicalReportDAO",
+        "inherit_condition": database_id == ArticleDAO.database_id,
+    }
+
+
+class TennisDAO(SportsDAO, DataAccessObject[owl2bench.model.interests.Tennis]):
+
+    __tablename__ = "TennisDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(SportsDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "TennisDAO",
+        "inherit_condition": database_id == SportsDAO.database_id,
+    }
+
+
+class TheatreAndDanceDAO(
+    FineArtsDAO, DataAccessObject[owl2bench.model.college_disciplines.TheatreAndDance]
+):
+
+    __tablename__ = "TheatreAndDanceDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(FineArtsDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "TheatreAndDanceDAO",
+        "inherit_condition": database_id == FineArtsDAO.database_id,
+    }
+
+
+class TravellingDAO(
+    InterestDAO, DataAccessObject[owl2bench.model.interests.Travelling]
+):
+
+    __tablename__ = "TravellingDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(InterestDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "TravellingDAO",
+        "inherit_condition": database_id == InterestDAO.database_id,
+    }
+
+
+class UndergraduateProgramDAO(
+    ProgramDAO, DataAccessObject[owl2bench.model.programs.UndergraduateProgram]
+):
+
+    __tablename__ = "UndergraduateProgramDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(ProgramDAO.database_id), primary_key=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "UndergraduateProgramDAO",
+        "inherit_condition": database_id == ProgramDAO.database_id,
+    }
+
+
+class UniversityDAO(
+    OrganizationDAO, DataAccessObject[owl2bench.model.organizations.University]
+):
 
     __tablename__ = "UniversityDAO"
 
     database_id: Mapped[builtins.int] = mapped_column(
-        Integer, primary_key=True, use_existing_column=True
+        ForeignKey(OrganizationDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
     )
 
-    identifier: Mapped[builtins.str] = mapped_column(
-        String(255), use_existing_column=True
-    )
-    name: Mapped[builtins.str] = mapped_column(String(255), use_existing_column=True)
-
-    colleges: Mapped[typing.List[CollegeDAO]] = relationship(
-        "CollegeDAO",
-        secondary="universitydao_colleges_association",
-        primaryjoin="UniversityDAO.database_id == universitydao_colleges_association.c.source_universitydao_id",
-        secondaryjoin="CollegeDAO.database_id == universitydao_colleges_association.c.target_collegedao_id",
-        cascade="save-update, merge",
-    )
-    publications: Mapped[typing.List[PublicationDAO]] = relationship(
-        "PublicationDAO",
-        secondary="universitydao_publications_association",
-        primaryjoin="UniversityDAO.database_id == universitydao_publications_association.c.source_universitydao_id",
-        secondaryjoin="PublicationDAO.database_id == universitydao_publications_association.c.target_publicationdao_id",
+    alumni: Mapped[typing.List[PersonDAO]] = relationship(
+        "PersonDAO",
+        secondary="universitydao_alumni_association",
+        primaryjoin="UniversityDAO.database_id == universitydao_alumni_association.c.source_universitydao_id",
+        secondaryjoin="PersonDAO.database_id == universitydao_alumni_association.c.target_persondao_id",
         cascade="save-update, merge",
     )
 
-    @classmethod
-    def to_dao(
-        cls, obj: owl2bench.models.World, state: ToDAOState = None
-    ) -> "WorldDAO":
-        """
-        Converts a World domain object to a WorldDAO, handling deep recursion.
-        """
-        import sys
-
-        old_limit = sys.getrecursionlimit()
-        sys.setrecursionlimit(10000)
-        try:
-            return super().to_dao(obj, state)
-        finally:
-            sys.setrecursionlimit(old_limit)
+    __mapper_args__ = {
+        "polymorphic_identity": "UniversityDAO",
+        "inherit_condition": database_id == OrganizationDAO.database_id,
+    }
 
 
-class WorldDAO(Base, DataAccessObject[owl2bench.models.World]):
+class UnofficialPublicationDAO(
+    PublicationDAO, DataAccessObject[owl2bench.model.publications.UnofficialPublication]
+):
 
-    __tablename__ = "WorldDAO"
+    __tablename__ = "UnofficialPublicationDAO"
 
     database_id: Mapped[builtins.int] = mapped_column(
-        Integer, primary_key=True, use_existing_column=True
+        ForeignKey(PublicationDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
     )
 
-    universities: Mapped[typing.List[UniversityDAO]] = relationship(
-        "UniversityDAO",
-        secondary="worlddao_universities_association",
-        primaryjoin="WorldDAO.database_id == worlddao_universities_association.c.source_worlddao_id",
-        secondaryjoin="UniversityDAO.database_id == worlddao_universities_association.c.target_universitydao_id",
-        cascade="save-update, merge",
+    __mapper_args__ = {
+        "polymorphic_identity": "UnofficialPublicationDAO",
+        "inherit_condition": database_id == PublicationDAO.database_id,
+    }
+
+
+class WorkDAO(IdentifiedEntityDAO, DataAccessObject[owl2bench.model.base.Work]):
+
+    __tablename__ = "WorkDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(IdentifiedEntityDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
     )
-    colleges: Mapped[typing.List[CollegeDAO]] = relationship(
-        "CollegeDAO",
-        secondary="worlddao_colleges_association",
-        primaryjoin="WorldDAO.database_id == worlddao_colleges_association.c.source_worlddao_id",
-        secondaryjoin="CollegeDAO.database_id == worlddao_colleges_association.c.target_collegedao_id",
-        cascade="save-update, merge",
+
+    organization_id: Mapped[int] = mapped_column(
+        ForeignKey("OrganizationDAO.database_id", use_alter=True),
+        nullable=True,
+        use_existing_column=True,
     )
-    departments: Mapped[typing.List[DepartmentDAO]] = relationship(
-        "DepartmentDAO",
-        secondary="worlddao_departments_association",
-        primaryjoin="WorldDAO.database_id == worlddao_departments_association.c.source_worlddao_id",
-        secondaryjoin="DepartmentDAO.database_id == worlddao_departments_association.c.target_departmentdao_id",
-        cascade="save-update, merge",
+
+    organization: Mapped[OrganizationDAO] = relationship(
+        "OrganizationDAO",
+        uselist=False,
+        foreign_keys=[organization_id],
+        post_update=True,
     )
-    programs: Mapped[typing.List[ProgramDAO]] = relationship(
-        "ProgramDAO",
-        secondary="worlddao_programs_association",
-        primaryjoin="WorldDAO.database_id == worlddao_programs_association.c.source_worlddao_id",
-        secondaryjoin="ProgramDAO.database_id == worlddao_programs_association.c.target_programdao_id",
-        cascade="save-update, merge",
+
+    __mapper_args__ = {
+        "polymorphic_identity": "WorkDAO",
+        "inherit_condition": database_id == IdentifiedEntityDAO.database_id,
+    }
+
+
+class CourseDAO(WorkDAO, DataAccessObject[owl2bench.model.base.Course]):
+
+    __tablename__ = "CourseDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(WorkDAO.database_id), primary_key=True, use_existing_column=True
     )
-    courses: Mapped[typing.List[CourseDAO]] = relationship(
-        "CourseDAO",
-        secondary="worlddao_courses_association",
-        primaryjoin="WorldDAO.database_id == worlddao_courses_association.c.source_worlddao_id",
-        secondaryjoin="CourseDAO.database_id == worlddao_courses_association.c.target_coursedao_id",
-        cascade="save-update, merge",
+
+    topic_id: Mapped[int] = mapped_column(
+        ForeignKey("CollegeDisciplineDAO.database_id", use_alter=True),
+        nullable=True,
+        use_existing_column=True,
     )
-    persons: Mapped[typing.List[PersonDAO]] = relationship(
-        "PersonDAO",
-        secondary="worlddao_persons_association",
-        primaryjoin="WorldDAO.database_id == worlddao_persons_association.c.source_worlddao_id",
-        secondaryjoin="PersonDAO.database_id == worlddao_persons_association.c.target_persondao_id",
-        cascade="save-update, merge",
+
+    topic: Mapped[CollegeDisciplineDAO] = relationship(
+        "CollegeDisciplineDAO", uselist=False, foreign_keys=[topic_id], post_update=True
     )
-    students: Mapped[typing.List[StudentDAO]] = relationship(
-        "StudentDAO",
-        secondary="worlddao_students_association",
-        primaryjoin="WorldDAO.database_id == worlddao_students_association.c.source_worlddao_id",
-        secondaryjoin="StudentDAO.database_id == worlddao_students_association.c.target_studentdao_id",
-        cascade="save-update, merge",
+
+    __mapper_args__ = {
+        "polymorphic_identity": "CourseDAO",
+        "inherit_condition": database_id == WorkDAO.database_id,
+    }
+
+
+class ResearchProjectDAO(
+    WorkDAO, DataAccessObject[owl2bench.model.base.ResearchProject]
+):
+
+    __tablename__ = "ResearchProjectDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(WorkDAO.database_id), primary_key=True, use_existing_column=True
     )
-    employees: Mapped[typing.List[EmployeeDAO]] = relationship(
-        "EmployeeDAO",
-        secondary="worlddao_employees_association",
-        primaryjoin="WorldDAO.database_id == worlddao_employees_association.c.source_worlddao_id",
-        secondaryjoin="EmployeeDAO.database_id == worlddao_employees_association.c.target_employeedao_id",
-        cascade="save-update, merge",
-    )
-    research_groups: Mapped[typing.List[ResearchGroupDAO]] = relationship(
-        "ResearchGroupDAO",
-        secondary="worlddao_research_groups_association",
-        primaryjoin="WorldDAO.database_id == worlddao_research_groups_association.c.source_worlddao_id",
-        secondaryjoin="ResearchGroupDAO.database_id == worlddao_research_groups_association.c.target_researchgroupdao_id",
-        cascade="save-update, merge",
-    )
-    publications: Mapped[typing.List[PublicationDAO]] = relationship(
-        "PublicationDAO",
-        secondary="worlddao_publications_association",
-        primaryjoin="WorldDAO.database_id == worlddao_publications_association.c.source_worlddao_id",
-        secondaryjoin="PublicationDAO.database_id == worlddao_publications_association.c.target_publicationdao_id",
-        cascade="save-update, merge",
-    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "ResearchProjectDAO",
+        "inherit_condition": database_id == WorkDAO.database_id,
+    }
