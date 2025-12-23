@@ -121,18 +121,18 @@
 <owl:Class rdf:ID="Director">
 <rdfs:label>director</rdfs:label>
 <owl:intersectionOf rdf:parseType="Collection">
-<owl:Restriction>
-    <owl:onProperty rdf:resource="#roleFor"/>
-    <owl:someValuesFrom>
-    <owl:Class rdf:about="#Person"/>
-    </owl:someValuesFrom>
-</owl:Restriction>
-<owl:Restriction>
-<owl:onProperty rdf:resource="#headOf"/>
-<owl:someValuesFrom>
-<owl:Class rdf:about="#Program"/>
-</owl:someValuesFrom>
-</owl:Restriction>
+    <owl:Restriction>
+        <owl:onProperty rdf:resource="#roleFor"/>
+        <owl:someValuesFrom>
+        <owl:Class rdf:about="#Person"/>
+        </owl:someValuesFrom>
+    </owl:Restriction>
+        <owl:Restriction>
+        <owl:onProperty rdf:resource="#headOf"/>
+        <owl:someValuesFrom>
+        <owl:Class rdf:about="#Program"/>
+        </owl:someValuesFrom>
+    </owl:Restriction>
 </owl:intersectionOf>
 </owl:Class>
 <owl:Class rdf:ID="Employee">
@@ -151,6 +151,7 @@
             </owl:someValuesFrom>
         </owl:Restriction>
     </owl:intersectionOf>
+    <rdfs:subClassOf rdf:resource="#Role"/>
 </owl:Class>
 <owl:Class rdf:ID="Faculty">
 <rdfs:label>faculty member</rdfs:label>
