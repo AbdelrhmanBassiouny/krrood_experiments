@@ -36,14 +36,18 @@ class OwlInstancesRegistry:
         if (instances is None) or (
             not any(isinstance(inst, factory) for inst in instances)
         ):
-            kwargs["uri"] = str(uri)
+            # kwargs["uri"] = str(uri)
             inst = factory(*args, **kwargs)
 
             # Fill a best-effort human-readable name if available
             # local = local_name(uri)
             local = str(uri)
-            if hasattr(inst, "uri") and getattr(inst, "uri") is None:
-                setattr(inst, "uri", local)
+            if hasattr(inst, "uri"):
+                if getattr(inst, "uri") is None:
+                    setattr(inst, "uri", local)
+                for k, v in kwargs.items():
+                    if hasattr(v, "uri") and getattr(v, "uri") is None:
+                        setattr(v, "uri", local)
             self._by_uri[uri].append(inst)
             self._by_class.setdefault(factory, []).append(inst)
         else:
@@ -387,13 +391,18 @@ def load_instances(
                 assoc1, assoc2 = class_diagram.get_common_role_taker_associations(
                     subj_cls, new_role_class
                 )
+                role_taker_inst = None
                 if assoc1 and assoc2:
-                    kwargs[assoc2.field.public_name] = getattr(
+                    role_taker_inst = getattr(
                         subj, assoc1.field.public_name
                     )
-
+                    kwargs[assoc2.field.public_name] = role_taker_inst
+                if role_taker_inst is None:
+                    uri = subj.uri
+                else:
+                    uri = role_taker_inst.uri
                 new_role = registry.get_or_create_for(
-                    subj.uri, new_role_class, **kwargs
+                    uri, new_role_class, **kwargs
                 )
             if hasattr(new_role, snake):
                 lst = getattr(new_role, snake)

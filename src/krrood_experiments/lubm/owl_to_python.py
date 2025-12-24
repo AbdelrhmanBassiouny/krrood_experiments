@@ -325,16 +325,16 @@ class OwlToPythonConverter:
         if not ontology_base_class_name.endswith("Ontology"):
             ontology_base_class_name = ontology_base_class_name + "Ontology"
 
-        role_cls_name = f"{ontology_base_class_name}Role"
-        classes_copy[role_cls_name] = {
-            "name": role_cls_name,
-            "superclasses": [
-                f"Role[T]",
-                ontology_base_class_name,
-                "ABC"
-            ],
-            "label": "Role class which represents a role that a persistent identifier can take on in a certain context",
-        }
+        # role_cls_name = f"{ontology_base_class_name}Role"
+        # classes_copy[role_cls_name] = {
+        #     "name": role_cls_name,
+        #     "superclasses": [
+        #         f"Role[T]",
+        #         ontology_base_class_name,
+        #     ],
+        #     "label": "Role class which represents a role that a persistent identifier can take on in a certain context",
+        # }
+        role_cls_name = f"Role"
 
         # Create synthetic ontology base class entry if not exists
         if ontology_base_class_name not in classes_copy:
@@ -361,6 +361,8 @@ class OwlToPythonConverter:
             bases = info.get("base_classes", [])
             if len(bases) == 0:
                 info["base_classes"] = [ontology_base_class_name]
+            elif len(bases) == 1 and bases[0] == role_cls_name:
+                info["base_classes"].append("Symbol")
 
         # Compute full ancestor sets for each class (transitive closure)
         name_to_bases = {
