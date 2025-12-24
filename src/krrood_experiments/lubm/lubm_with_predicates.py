@@ -5,8 +5,7 @@ Generated using custom converter
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from functools import cached_property
+from dataclasses import dataclass, field, Field
 from abc import ABC
 from typing_extensions import Optional, Set, TypeVar, Type
 
@@ -294,9 +293,9 @@ class Employee(UnivBenchOntologyRole[Person]):
     # Works For
     works_for: Set[Organization] = field(default_factory=set)
 
-    @cached_property
-    def role_taker(self) -> Person:
-        return self.person
+    @classmethod
+    def role_taker_field(cls) -> Field:
+        return cls.person
 
 
 
@@ -361,9 +360,9 @@ class Student(UnivBenchOntologyRole[Person]):
     # is taking
     takes_course: Set[Course] = field(default_factory=set)
 
-    @cached_property
-    def role_taker(self) -> Person:
-        return self.person
+    @classmethod
+    def role_taker_field(cls) -> Field:
+        return cls.person
 
 
 
@@ -375,9 +374,9 @@ class TeachingAssistant(UnivBenchOntologyRole[Person]):
     # is a teaching assistant for
     teaching_assistant_of: Set[Course] = field(default_factory=set)
 
-    @cached_property
-    def role_taker(self) -> Person:
-        return self.person
+    @classmethod
+    def role_taker_field(cls) -> Field:
+        return cls.person
 
 
 
@@ -483,9 +482,9 @@ class Lecturer(UnivBenchOntologyRole[Faculty]):
     # Role taker
     faculty: Faculty
 
-    @cached_property
-    def role_taker(self) -> Faculty:
-        return self.faculty
+    @classmethod
+    def role_taker_field(cls) -> Field:
+        return cls.faculty
 
 
 
@@ -495,9 +494,9 @@ class PostDoc(UnivBenchOntologyRole[Faculty]):
     # Role taker
     faculty: Faculty
 
-    @cached_property
-    def role_taker(self) -> Faculty:
-        return self.faculty
+    @classmethod
+    def role_taker_field(cls) -> Field:
+        return cls.faculty
 
 
 
@@ -509,9 +508,9 @@ class Professor(UnivBenchOntologyRole[Faculty]):
     # is tenured:
     tenured: Optional[bool] = field(kw_only=True, default=None)
 
-    @cached_property
-    def role_taker(self) -> Faculty:
-        return self.faculty
+    @classmethod
+    def role_taker_field(cls) -> Field:
+        return cls.faculty
 
 
 
@@ -544,9 +543,9 @@ class Chair(UnivBenchOntologyRole[Professor]):
     # is the head of
     head_of: Set[Department] = field(default_factory=set)
 
-    @cached_property
-    def role_taker(self) -> Professor:
-        return self.professor
+    @classmethod
+    def role_taker_field(cls) -> Field:
+        return cls.professor
 
 
 
@@ -558,9 +557,9 @@ class Dean(UnivBenchOntologyRole[Professor]):
     # is the head of
     head_of: Set[College] = field(default_factory=set)
 
-    @cached_property
-    def role_taker(self) -> Professor:
-        return self.professor
+    @classmethod
+    def role_taker_field(cls) -> Field:
+        return cls.professor
 
 
 
@@ -577,9 +576,9 @@ class VisitingProfessor(UnivBenchOntologyRole[Professor]):
     # Role taker
     professor: Professor
 
-    @cached_property
-    def role_taker(self) -> Professor:
-        return self.professor
+    @classmethod
+    def role_taker_field(cls) -> Field:
+        return cls.professor
 
 
 
