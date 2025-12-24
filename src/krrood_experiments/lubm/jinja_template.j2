@@ -5,8 +5,7 @@ Generated using custom converter
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from functools import cached_property
+from dataclasses import dataclass, field, Field
 from abc import ABC
 from typing_extensions import Optional, Set, TypeVar, Type
 
@@ -72,9 +71,9 @@ class {{ cls.name }}({% if cls.base_classes %}{{ ', '.join(cls.base_classes) }}{
     {% if cls.role_taker|length > 0 %}
     {% if cls.add_role_taker %}
 
-    @cached_property
-    def role_taker(self) -> {{ cls.role_taker.class_name }}:
-        return self.{{ cls.role_taker.field_name }}
+    @classmethod
+    def role_taker_field(cls) -> Field:
+        return cls.{{ cls.role_taker.field_name }}
     {% endif %}
     {% endif %}
     {% if cls.name == ontology_base_class_name %}
