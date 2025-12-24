@@ -5,9 +5,10 @@ Generated using custom converter
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, Field
+from dataclasses import dataclass, field, Field, fields
 from abc import ABC
 from typing_extensions import Optional, Set, TypeVar, Type
+from functools import lru_cache
 
 from krrood.entity_query_language.predicate import Symbol
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
@@ -174,7 +175,7 @@ class UnivBenchOntology(Symbol, ABC):
 
 T = TypeVar('T', bound=UnivBenchOntology)
 
-    
+
 @dataclass(eq=False)
 class Organization(UnivBenchOntology):
     """organization"""
@@ -284,8 +285,9 @@ class Employee(UnivBenchOntologyRole[Person]):
     works_for: Set[Organization] = field(default_factory=set)
 
     @classmethod
+    @lru_cache(maxsize=None)
     def role_taker_field(cls) -> Field:
-        return cls.person
+        return next(iter(f for f in fields(cls) if f.name == "person"))
 
 
 @dataclass(eq=False)
@@ -343,8 +345,9 @@ class Student(UnivBenchOntologyRole[Person]):
     takes_course: Set[Course] = field(default_factory=set)
 
     @classmethod
+    @lru_cache(maxsize=None)
     def role_taker_field(cls) -> Field:
-        return cls.person
+        return next(iter(f for f in fields(cls) if f.name == "person"))
 
 
 @dataclass(eq=False)
@@ -356,8 +359,9 @@ class TeachingAssistant(UnivBenchOntologyRole[Person]):
     teaching_assistant_of: Set[Course] = field(default_factory=set)
 
     @classmethod
+    @lru_cache(maxsize=None)
     def role_taker_field(cls) -> Field:
-        return cls.person
+        return next(iter(f for f in fields(cls) if f.name == "person"))
 
 
 @dataclass(eq=False)
@@ -450,8 +454,9 @@ class Lecturer(UnivBenchOntologyRole[Faculty]):
     faculty: Faculty
 
     @classmethod
+    @lru_cache(maxsize=None)
     def role_taker_field(cls) -> Field:
-        return cls.faculty
+        return next(iter(f for f in fields(cls) if f.name == "faculty"))
 
 
 @dataclass(eq=False)
@@ -461,8 +466,9 @@ class PostDoc(UnivBenchOntologyRole[Faculty]):
     faculty: Faculty
 
     @classmethod
+    @lru_cache(maxsize=None)
     def role_taker_field(cls) -> Field:
-        return cls.faculty
+        return next(iter(f for f in fields(cls) if f.name == "faculty"))
 
 
 @dataclass(eq=False)
@@ -474,8 +480,9 @@ class Professor(UnivBenchOntologyRole[Faculty]):
     tenured: Optional[bool] = field(kw_only=True, default=None)
 
     @classmethod
+    @lru_cache(maxsize=None)
     def role_taker_field(cls) -> Field:
-        return cls.faculty
+        return next(iter(f for f in fields(cls) if f.name == "faculty"))
 
 
 @dataclass(eq=False)
@@ -505,8 +512,9 @@ class Chair(UnivBenchOntologyRole[Professor]):
     head_of: Set[Department] = field(default_factory=set)
 
     @classmethod
+    @lru_cache(maxsize=None)
     def role_taker_field(cls) -> Field:
-        return cls.professor
+        return next(iter(f for f in fields(cls) if f.name == "professor"))
 
 
 @dataclass(eq=False)
@@ -518,8 +526,9 @@ class Dean(UnivBenchOntologyRole[Professor]):
     head_of: Set[College] = field(default_factory=set)
 
     @classmethod
+    @lru_cache(maxsize=None)
     def role_taker_field(cls) -> Field:
-        return cls.professor
+        return next(iter(f for f in fields(cls) if f.name == "professor"))
 
 
 @dataclass(eq=False)
@@ -535,8 +544,9 @@ class VisitingProfessor(UnivBenchOntologyRole[Professor]):
     professor: Professor
 
     @classmethod
+    @lru_cache(maxsize=None)
     def role_taker_field(cls) -> Field:
-        return cls.professor
+        return next(iter(f for f in fields(cls) if f.name == "professor"))
 
 
 
