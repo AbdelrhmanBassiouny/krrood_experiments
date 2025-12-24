@@ -442,10 +442,9 @@ class University(Organization):
 
 
 @dataclass
-class UnofficialPublication(UnivBenchOntologyRole[Publication]):
+class UnofficialPublication(Publication):
     """unnoficial publication"""
-    # Role taker
-    publication: Publication
+    ...
 
     def __hash__(self):
         return hash(id(self))
@@ -453,10 +452,9 @@ class UnofficialPublication(UnivBenchOntologyRole[Publication]):
 
 
 @dataclass
-class AdministrativeStaff(UnivBenchOntologyRole[Employee]):
+class AdministrativeStaff(Employee):
     """administrative staff worker"""
-    # Role taker
-    employee: Employee
+    ...
 
     def __hash__(self):
         return hash(id(self))
@@ -485,10 +483,8 @@ class Director(Employee):
 
 
 @dataclass
-class Faculty(UnivBenchOntologyRole[Employee]):
+class Faculty(Employee):
     """faculty member"""
-    # Role taker
-    employee: Employee
     # teaches
     teacher_of: Set[Course] = field(default_factory=set)
 
@@ -550,10 +546,9 @@ class TechnicalReport(Article):
 
 
 @dataclass
-class UndergraduateStudent(UnivBenchOntologyRole[Student]):
+class UndergraduateStudent(Student):
     """undergraduate student"""
-    # Role taker
-    student: Student
+    ...
 
     def __hash__(self):
         return hash(id(self))
@@ -561,10 +556,9 @@ class UndergraduateStudent(UnivBenchOntologyRole[Student]):
 
 
 @dataclass
-class ClericalStaff(UnivBenchOntologyRole[AdministrativeStaff]):
+class ClericalStaff(AdministrativeStaff):
     """clerical staff worker"""
-    # Role taker
-    administrative_staff: AdministrativeStaff
+    ...
 
     def __hash__(self):
         return hash(id(self))
@@ -607,10 +601,9 @@ class Professor(UnivBenchOntologyRole[Faculty]):
 
 
 @dataclass
-class SystemsStaff(UnivBenchOntologyRole[AdministrativeStaff]):
+class SystemsStaff(AdministrativeStaff):
     """systems staff worker"""
-    # Role taker
-    administrative_staff: AdministrativeStaff
+    ...
 
     def __hash__(self):
         return hash(id(self))
@@ -618,10 +611,9 @@ class SystemsStaff(UnivBenchOntologyRole[AdministrativeStaff]):
 
 
 @dataclass
-class AssistantProfessor(UnivBenchOntologyRole[Professor]):
+class AssistantProfessor(Professor):
     """assistant professor"""
-    # Role taker
-    professor: Professor
+    ...
 
     def __hash__(self):
         return hash(id(self))
@@ -629,10 +621,9 @@ class AssistantProfessor(UnivBenchOntologyRole[Professor]):
 
 
 @dataclass
-class AssociateProfessor(UnivBenchOntologyRole[Professor]):
+class AssociateProfessor(Professor):
     """associate professor"""
-    # Role taker
-    professor: Professor
+    ...
 
     def __hash__(self):
         return hash(id(self))
@@ -666,10 +657,9 @@ class Dean(UnivBenchOntologyRole[Professor]):
 
 
 @dataclass
-class FullProfessor(UnivBenchOntologyRole[Professor]):
+class FullProfessor(Professor):
     """full professor"""
-    # Role taker
-    professor: Professor
+    ...
 
     def __hash__(self):
         return hash(id(self))
