@@ -174,6 +174,7 @@ class UnivBenchOntology(Symbol, ABC):
 
 T = TypeVar('T', bound=UnivBenchOntology)
 
+    
 @dataclass(eq=False)
 class Organization(UnivBenchOntology):
     """organization"""
@@ -187,7 +188,6 @@ class Organization(UnivBenchOntology):
     org_publication: Set[Publication] = field(default_factory=set)
     # is part of
     sub_organization_of: Set[Organization] = field(default_factory=set)
-
 
 
 @dataclass(eq=False)
@@ -215,7 +215,6 @@ class Person(UnivBenchOntology):
     title: Optional[str] = field(kw_only=True, default=None)
 
 
-
 @dataclass(eq=False)
 class Publication(UnivBenchOntology):
     """publication"""
@@ -227,13 +226,11 @@ class Publication(UnivBenchOntology):
     publication_research: Set[Research] = field(default_factory=set)
 
 
-
 @dataclass(eq=False)
 class Schedule(UnivBenchOntology):
     """schedule"""
     # lists as a course
     listed_course: Set[Course] = field(default_factory=set)
-
 
 
 @dataclass(eq=False)
@@ -242,12 +239,10 @@ class UnivBenchOntologyRole(Role[T], UnivBenchOntology, ABC):
     ...
 
 
-
 @dataclass(eq=False)
 class Work(UnivBenchOntology):
     """Work"""
     ...
-
 
 
 @dataclass(eq=False)
@@ -256,12 +251,10 @@ class Article(Publication):
     ...
 
 
-
 @dataclass(eq=False)
 class Book(Publication):
     """book"""
     ...
-
 
 
 @dataclass(eq=False)
@@ -270,19 +263,16 @@ class College(Organization):
     ...
 
 
-
 @dataclass(eq=False)
 class Course(Work):
     """teaching course"""
     ...
 
 
-
 @dataclass(eq=False)
 class Department(Organization):
     """university department"""
     ...
-
 
 
 @dataclass(eq=False)
@@ -298,12 +288,10 @@ class Employee(UnivBenchOntologyRole[Person]):
         return cls.person
 
 
-
 @dataclass(eq=False)
 class Institute(Organization):
     """institute"""
     ...
-
 
 
 @dataclass(eq=False)
@@ -312,12 +300,10 @@ class Manual(Publication):
     ...
 
 
-
 @dataclass(eq=False)
 class Program(Organization):
     """program"""
     ...
-
 
 
 @dataclass(eq=False)
@@ -326,13 +312,11 @@ class Research(Work):
     ...
 
 
-
 @dataclass(eq=False)
 class ResearchGroup(Organization):
     """research group"""
     # has as a research project
     research_project: Set[Research] = field(default_factory=set)
-
 
 
 @dataclass(eq=False)
@@ -344,12 +328,10 @@ class Software(Publication):
     software_version: Optional[str] = field(kw_only=True, default=None)
 
 
-
 @dataclass(eq=False)
 class Specification(Publication):
     """published specification"""
     ...
-
 
 
 @dataclass(eq=False)
@@ -365,7 +347,6 @@ class Student(UnivBenchOntologyRole[Person]):
         return cls.person
 
 
-
 @dataclass(eq=False)
 class TeachingAssistant(UnivBenchOntologyRole[Person]):
     """university teaching assistant"""
@@ -379,13 +360,11 @@ class TeachingAssistant(UnivBenchOntologyRole[Person]):
         return cls.person
 
 
-
 @dataclass(eq=False)
 class University(Organization):
     """university"""
     # has as an alumnus
     has_alumnus: Set[Person] = field(default_factory=set)
-
 
 
 @dataclass(eq=False)
@@ -394,19 +373,16 @@ class UnofficialPublication(Publication):
     ...
 
 
-
 @dataclass(eq=False)
 class AdministrativeStaff(Employee):
     """administrative staff worker"""
     ...
 
 
-
 @dataclass(eq=False)
 class ConferencePaper(Article):
     """conference paper"""
     ...
-
 
 
 @dataclass(eq=False)
@@ -416,7 +392,6 @@ class Director(Employee):
     head_of: Set[Program] = field(default_factory=set)
 
 
-
 @dataclass(eq=False)
 class Faculty(Employee):
     """faculty member"""
@@ -424,12 +399,10 @@ class Faculty(Employee):
     teacher_of: Set[Course] = field(default_factory=set)
 
 
-
 @dataclass(eq=False)
 class GraduateCourse(Course):
     """Graduate Level Courses"""
     ...
-
 
 
 @dataclass(eq=False)
@@ -439,12 +412,10 @@ class GraduateStudent(Student):
     takes_course: Set[GraduateCourse] = field(default_factory=set)
 
 
-
 @dataclass(eq=False)
 class JournalArticle(Article):
     """journal article"""
     ...
-
 
 
 @dataclass(eq=False)
@@ -454,12 +425,10 @@ class ResearchAssistant(Employee):
     works_for: Set[ResearchGroup] = field(default_factory=set)
 
 
-
 @dataclass(eq=False)
 class TechnicalReport(Article):
     """technical report"""
     ...
-
 
 
 @dataclass(eq=False)
@@ -468,12 +437,10 @@ class UndergraduateStudent(Student):
     ...
 
 
-
 @dataclass(eq=False)
 class ClericalStaff(AdministrativeStaff):
     """clerical staff worker"""
     ...
-
 
 
 @dataclass(eq=False)
@@ -487,7 +454,6 @@ class Lecturer(UnivBenchOntologyRole[Faculty]):
         return cls.faculty
 
 
-
 @dataclass(eq=False)
 class PostDoc(UnivBenchOntologyRole[Faculty]):
     """post doctorate"""
@@ -497,7 +463,6 @@ class PostDoc(UnivBenchOntologyRole[Faculty]):
     @classmethod
     def role_taker_field(cls) -> Field:
         return cls.faculty
-
 
 
 @dataclass(eq=False)
@@ -513,12 +478,10 @@ class Professor(UnivBenchOntologyRole[Faculty]):
         return cls.faculty
 
 
-
 @dataclass(eq=False)
 class SystemsStaff(AdministrativeStaff):
     """systems staff worker"""
     ...
-
 
 
 @dataclass(eq=False)
@@ -527,12 +490,10 @@ class AssistantProfessor(Professor):
     ...
 
 
-
 @dataclass(eq=False)
 class AssociateProfessor(Professor):
     """associate professor"""
     ...
-
 
 
 @dataclass(eq=False)
@@ -548,7 +509,6 @@ class Chair(UnivBenchOntologyRole[Professor]):
         return cls.professor
 
 
-
 @dataclass(eq=False)
 class Dean(UnivBenchOntologyRole[Professor]):
     """dean"""
@@ -562,12 +522,10 @@ class Dean(UnivBenchOntologyRole[Professor]):
         return cls.professor
 
 
-
 @dataclass(eq=False)
 class FullProfessor(Professor):
     """full professor"""
     ...
-
 
 
 @dataclass(eq=False)
@@ -579,7 +537,6 @@ class VisitingProfessor(UnivBenchOntologyRole[Professor]):
     @classmethod
     def role_taker_field(cls) -> Field:
         return cls.professor
-
 
 
 
