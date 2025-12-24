@@ -85,8 +85,9 @@ class {{ cls.name }}({% if cls.base_classes %}{{ ', '.join(cls.base_classes) }}{
 
 {% if cls_name == ontology_base_class_name %}
 T = TypeVar('T', bound={{ ontology_base_class_name }})
-{% endif %}
 
+
+{% endif %}
 {% endfor %}
 
 
