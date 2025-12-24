@@ -235,12 +235,6 @@ class Schedule(UnivBenchOntology):
 
 
 @dataclass(eq=False)
-class UnivBenchOntologyRole(Role[T], UnivBenchOntology, ABC):
-    """Role class which represents a role that a persistent identifier can take on in a certain context"""
-    ...
-
-
-@dataclass(eq=False)
 class Work(UnivBenchOntology):
     """Work"""
     ...
@@ -277,7 +271,7 @@ class Department(Organization):
 
 
 @dataclass(eq=False)
-class Employee(UnivBenchOntologyRole[Person]):
+class Employee(Symbol, Role[Person]):
     """Employee"""
     # Role taker
     person: Person
@@ -337,7 +331,7 @@ class Specification(Publication):
 
 
 @dataclass(eq=False)
-class Student(UnivBenchOntologyRole[Person]):
+class Student(Symbol, Role[Person]):
     """student"""
     # Role taker
     person: Person
@@ -351,7 +345,7 @@ class Student(UnivBenchOntologyRole[Person]):
 
 
 @dataclass(eq=False)
-class TeachingAssistant(UnivBenchOntologyRole[Person]):
+class TeachingAssistant(Symbol, Role[Person]):
     """university teaching assistant"""
     # Role taker
     person: Person
@@ -448,7 +442,7 @@ class ClericalStaff(AdministrativeStaff):
 
 
 @dataclass(eq=False)
-class Lecturer(UnivBenchOntologyRole[Faculty]):
+class Lecturer(Symbol, Role[Faculty]):
     """lecturer"""
     # Role taker
     faculty: Faculty
@@ -460,7 +454,7 @@ class Lecturer(UnivBenchOntologyRole[Faculty]):
 
 
 @dataclass(eq=False)
-class PostDoc(UnivBenchOntologyRole[Faculty]):
+class PostDoc(Symbol, Role[Faculty]):
     """post doctorate"""
     # Role taker
     faculty: Faculty
@@ -472,7 +466,7 @@ class PostDoc(UnivBenchOntologyRole[Faculty]):
 
 
 @dataclass(eq=False)
-class Professor(UnivBenchOntologyRole[Faculty]):
+class Professor(Symbol, Role[Faculty]):
     """professor"""
     # Role taker
     faculty: Faculty
@@ -504,7 +498,7 @@ class AssociateProfessor(Professor):
 
 
 @dataclass(eq=False)
-class Chair(UnivBenchOntologyRole[Professor]):
+class Chair(Symbol, Role[Professor]):
     """chair"""
     # Role taker
     professor: Professor
@@ -518,7 +512,7 @@ class Chair(UnivBenchOntologyRole[Professor]):
 
 
 @dataclass(eq=False)
-class Dean(UnivBenchOntologyRole[Professor]):
+class Dean(Symbol, Role[Professor]):
     """dean"""
     # Role taker
     professor: Professor
@@ -538,7 +532,7 @@ class FullProfessor(Professor):
 
 
 @dataclass(eq=False)
-class VisitingProfessor(UnivBenchOntologyRole[Professor]):
+class VisitingProfessor(Symbol, Role[Professor]):
     """visiting professor"""
     # Role taker
     professor: Professor
