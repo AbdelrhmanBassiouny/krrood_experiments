@@ -6,7 +6,9 @@ Generated using custom converter
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing_extensions import List, Optional, Union, Any, Set, Generic, TypeVar, Type
+from functools import cached_property
+from abc import ABC
+from typing_extensions import Optional, Set, TypeVar, Type
 
 from krrood.entity_query_language.predicate import Symbol
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
@@ -40,8 +42,8 @@ class {{ prop.descriptor_name }}({{ ', '.join(prop.base_descriptors) }}):
 # Generated classes
 {% for cls_name in classes_order %}
 {% set cls = classes[cls_name] %}
-@dataclass
-class {{ cls.name }}({% if cls.name == ontology_base_class_name %}Symbol{% elif cls.base_classes %}{{ ', '.join(cls.base_classes) }}{% else %}{{ ontology_base_class_name }}{% endif %}):
+@dataclass(eq=False)
+class {{ cls.name }}({% if cls.base_classes %}{{ ', '.join(cls.base_classes) }}{% else %}{{ ontology_base_class_name }}{% endif %}):
     {% if cls.label or cls.comment %}
     """{{ cls.label if cls.label else '' }}{% if cls.label and cls.comment %}\n\n{% endif %}{{ cls.comment if cls.comment else '' }}"""
     {% endif %}
@@ -67,9 +69,19 @@ class {{ cls.name }}({% if cls.name == ontology_base_class_name %}Symbol{% elif 
     {% endfor %}
     {% endif %}
     {% endif %}
+    {% if cls.role_taker|length > 0 %}
+    {% if cls.add_role_taker %}
+
+    @cached_property
+    def role_taker(self) -> {{ cls.role_taker.class_name }}:
+        return self.{{ cls.role_taker.field_name }}
+    {% endif %}
+    {% endif %}
+    {% if cls.name == ontology_base_class_name %}
 
     def __hash__(self):
         return hash(id(self))
+    {% endif %}
 
 
 {% if cls_name == ontology_base_class_name %}
