@@ -105,13 +105,6 @@ def get_eql_queries(
     q3 = QueryWithSelectables(q3, {"X": q3})
 
     # 4
-    # registry_classes = registry_._by_class if registry_ is not None else {}
-    # professor_classes = [
-    #     cls for cls in registry_classes.keys() if issubclass(cls, Professor)
-    # ]
-    # professor_instances = []
-    # for cls in professor_classes:
-    #     professor_instances.extend(registry_._by_class[cls])
     professor = variable(
         Professor,
         domain=None,
@@ -301,3 +294,4 @@ if __name__ == "__main__":
             assert (
                 gt_sol in uri_results
             ), f"{gt_sol} not found in EQL answers, for query {i}"
+        assert len(lubm_answers[i]) == len(uri_results), f"Number of results mismatch for query {i}"
