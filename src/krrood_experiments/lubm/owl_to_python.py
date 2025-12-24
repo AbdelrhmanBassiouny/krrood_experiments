@@ -894,11 +894,7 @@ class OwlToPythonConverter:
                         child_info["all_base_classes"].append(role_cls_name)
                     child_info["all_base_classes_including_role_takers"].append(parent_cls_name)
                 else:
-                    if (
-                        role_cls_name in parent_info["base_classes"]
-                        and role_cls_name in child_info["base_classes"]
-                    ):
-                        child_info["base_classes"].remove(role_cls_name)
+                    child_info["base_classes"] = []
                     if parent_cls_name not in child_info["base_classes"]:
                         child_info["base_classes"].append(parent_cls_name)
                         child_info["all_base_classes"].append(parent_cls_name)
