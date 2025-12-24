@@ -5,9 +5,10 @@ Generated using custom converter
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, Field
+from dataclasses import dataclass, field, Field, fields
 from abc import ABC
 from typing_extensions import Optional, Set, TypeVar, Type
+from functools import lru_cache
 
 from krrood.entity_query_language.predicate import Symbol
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
@@ -72,8 +73,9 @@ class {{ cls.name }}({% if cls.base_classes %}{{ ', '.join(cls.base_classes) }}{
     {% if cls.add_role_taker %}
 
     @classmethod
+    @lru_cache(maxsize=None)
     def role_taker_field(cls) -> Field:
-        return cls.{{ cls.role_taker.field_name }}
+        return next(iter(f for f in fields(cls) if f.name == "{{ cls.role_taker.field_name }}"))
     {% endif %}
     {% endif %}
     {% if cls.name == ontology_base_class_name %}
