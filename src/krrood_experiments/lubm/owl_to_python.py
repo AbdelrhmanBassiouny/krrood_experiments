@@ -139,7 +139,7 @@ class OwlToPythonConverter:
         return {
             "name": class_name,
             "uri": str(class_uri),
-            "superclasses": unique_superclasses or ["Thing"],
+            "superclasses": unique_superclasses or ["Symbol"],
             "label": label,
             "comment": self._get_comment(class_uri),
             "add_role_taker": True,
@@ -331,25 +331,29 @@ class OwlToPythonConverter:
             "superclasses": [
                 f"Role[T]",
                 ontology_base_class_name,
+                "ABC"
             ],
             "label": "Role class which represents a role that a persistent identifier can take on in a certain context",
         }
-
-        for info in classes_copy.values():
-            info["base_classes"] = [
-                b for b in info.get("superclasses", []) if b != "Thing"
-            ]
 
         # Create synthetic ontology base class entry if not exists
         if ontology_base_class_name not in classes_copy:
             classes_copy[ontology_base_class_name] = {
                 "name": ontology_base_class_name,
                 "uri": "",
-                "superclasses": ["Thing"],
-                "base_classes": [],
+                "superclasses": ["Symbol", "ABC"],
+                "base_classes": ["Symbol", "ABC"],
                 "label": f"Base class for {getattr(self, 'ontology_label', 'Ontology')}",
                 "comment": None,
             }
+
+        for name, info in classes_copy.items():
+            if name == ontology_base_class_name:
+                continue
+            info["base_classes"] = [
+                b for b in info.get("superclasses", []) if b != "Symbol"
+            ]
+
         # Redirect root classes (no explicit base) to inherit from the ontology base (not Thing)
         for name, info in classes_copy.items():
             if name == ontology_base_class_name:
