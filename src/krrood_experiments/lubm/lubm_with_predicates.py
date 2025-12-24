@@ -232,16 +232,6 @@ class Schedule(UnivBenchOntology):
 
 
 @dataclass
-class UnivBenchOntologyRole(Role[T], UnivBenchOntology):
-    """Role class which represents a role that a persistent identifier can take on in a certain context"""
-    ...
-
-    def __hash__(self):
-        return hash(id(self))
-
-
-
-@dataclass
 class Work(UnivBenchOntology):
     """Work"""
     ...
@@ -302,7 +292,7 @@ class Department(Organization):
 
 
 @dataclass
-class Director(UnivBenchOntologyRole[Person]):
+class Director(Symbol, Role[Person]):
     """director"""
     # Role taker
     person: Person
@@ -315,7 +305,7 @@ class Director(UnivBenchOntologyRole[Person]):
 
 
 @dataclass
-class Employee(UnivBenchOntologyRole[Person]):
+class Employee(Symbol, Role[Person]):
     """Employee"""
     # Role taker
     person: Person
@@ -402,7 +392,7 @@ class Specification(Publication):
 
 
 @dataclass
-class Student(UnivBenchOntologyRole[Person]):
+class Student(Symbol, Role[Person]):
     """student"""
     # Role taker
     person: Person
@@ -415,7 +405,7 @@ class Student(UnivBenchOntologyRole[Person]):
 
 
 @dataclass
-class TeachingAssistant(UnivBenchOntologyRole[Person]):
+class TeachingAssistant(Symbol, Role[Person]):
     """university teaching assistant"""
     # Role taker
     person: Person

@@ -343,15 +343,16 @@ class OwlToPythonConverter:
         if not ontology_base_class_name.endswith("Ontology"):
             ontology_base_class_name = ontology_base_class_name + "Ontology"
 
-        role_cls_name = f"{ontology_base_class_name}Role"
-        classes_copy[role_cls_name] = {
-            "name": role_cls_name,
-            "superclasses": [
-                f"Role[T]",
-                ontology_base_class_name,
-            ],
-            "label": "Role class which represents a role that a persistent identifier can take on in a certain context",
-        }
+        # role_cls_name = f"{ontology_base_class_name}Role"
+        # classes_copy[role_cls_name] = {
+        #     "name": role_cls_name,
+        #     "superclasses": [
+        #         f"Role[T]",
+        #         ontology_base_class_name,
+        #     ],
+        #     "label": "Role class which represents a role that a persistent identifier can take on in a certain context",
+        # }
+        role_cls_name = f"Role"
 
         for info in classes_copy.values():
             if info.get("role_taker"):
@@ -377,6 +378,8 @@ class OwlToPythonConverter:
             bases = info.get("base_classes", [])
             if len(bases) == 0:
                 info["base_classes"] = [ontology_base_class_name]
+            elif len(bases) == 1 and bases[0] == role_cls_name:
+                info["base_classes"].append("Symbol")
 
         # Compute full ancestor sets for each class (transitive closure)
         name_to_bases = {
@@ -836,16 +839,8 @@ class OwlToPythonConverter:
                             child_info["superclasses"].remove(ontology_base_class_name)
                         if ontology_base_class_name in child_info["base_classes"]:
                             child_info["base_classes"].remove(ontology_base_class_name)
-                        if (
-                            role_cls_name in parent_info["superclasses"]
-                            and role_cls_name in child_info["superclasses"]
-                        ):
-                            child_info["superclasses"].remove(role_cls_name)
-                        if (
-                            role_cls_name in parent_info["base_classes"]
-                            and role_cls_name in child_info["base_classes"]
-                        ):
-                            child_info["base_classes"].remove(role_cls_name)
+                        child_info["superclasses"] = []
+                        child_info["base_classes"] = []
                         if parent_name not in child_info["superclasses"]:
                             child_info["superclasses"].append(parent_name)
                             child_info["base_classes"].append(parent_name)
@@ -857,7 +852,11 @@ class OwlToPythonConverter:
                                 child_info["declared_properties"].remove(prop)
 
         # Start with base-class-only topological order
-        classes_order = self._topological_order(classes_copy, dep_key="base_classes")
+        for cls_name, cls_info in classes_copy.items():
+            cls_info["topological_bases"] = copy(cls_info["base_classes"])
+            if "role_taker" in cls_info and cls_info["role_taker"]:
+                cls_info["topological_bases"].append(cls_info["role_taker"][0]["cls_name"])
+        classes_order = self._topological_order(classes_copy, dep_key="topological_bases")
 
         # Note: we deliberately do not reorder by object-range dependencies to avoid
         # violating base-class ordering and creating oscillations. Forward references
