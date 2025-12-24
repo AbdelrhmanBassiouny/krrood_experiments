@@ -10,15 +10,7 @@
 </owl:Class>
 <owl:Class rdf:ID="AdministrativeStaff">
 <rdfs:label>administrative staff worker</rdfs:label>
-<rdfs:subClassOf>
-<owl:Restriction>
-<owl:onProperty rdf:resource="#roleFor"/>
-<owl:someValuesFrom>
-<owl:Class rdf:about="#Employee"/>
-</owl:someValuesFrom>
-</owl:Restriction>
-</rdfs:subClassOf>
-<rdfs:subClassOf rdf:resource="#Role"/>
+<rdfs:subClassOf rdf:resource="#Employee"/>
 </owl:Class>
 <owl:Class rdf:ID="Article">
 <rdfs:label>article</rdfs:label>
@@ -26,27 +18,11 @@
 </owl:Class>
 <owl:Class rdf:ID="AssistantProfessor">
 <rdfs:label>assistant professor</rdfs:label>
-<rdfs:subClassOf>
-<owl:Restriction>
-<owl:onProperty rdf:resource="#roleFor"/>
-<owl:someValuesFrom>
-<owl:Class rdf:about="#Professor"/>
-</owl:someValuesFrom>
-</owl:Restriction>
-</rdfs:subClassOf>
-<rdfs:subClassOf rdf:resource="#Role"/>
+<rdfs:subClassOf rdf:resource="#Professor"/>
 </owl:Class>
 <owl:Class rdf:ID="AssociateProfessor">
 <rdfs:label>associate professor</rdfs:label>
-<rdfs:subClassOf>
-<owl:Restriction>
-<owl:onProperty rdf:resource="#roleFor"/>
-<owl:someValuesFrom>
-<owl:Class rdf:about="#Professor"/>
-</owl:someValuesFrom>
-</owl:Restriction>
-</rdfs:subClassOf>
-<rdfs:subClassOf rdf:resource="#Role"/>
+<rdfs:subClassOf rdf:resource="#Professor"/>
 </owl:Class>
 <owl:Class rdf:ID="Book">
 <rdfs:label>book</rdfs:label>
@@ -72,15 +48,7 @@
 </owl:Class>
 <owl:Class rdf:ID="ClericalStaff">
 <rdfs:label>clerical staff worker</rdfs:label>
-<rdfs:subClassOf>
-    <owl:Restriction>
-    <owl:onProperty rdf:resource="#roleFor"/>
-    <owl:someValuesFrom>
-    <owl:Class rdf:about="#AdministrativeStaff"/>
-    </owl:someValuesFrom>
-    </owl:Restriction>
-</rdfs:subClassOf>
-<rdfs:subClassOf rdf:resource="#Role"/>
+<rdfs:subClassOf rdf:resource="#AdministrativeStaff"/>
 </owl:Class>
 <owl:Class rdf:ID="College">
 <rdfs:label>school</rdfs:label>
@@ -155,27 +123,11 @@
 </owl:Class>
 <owl:Class rdf:ID="Faculty">
 <rdfs:label>faculty member</rdfs:label>
-<rdfs:subClassOf>
-    <owl:Restriction>
-    <owl:onProperty rdf:resource="#roleFor"/>
-    <owl:someValuesFrom>
-    <owl:Class rdf:about="#Employee"/>
-    </owl:someValuesFrom>
-    </owl:Restriction>
-</rdfs:subClassOf>
-<rdfs:subClassOf rdf:resource="#Role"/>
+<rdfs:subClassOf rdf:resource="#Employee"/>
 </owl:Class>
 <owl:Class rdf:ID="FullProfessor">
 <rdfs:label>full professor</rdfs:label>
-<rdfs:subClassOf>
-    <owl:Restriction>
-    <owl:onProperty rdf:resource="#roleFor"/>
-    <owl:someValuesFrom>
-    <owl:Class rdf:about="#Professor"/>
-    </owl:someValuesFrom>
-    </owl:Restriction>
-</rdfs:subClassOf>
-<rdfs:subClassOf rdf:resource="#Role"/>
+<rdfs:subClassOf rdf:resource="#Professor"/>
 </owl:Class>
 <owl:Class rdf:ID="GraduateCourse">
 <rdfs:label>Graduate Level Courses</rdfs:label>
@@ -323,15 +275,7 @@
 </owl:Class>
 <owl:Class rdf:ID="SystemsStaff">
 <rdfs:label>systems staff worker</rdfs:label>
-<rdfs:subClassOf>
-    <owl:Restriction>
-    <owl:onProperty rdf:resource="#roleFor"/>
-    <owl:someValuesFrom>
-    <owl:Class rdf:about="#AdministrativeStaff"/>
-    </owl:someValuesFrom>
-    </owl:Restriction>
-</rdfs:subClassOf>
-<rdfs:subClassOf rdf:resource="#Role"/>
+<rdfs:subClassOf rdf:resource="#AdministrativeStaff"/>
 </owl:Class>
 <owl:Class rdf:ID="TeachingAssistant">
 <rdfs:label>university teaching assistant</rdfs:label>
@@ -359,15 +303,7 @@
 </owl:Class>
 <owl:Class rdf:ID="UndergraduateStudent">
 <rdfs:label>undergraduate student</rdfs:label>
-<rdfs:subClassOf>
-    <owl:Restriction>
-    <owl:onProperty rdf:resource="#roleFor"/>
-    <owl:someValuesFrom>
-    <owl:Class rdf:about="#Student"/>
-    </owl:someValuesFrom>
-    </owl:Restriction>
-</rdfs:subClassOf>
-<rdfs:subClassOf rdf:resource="#Role"/>
+<rdfs:subClassOf rdf:resource="#Student"/>
 </owl:Class>
 <owl:Class rdf:ID="University">
 <rdfs:label>university</rdfs:label>
@@ -375,15 +311,7 @@
 </owl:Class>
 <owl:Class rdf:ID="UnofficialPublication">
 <rdfs:label>unnoficial publication</rdfs:label>
-<rdfs:subClassOf>
-    <owl:Restriction>
-    <owl:onProperty rdf:resource="#roleFor"/>
-    <owl:someValuesFrom>
-    <owl:Class rdf:about="#Publication"/>
-    </owl:someValuesFrom>
-    </owl:Restriction>
-</rdfs:subClassOf>
-<rdfs:subClassOf rdf:resource="#Role"/>
+<rdfs:subClassOf rdf:resource="#Publication"/>
 </owl:Class>
 <owl:Class rdf:ID="VisitingProfessor">
 <rdfs:label>visiting professor</rdfs:label>
