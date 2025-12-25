@@ -271,7 +271,7 @@ class Department(Organization):
 
 
 @dataclass(eq=False)
-class Employee(Symbol, Role[Person]):
+class Employee(Role[Person], Symbol):
     """Employee"""
     # Role taker
     person: Person
@@ -331,7 +331,7 @@ class Specification(Publication):
 
 
 @dataclass(eq=False)
-class Student(Symbol, Role[Person]):
+class Student(Role[Person], Symbol):
     """student"""
     # Role taker
     person: Person
@@ -345,7 +345,7 @@ class Student(Symbol, Role[Person]):
 
 
 @dataclass(eq=False)
-class TeachingAssistant(Symbol, Role[Person]):
+class TeachingAssistant(Role[Person], Symbol):
     """university teaching assistant"""
     # Role taker
     person: Person
@@ -442,7 +442,7 @@ class ClericalStaff(AdministrativeStaff):
 
 
 @dataclass(eq=False)
-class Lecturer(Symbol, Role[Faculty]):
+class Lecturer(Role[Faculty], Symbol):
     """lecturer"""
     # Role taker
     faculty: Faculty
@@ -454,7 +454,7 @@ class Lecturer(Symbol, Role[Faculty]):
 
 
 @dataclass(eq=False)
-class PostDoc(Symbol, Role[Faculty]):
+class PostDoc(Role[Faculty], Symbol):
     """post doctorate"""
     # Role taker
     faculty: Faculty
@@ -466,7 +466,7 @@ class PostDoc(Symbol, Role[Faculty]):
 
 
 @dataclass(eq=False)
-class Professor(Symbol, Role[Faculty]):
+class Professor(Role[Faculty], Symbol):
     """professor"""
     # Role taker
     faculty: Faculty
@@ -498,7 +498,7 @@ class AssociateProfessor(Professor):
 
 
 @dataclass(eq=False)
-class Chair(Symbol, Role[Professor]):
+class Chair(Role[Professor], Symbol):
     """chair"""
     # Role taker
     professor: Professor
@@ -512,7 +512,7 @@ class Chair(Symbol, Role[Professor]):
 
 
 @dataclass(eq=False)
-class Dean(Symbol, Role[Professor]):
+class Dean(Role[Professor], Symbol):
     """dean"""
     # Role taker
     professor: Professor
@@ -532,7 +532,7 @@ class FullProfessor(Professor):
 
 
 @dataclass(eq=False)
-class VisitingProfessor(Symbol, Role[Professor]):
+class VisitingProfessor(Role[Professor], Symbol):
     """visiting professor"""
     # Role taker
     professor: Professor

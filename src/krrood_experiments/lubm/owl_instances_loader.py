@@ -27,16 +27,19 @@ class OwlInstancesRegistry:
     Provides access to instances per Python model class and tracks URIRef to instance mapping.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, symbol_graph: Optional[SymbolGraph] = None) -> None:
         self._by_uri: Dict[URIRef, List[Any]] = defaultdict(list)
         self._by_class: Dict[Type, List[Any]] = {}
 
-    def get_or_create_for(self, uri: URIRef, factory: Type, *args, **kwargs) -> Any:
+    def get_or_create_for(self, uri: URIRef, factory: Type, symbol_graph, *args, **kwargs) -> Any:
         instances = self.resolve(uri)
         if (instances is None) or (
             not any(isinstance(inst, factory) for inst in instances)
         ):
             # kwargs["uri"] = str(uri)
+            role_taker_association, role_taker = get_and_construct_role_taker(factory, uri, symbol_graph, **kwargs)
+            if role_taker_association:
+                kwargs[role_taker_association.field.public_name] = role_taker
             inst = factory(*args, **kwargs)
 
             # Fill a best-effort human-readable name if available
@@ -58,6 +61,8 @@ class OwlInstancesRegistry:
         return list(self._by_class.get(cls, []))
 
     def resolve(self, uri: URIRef) -> Optional[Any]:
+        if isinstance(uri, str):
+            uri = URIRef(uri)
         return self._by_uri.get(uri)
 
 
@@ -191,6 +196,28 @@ def load_multi_file_instances(
     return combined_registry
 
 
+def get_and_construct_role_taker(cls_: Type, uri_ref: URIRef, symbol_graph: SymbolGraph, **kwargs) -> Tuple[Optional[Association], Optional[Symbol]]:
+    role_taker_association = (
+        symbol_graph.class_diagram.get_role_taker_associations_of_cls(cls_)
+    )
+    if role_taker_association:
+        role_taker_field = role_taker_association.field
+        if role_taker_field.public_name in kwargs:
+            return None, None
+        instances_of_role_taker_type = symbol_graph.get_instances_of_type(role_taker_association.target.clazz)
+        role_taker = next((inst for inst in instances_of_role_taker_type if inst.uri == str(uri_ref)), None)
+        if role_taker:
+            return role_taker_association, role_taker
+        inner_role_taker_association, inner_role_taker = get_and_construct_role_taker(role_taker_association.target.clazz, uri_ref, symbol_graph)
+        if inner_role_taker_association:
+            kwargs[inner_role_taker_association.field.public_name] = inner_role_taker
+        role_taker = role_taker_association.target.clazz(**kwargs)
+        role_taker.uri = str(uri_ref)
+        return role_taker_association, role_taker
+    else:
+        return None, None
+
+
 def load_instances(
     owl_path: str,
     model_module: Union[str, ModuleType],
@@ -207,6 +234,7 @@ def load_instances(
     if not symbol_graph:
         SymbolGraph().clear()
         symbol_graph = SymbolGraph.build(classes=classes_of_module(model_module))
+
     g = rdflib.Graph()
     g.parse(owl_path)
 
@@ -242,18 +270,7 @@ def load_instances(
                     kwargs[assoc2.field.public_name] = getattr(
                         er, assoc1.field.public_name
                     )
-        role_taker_association = (
-            symbol_graph.class_diagram.get_role_taker_associations_of_cls(py_cls)
-        )
-        if role_taker_association:
-            role_taker_field = role_taker_association.field
-            # assumes role takers are not themselves roles (In general this is not true)
-            if role_taker_field.public_name in kwargs:
-                continue
-            role_taker = role_taker_association.target.clazz()
-            role_taker.uri = str(s)
-            kwargs[role_taker_field.public_name] = role_taker
-        registry.get_or_create_for(s, py_cls, **kwargs)
+        registry.get_or_create_for(s, py_cls, symbol_graph, **kwargs)
 
     # Helper to ensure object instance exists by looking up its type dynamically
     def ensure_instance(uri: URIRef) -> Optional[List[Any]]:
@@ -264,7 +281,7 @@ def load_instances(
         for _, _, o_class in g.triples((uri, RDF.type, None)):
             py_cls = _get_python_class_for_rdf_class(class_by_name, o_class)
             if py_cls is not None:
-                return [registry.get_or_create_for(uri, py_cls)]
+                return [registry.get_or_create_for(uri, py_cls, symbol_graph)]
         return None
 
     # For convenience: map property local name to descriptor base class (if exists)
@@ -331,10 +348,19 @@ def load_instances(
                         type(obj_roles[0])
                     )
                 )
-                if role_taker_assoc:
+                obj_role = obj_roles[0]
+                while role_taker_assoc:
                     if role_taker_assoc.target.clazz is req_obj_type:
                         matched_obj = getattr(
-                            obj_roles[0], role_taker_assoc.field.public_name
+                            obj_role, role_taker_assoc.field.public_name
+                        )
+                        break
+                    else:
+                        obj_role = getattr(obj_role, role_taker_assoc.field.public_name)
+                        role_taker_assoc = (
+                            symbol_graph.class_diagram.get_role_taker_associations_of_cls(
+                                role_taker_assoc.target.clazz
+                            )
                         )
             if not matched_obj:
                 raise ValueError(f"Could not assign {obj} to {subj} ({p})")
@@ -402,7 +428,7 @@ def load_instances(
                 else:
                     uri = role_taker_inst.uri
                 new_role = registry.get_or_create_for(
-                    uri, new_role_class, **kwargs
+                    uri, new_role_class, symbol_graph, **kwargs
                 )
             if hasattr(new_role, snake):
                 lst = getattr(new_role, snake)
