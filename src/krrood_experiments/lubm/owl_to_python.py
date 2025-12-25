@@ -890,8 +890,8 @@ class OwlToPythonConverter:
                         "field_name": self._to_snake_case(parent_cls_name),
                     }
                     if role_cls_name not in child_info["all_base_classes"]:
-                        child_info["base_classes"].append(role_cls_name)
-                        child_info["all_base_classes"].append(role_cls_name)
+                        child_info["base_classes"] = [role_cls_name] + child_info["base_classes"]
+                        child_info["all_base_classes"] = [role_cls_name] + child_info["all_base_classes"]
                     child_info["all_base_classes_including_role_takers"].append(parent_cls_name)
                 else:
                     child_info["base_classes"] = []
@@ -936,9 +936,7 @@ class OwlToPythonConverter:
         for info in classes_copy.values():
             if role_cls_name in info["base_classes"]:
                 info["base_classes"].remove(role_cls_name)
-                info["base_classes"].append(
-                    f"{role_cls_name}[{info['role_taker']['class_name']}]"
-                )
+                info["base_classes"] = [f"{role_cls_name}[{info['role_taker']['class_name']}]"] + info["base_classes"]
         if "Role" in classes_copy:
             del classes_copy["Role"]
 
