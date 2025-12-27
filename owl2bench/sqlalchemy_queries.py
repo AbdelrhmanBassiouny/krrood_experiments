@@ -29,7 +29,9 @@ q2 = SQLAlchemyQuery(sparql_queries.q2, sqlalchemy_q2)
 sqlalchemy_q3 = select(organizationdao_is_part_of_association)
 q3 = SQLAlchemyQuery(sparql_queries.q3, sqlalchemy_q3)
 
-sqlalchemy_q4 = select(PersonDAO.age).where(PersonDAO.age.is_not(None))
+sqlalchemy_q4 = select(PersonDAO.age).where(
+    PersonDAO.age.is_not(None), PersonDAO.age != ""
+)
 q4 = SQLAlchemyQuery(sparql_queries.q4, sqlalchemy_q4)
 
 
