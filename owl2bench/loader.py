@@ -105,18 +105,13 @@ class WorldLoader:
 
         persons = []
         for b in bindings:
-            age_value = b.get("age", {}).get("value", "0")
-            try:
-                age = int(age_value)
-            except ValueError:
-                age = 0
             persons.append(
                 Person(
                     identifier=str(b["x"]["value"]),
                     first_name=b.get("firstName", {}).get("value", ""),
                     last_name=b.get("lastName", {}).get("value", ""),
                     telephone_number=b.get("telephone", {}).get("value", ""),
-                    age=age,
+                    age=b.get("age", {}).get("value", ""),
                     e_mail_address=b.get("email", {}).get("value", ""),
                     title=b.get("title", {}).get("value"),
                 )

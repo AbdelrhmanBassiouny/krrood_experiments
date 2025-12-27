@@ -56,7 +56,7 @@ class Person(IdentifiedEntity):
     first_name: str
     last_name: str
     telephone_number: str
-    age: int
+    age: Optional[str]
     e_mail_address: str
     title: Optional[str]
     knows: List[Person] = field(default_factory=list)
