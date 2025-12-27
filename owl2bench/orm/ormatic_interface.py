@@ -69,6 +69,12 @@ persondao_knows_association = Table(
     Column("source_persondao_id", ForeignKey("PersonDAO.database_id")),
     Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
 )
+persondao_collaborates_with_association = Table(
+    "persondao_collaborates_with_association",
+    Base.metadata,
+    Column("source_persondao_id", ForeignKey("PersonDAO.database_id")),
+    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
+)
 publicationdao_authors_association = Table(
     "publicationdao_authors_association",
     Base.metadata,
@@ -956,6 +962,13 @@ class PersonDAO(IdentifiedEntityDAO, DataAccessObject[owl2bench.model.base.Perso
         secondary="persondao_knows_association",
         primaryjoin="PersonDAO.database_id == persondao_knows_association.c.source_persondao_id",
         secondaryjoin="PersonDAO.database_id == persondao_knows_association.c.target_persondao_id",
+        cascade="save-update, merge",
+    )
+    collaborates_with: Mapped[typing.List[PersonDAO]] = relationship(
+        "PersonDAO",
+        secondary="persondao_collaborates_with_association",
+        primaryjoin="PersonDAO.database_id == persondao_collaborates_with_association.c.source_persondao_id",
+        secondaryjoin="PersonDAO.database_id == persondao_collaborates_with_association.c.target_persondao_id",
         cascade="save-update, merge",
     )
 
