@@ -37,6 +37,18 @@ class Base(DeclarativeBase):
 
 
 # Association tables for many-to-many relationships
+organizationdao_members_association = Table(
+    "organizationdao_members_association",
+    Base.metadata,
+    Column("source_organizationdao_id", ForeignKey("OrganizationDAO.database_id")),
+    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
+)
+persondao_knows_association = Table(
+    "persondao_knows_association",
+    Base.metadata,
+    Column("source_persondao_id", ForeignKey("PersonDAO.database_id")),
+    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
+)
 publicationdao_authors_association = Table(
     "publicationdao_authors_association",
     Base.metadata,
@@ -47,6 +59,12 @@ universitydao_alumni_association = Table(
     "universitydao_alumni_association",
     Base.metadata,
     Column("source_universitydao_id", ForeignKey("UniversityDAO.database_id")),
+    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
+)
+worlddao_persons_association = Table(
+    "worlddao_persons_association",
+    Base.metadata,
+    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
     Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
 )
 
@@ -768,6 +786,14 @@ class OrganizationDAO(
         use_existing_column=True,
     )
 
+    members: Mapped[typing.List[PersonDAO]] = relationship(
+        "PersonDAO",
+        secondary="organizationdao_members_association",
+        primaryjoin="OrganizationDAO.database_id == organizationdao_members_association.c.source_organizationdao_id",
+        secondaryjoin="PersonDAO.database_id == organizationdao_members_association.c.target_persondao_id",
+        cascade="save-update, merge",
+    )
+
     __mapper_args__ = {
         "polymorphic_identity": "OrganizationDAO",
         "inherit_condition": database_id == IdentifiedEntityDAO.database_id,
@@ -865,6 +891,14 @@ class PersonDAO(IdentifiedEntityDAO, DataAccessObject[owl2bench.model.base.Perso
     )
     title: Mapped[typing.Optional[builtins.str]] = mapped_column(
         String(255), use_existing_column=True
+    )
+
+    knows: Mapped[typing.List[PersonDAO]] = relationship(
+        "PersonDAO",
+        secondary="persondao_knows_association",
+        primaryjoin="PersonDAO.database_id == persondao_knows_association.c.source_persondao_id",
+        secondaryjoin="PersonDAO.database_id == persondao_knows_association.c.target_persondao_id",
+        cascade="save-update, merge",
     )
 
     __mapper_args__ = {
@@ -1537,3 +1571,20 @@ class ResearchProjectDAO(
         "polymorphic_identity": "ResearchProjectDAO",
         "inherit_condition": database_id == WorkDAO.database_id,
     }
+
+
+class WorldDAO(Base, DataAccessObject[owl2bench.model.base.World]):
+
+    __tablename__ = "WorldDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        Integer, primary_key=True, use_existing_column=True
+    )
+
+    persons: Mapped[typing.List[PersonDAO]] = relationship(
+        "PersonDAO",
+        secondary="worlddao_persons_association",
+        primaryjoin="WorldDAO.database_id == worlddao_persons_association.c.source_worlddao_id",
+        secondaryjoin="PersonDAO.database_id == worlddao_persons_association.c.target_persondao_id",
+        cascade="save-update, merge",
+    )

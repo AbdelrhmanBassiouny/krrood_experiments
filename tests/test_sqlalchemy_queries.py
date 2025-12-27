@@ -46,7 +46,7 @@ def sqlalchemy_session():
     [
         pytest.param(q, id=f"q{q.sparql_query.number}")
         for q in owl2bench.sqlalchemy_queries.all_queries
-        if owl2bench.sparql_queries.OWLProfile.RL in q.sparql_query.profile
+        # if owl2bench.sparql_queries.OWLProfile.RL in q.sparql_query.profile
     ],
 )
 def test_query(sqlalchemy_session, sql_query_obj):

@@ -4,6 +4,11 @@ from typing import List, Any, Optional
 
 
 @dataclass
+class World:
+    persons: List[Person] = field(default_factory=list)
+
+
+@dataclass
 class IdentifiedEntity:
     identifier: str
 
@@ -17,7 +22,8 @@ class Interest(IdentifiedEntity): ...
 
 
 @dataclass
-class Organization(IdentifiedEntity): ...
+class Organization(IdentifiedEntity):
+    members: List[Person] = field(default_factory=list)
 
 
 @dataclass
@@ -51,3 +57,4 @@ class Person(IdentifiedEntity):
     age: int
     e_mail_address: str
     title: Optional[str]
+    knows: List[Person] = field(default_factory=list)
