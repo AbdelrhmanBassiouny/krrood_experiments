@@ -55,6 +55,14 @@ organizationdao_affiliated_organizations_association = Table(
     Column("source_organizationdao_id", ForeignKey("OrganizationDAO.database_id")),
     Column("target_organizationdao_id", ForeignKey("OrganizationDAO.database_id")),
 )
+collegedao_disciplines_association = Table(
+    "collegedao_disciplines_association",
+    Base.metadata,
+    Column("source_collegedao_id", ForeignKey("CollegeDAO.database_id")),
+    Column(
+        "target_collegedisciplinedao_id", ForeignKey("CollegeDisciplineDAO.database_id")
+    ),
+)
 persondao_knows_association = Table(
     "persondao_knows_association",
     Base.metadata,
@@ -842,6 +850,14 @@ class CollegeDAO(
         ForeignKey(OrganizationDAO.database_id),
         primary_key=True,
         use_existing_column=True,
+    )
+
+    disciplines: Mapped[typing.List[CollegeDisciplineDAO]] = relationship(
+        "CollegeDisciplineDAO",
+        secondary="collegedao_disciplines_association",
+        primaryjoin="CollegeDAO.database_id == collegedao_disciplines_association.c.source_collegedao_id",
+        secondaryjoin="CollegeDisciplineDAO.database_id == collegedao_disciplines_association.c.target_collegedisciplinedao_id",
+        cascade="save-update, merge",
     )
 
     __mapper_args__ = {
