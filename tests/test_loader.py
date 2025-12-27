@@ -8,6 +8,7 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 
 from owl2bench.loader import WorldLoader, OntologyLoadError
 from owl2bench.model.base import Person, Organization
+from owl2bench.model.organizations import University
 
 
 @pytest.fixture(scope="session")
@@ -31,7 +32,7 @@ def test_get_persons(sparql_wrapper):
         assert isinstance(person.first_name, str)
         assert isinstance(person.last_name, str)
         assert isinstance(person.telephone_number, str)
-        assert isinstance(person.age, int)
+        assert isinstance(person.age, str)
         assert isinstance(person.e_mail_address, str)
         assert person.title is None or isinstance(person.title, str)
         assert isinstance(person.knows, list)
@@ -57,3 +58,20 @@ def test_get_organization_members(sparql_wrapper):
                 assert isinstance(member, Person)
 
     assert any_members, "No organization members found in the loaded data"
+
+
+def test_get_university_alumni(sparql_wrapper):
+    loader = WorldLoader(sparql_wrapper)
+    loader.parse()
+    universities = [
+        org for org in loader.world.organizations if isinstance(org, University)
+    ]
+    assert len(universities) > 0
+    any_alumni = False
+    for university in universities:
+        if len(university.alumni) > 0:
+            any_alumni = True
+            for alumnus in university.alumni:
+                assert isinstance(alumnus, Person)
+
+    assert any_alumni, "No university alumni found in the loaded data"
