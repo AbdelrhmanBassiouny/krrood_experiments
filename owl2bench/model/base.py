@@ -57,6 +57,7 @@ class Publication(IdentifiedEntity):
 class Person(IdentifiedEntity):
     first_name: str
     last_name: str
+    gender: Optional[str]
     telephone_number: str
     age: Optional[str]
     e_mail_address: str

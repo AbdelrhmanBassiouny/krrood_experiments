@@ -99,7 +99,7 @@ class WorldLoader:
         query = (
             PREFIXES
             + """
-            SELECT DISTINCT ?x ?firstName ?lastName ?telephone ?age ?email ?title WHERE {
+            SELECT DISTINCT ?x ?firstName ?lastName ?gender ?telephone ?age ?email ?title WHERE {
                 ?x rdf:type owl2bench:Person .
                 OPTIONAL { ?x owl2bench:hasFirstName ?firstName }
                 OPTIONAL { ?x owl2bench:hasLastName ?lastName }
@@ -107,6 +107,11 @@ class WorldLoader:
                 OPTIONAL { ?x owl2bench:hasAge ?age }
                 OPTIONAL { ?x owl2bench:hasEmailAddress ?email }
                 OPTIONAL { ?x owl2bench:hasTitle ?title }
+                OPTIONAL {
+                    ?x rdf:type ?type .
+                    FILTER (?type IN (owl2bench:Man, owl2bench:Woman))
+                    BIND (REPLACE(STR(?type), "^.*#", "") AS ?gender)
+                }
             }
             """
         )
@@ -123,6 +128,7 @@ class WorldLoader:
                     identifier=str(b["x"]["value"]),
                     first_name=b.get("firstName", {}).get("value", ""),
                     last_name=b.get("lastName", {}).get("value", ""),
+                    gender=b.get("gender", {}).get("value"),
                     telephone_number=b.get("telephone", {}).get("value", ""),
                     age=b.get("age", {}).get("value", ""),
                     e_mail_address=b.get("email", {}).get("value", ""),
