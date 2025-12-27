@@ -60,7 +60,12 @@ q11 = SQLAlchemyQuery(sparql_queries.q11, sqlalchemy_q11)
 sqlalchemy_q12 = select(PersonDAO)
 q12 = SQLAlchemyQuery(sparql_queries.q12, sqlalchemy_q12)
 
-sqlalchemy_q13 = select(CollegeDAO)
+sqlalchemy_q13 = select(CollegeDAO).filter(
+    ~CollegeDAO.members.any(PersonDAO.gender != "female")
+)
 q13 = SQLAlchemyQuery(sparql_queries.q13, sqlalchemy_q13)
+
+sqlalchemy_q14 = select(PublicationDAO)
+q14 = SQLAlchemyQuery(sparql_queries.q14, sqlalchemy_q14)
 
 all_queries = [q1, q2, q3, q4, q6, q7, q8, q9, q10, q11, q12, q13]
