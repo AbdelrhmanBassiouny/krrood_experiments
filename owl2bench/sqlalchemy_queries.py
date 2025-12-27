@@ -51,4 +51,7 @@ sqlalchemy_q9 = select(collegedao_disciplines_association).join(
 )
 q9 = SQLAlchemyQuery(sparql_queries.q9, sqlalchemy_q9)
 
+sqlalchemy_q10 = select(persondao_collaborates_with_association)
+q10 = SQLAlchemyQuery(sparql_queries.q10, sqlalchemy_q10)
+
 all_queries = [q1, q2, q3, q4, q6, q7, q8, q9]
