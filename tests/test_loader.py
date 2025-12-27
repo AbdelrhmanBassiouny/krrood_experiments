@@ -120,3 +120,18 @@ def test_get_person_collaborations(sparql_wrapper):
                 assert isinstance(collaborator, Person)
 
     assert any_collaborations, "No person collaborations found in the loaded data"
+
+
+def test_get_person_advisors(sparql_wrapper):
+    loader = WorldLoader(sparql_wrapper)
+    loader.parse()
+    persons = loader.world.persons
+    assert len(persons) > 0
+    any_advisors = False
+    for person in persons:
+        if len(person.is_advised_by) > 0:
+            any_advisors = True
+            for advisor in person.is_advised_by:
+                assert isinstance(advisor, Person)
+
+    assert any_advisors, "No person advisors found in the loaded data"

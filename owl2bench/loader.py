@@ -51,6 +51,7 @@ class WorldLoader:
         # get all relationships between persons
         self._update_person_knows_relationships()
         self._update_person_collaborations()
+        self._update_person_advisors()
 
         # get all organizations
         self.world.organizations = self._get_organizations()
@@ -250,6 +251,35 @@ class WorldLoader:
 
             if subject_identifier in person_map and object_identifier in person_map:
                 person_map[subject_identifier].collaborates_with.append(
+                    person_map[object_identifier]
+                )
+
+    def _update_person_advisors(self):
+        """
+        Updates the isAdvisedBy relationship between persons.
+        """
+        query = (
+            PREFIXES
+            + """
+            SELECT DISTINCT ?x ?y WHERE {
+                ?x owl2bench:isAdvisedBy ?y .
+            }
+            """
+        )
+
+        # Execute query
+        self.sparql_wrapper.setQuery(query)
+        results = self.sparql_wrapper.query().convert()
+        bindings = results["results"]["bindings"]
+
+        person_map = {p.identifier: p for p in self.world.persons}
+
+        for b in bindings:
+            subject_identifier = str(b["x"]["value"])
+            object_identifier = str(b["y"]["value"])
+
+            if subject_identifier in person_map and object_identifier in person_map:
+                person_map[subject_identifier].is_advised_by.append(
                     person_map[object_identifier]
                 )
 
