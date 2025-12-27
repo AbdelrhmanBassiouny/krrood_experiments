@@ -43,6 +43,12 @@ organizationdao_members_association = Table(
     Column("source_organizationdao_id", ForeignKey("OrganizationDAO.database_id")),
     Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
 )
+organizationdao_is_part_of_association = Table(
+    "organizationdao_is_part_of_association",
+    Base.metadata,
+    Column("source_organizationdao_id", ForeignKey("OrganizationDAO.database_id")),
+    Column("target_organizationdao_id", ForeignKey("OrganizationDAO.database_id")),
+)
 persondao_knows_association = Table(
     "persondao_knows_association",
     Base.metadata,
@@ -797,6 +803,13 @@ class OrganizationDAO(
         secondary="organizationdao_members_association",
         primaryjoin="OrganizationDAO.database_id == organizationdao_members_association.c.source_organizationdao_id",
         secondaryjoin="PersonDAO.database_id == organizationdao_members_association.c.target_persondao_id",
+        cascade="save-update, merge",
+    )
+    is_part_of: Mapped[typing.List[OrganizationDAO]] = relationship(
+        "OrganizationDAO",
+        secondary="organizationdao_is_part_of_association",
+        primaryjoin="OrganizationDAO.database_id == organizationdao_is_part_of_association.c.source_organizationdao_id",
+        secondaryjoin="OrganizationDAO.database_id == organizationdao_is_part_of_association.c.target_organizationdao_id",
         cascade="save-update, merge",
     )
 

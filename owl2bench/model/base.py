@@ -25,6 +25,7 @@ class Interest(IdentifiedEntity): ...
 @dataclass
 class Organization(IdentifiedEntity):
     members: List[Person] = field(default_factory=list)
+    is_part_of: List[Organization] = field(default_factory=list)
 
 
 @dataclass
