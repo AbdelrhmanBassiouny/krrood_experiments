@@ -81,6 +81,12 @@ persondao_is_advised_by_association = Table(
     Column("source_persondao_id", ForeignKey("PersonDAO.database_id")),
     Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
 )
+persondao_takes_course_association = Table(
+    "persondao_takes_course_association",
+    Base.metadata,
+    Column("source_persondao_id", ForeignKey("PersonDAO.database_id")),
+    Column("target_coursedao_id", ForeignKey("CourseDAO.database_id")),
+)
 publicationdao_authors_association = Table(
     "publicationdao_authors_association",
     Base.metadata,
@@ -112,6 +118,12 @@ worlddao_college_disciplines_association = Table(
     Column(
         "target_collegedisciplinedao_id", ForeignKey("CollegeDisciplineDAO.database_id")
     ),
+)
+worlddao_courses_association = Table(
+    "worlddao_courses_association",
+    Base.metadata,
+    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
+    Column("target_coursedao_id", ForeignKey("CourseDAO.database_id")),
 )
 
 
@@ -987,6 +999,13 @@ class PersonDAO(IdentifiedEntityDAO, DataAccessObject[owl2bench.model.base.Perso
         secondaryjoin="PersonDAO.database_id == persondao_is_advised_by_association.c.target_persondao_id",
         cascade="save-update, merge",
     )
+    takes_course: Mapped[typing.List[CourseDAO]] = relationship(
+        "CourseDAO",
+        secondary="persondao_takes_course_association",
+        primaryjoin="PersonDAO.database_id == persondao_takes_course_association.c.source_persondao_id",
+        secondaryjoin="CourseDAO.database_id == persondao_takes_course_association.c.target_coursedao_id",
+        cascade="save-update, merge",
+    )
 
     __mapper_args__ = {
         "polymorphic_identity": "PersonDAO",
@@ -1687,5 +1706,12 @@ class WorldDAO(Base, DataAccessObject[owl2bench.model.base.World]):
         secondary="worlddao_college_disciplines_association",
         primaryjoin="WorldDAO.database_id == worlddao_college_disciplines_association.c.source_worlddao_id",
         secondaryjoin="CollegeDisciplineDAO.database_id == worlddao_college_disciplines_association.c.target_collegedisciplinedao_id",
+        cascade="save-update, merge",
+    )
+    courses: Mapped[typing.List[CourseDAO]] = relationship(
+        "CourseDAO",
+        secondary="worlddao_courses_association",
+        primaryjoin="WorldDAO.database_id == worlddao_courses_association.c.source_worlddao_id",
+        secondaryjoin="CourseDAO.database_id == worlddao_courses_association.c.target_coursedao_id",
         cascade="save-update, merge",
     )
