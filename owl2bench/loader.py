@@ -62,6 +62,9 @@ class WorldLoader:
         # get all university alumni
         self._update_university_alumni()
 
+        # get all organization affiliations
+        self._update_organization_affiliations()
+
         # get all Courses
 
         # get all Programs
@@ -271,3 +274,31 @@ class WorldLoader:
                 organization = org_map[university_identifier]
                 if isinstance(organization, University):
                     organization.alumni.append(person_map[person_identifier])
+
+    def _update_organization_affiliations(self):
+        """
+        Updates the affiliated organizations relationship.
+        """
+        query = (
+            PREFIXES
+            + """
+            SELECT DISTINCT ?x ?y WHERE {
+                ?x owl2bench:isAffiliatedOrganizationOf ?y .
+            }
+            """
+        )
+
+        self.sparql_wrapper.setQuery(query)
+        results = self.sparql_wrapper.query().convert()
+        bindings = results["results"]["bindings"]
+
+        org_map = {o.identifier: o for o in self.world.organizations}
+
+        for b in bindings:
+            subject_identifier = str(b["x"]["value"])
+            object_identifier = str(b["y"]["value"])
+
+            if subject_identifier in org_map and object_identifier in org_map:
+                org_map[subject_identifier].affiliated_organizations.append(
+                    org_map[object_identifier]
+                )

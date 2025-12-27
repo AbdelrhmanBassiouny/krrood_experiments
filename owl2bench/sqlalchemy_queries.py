@@ -43,6 +43,8 @@ q6 = SQLAlchemyQuery(sparql_queries.q6, sqlalchemy_q6)
 sqlalchemy_q7 = select(universitydao_alumni_association)
 q7 = SQLAlchemyQuery(sparql_queries.q7, sqlalchemy_q7)
 
+sqlalchemy_q8 = select(organizationdao_affiliated_organizations_association)
+q8 = SQLAlchemyQuery(sparql_queries.q8, sqlalchemy_q8)
 
 all_queries = [
     q1,
@@ -51,4 +53,5 @@ all_queries = [
     q4,
     q6,
     q7,
+    q8,
 ]

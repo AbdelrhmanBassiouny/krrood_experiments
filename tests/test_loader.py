@@ -75,3 +75,18 @@ def test_get_university_alumni(sparql_wrapper):
                 assert isinstance(alumnus, Person)
 
     assert any_alumni, "No university alumni found in the loaded data"
+
+
+def test_get_organization_affiliations(sparql_wrapper):
+    loader = WorldLoader(sparql_wrapper)
+    loader.parse()
+    organizations = loader.world.organizations
+    assert len(organizations) > 0
+    any_affiliations = False
+    for org in organizations:
+        if len(org.affiliated_organizations) > 0:
+            any_affiliations = True
+            for affiliated_org in org.affiliated_organizations:
+                assert isinstance(affiliated_org, Organization)
+
+    assert any_affiliations, "No organization affiliations found in the loaded data"
