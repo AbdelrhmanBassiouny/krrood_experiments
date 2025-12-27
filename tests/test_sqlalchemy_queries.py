@@ -63,6 +63,12 @@ def test_query(sqlalchemy_session, sql_query_obj):
     sqlalchemy_result = sqlalchemy_session.scalars(sql_query_obj.statement).all()
     sqlalchemy_result_len = len(sqlalchemy_result)
     assert sparql_result_len == sqlalchemy_result_len
+    print(
+        f"SPARQLQuery {sql_query_obj.sparql_query.number} results count: {sparql_result_len}"
+    )
+    print(
+        f"SQLAlchemyQuery {sql_query_obj.sparql_query.number} results count: {sqlalchemy_result_len}"
+    )
 
 
 def test_db_setup(sqlalchemy_session):
