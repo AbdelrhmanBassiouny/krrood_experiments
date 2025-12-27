@@ -904,7 +904,9 @@ class PersonDAO(IdentifiedEntityDAO, DataAccessObject[owl2bench.model.base.Perso
     telephone_number: Mapped[builtins.str] = mapped_column(
         String(255), use_existing_column=True
     )
-    age: Mapped[builtins.int] = mapped_column(use_existing_column=True)
+    age: Mapped[typing.Optional[builtins.str]] = mapped_column(
+        String(255), use_existing_column=True
+    )
     e_mail_address: Mapped[builtins.str] = mapped_column(
         String(255), use_existing_column=True
     )
