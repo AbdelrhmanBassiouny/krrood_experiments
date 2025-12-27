@@ -7,8 +7,8 @@ import rdflib
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 from owl2bench.loader import WorldLoader, OntologyLoadError
-from owl2bench.model.base import Person, Organization
-from owl2bench.model.organizations import University
+from owl2bench.model.base import Person, Organization, CollegeDiscipline
+from owl2bench.model.organizations import University, College
 
 
 @pytest.fixture(scope="session")
@@ -90,3 +90,18 @@ def test_get_organization_affiliations(sparql_wrapper):
                 assert isinstance(affiliated_org, Organization)
 
     assert any_affiliations, "No organization affiliations found in the loaded data"
+
+
+def test_get_college_disciplines(sparql_wrapper):
+    loader = WorldLoader(sparql_wrapper)
+    loader.parse()
+    colleges = [org for org in loader.world.organizations if isinstance(org, College)]
+    assert len(colleges) > 0
+    any_disciplines = False
+    for college in colleges:
+        if len(college.disciplines) > 0:
+            any_disciplines = True
+            for discipline in college.disciplines:
+                assert isinstance(discipline, CollegeDiscipline)
+
+    assert any_disciplines, "No college disciplines found in the loaded data"

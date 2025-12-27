@@ -93,6 +93,14 @@ worlddao_organizations_association = Table(
     Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
     Column("target_organizationdao_id", ForeignKey("OrganizationDAO.database_id")),
 )
+worlddao_college_disciplines_association = Table(
+    "worlddao_college_disciplines_association",
+    Base.metadata,
+    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
+    Column(
+        "target_collegedisciplinedao_id", ForeignKey("CollegeDisciplineDAO.database_id")
+    ),
+)
 
 
 class IdentifiedEntityDAO(
@@ -1643,5 +1651,12 @@ class WorldDAO(Base, DataAccessObject[owl2bench.model.base.World]):
         secondary="worlddao_organizations_association",
         primaryjoin="WorldDAO.database_id == worlddao_organizations_association.c.source_worlddao_id",
         secondaryjoin="OrganizationDAO.database_id == worlddao_organizations_association.c.target_organizationdao_id",
+        cascade="save-update, merge",
+    )
+    college_disciplines: Mapped[typing.List[CollegeDisciplineDAO]] = relationship(
+        "CollegeDisciplineDAO",
+        secondary="worlddao_college_disciplines_association",
+        primaryjoin="WorldDAO.database_id == worlddao_college_disciplines_association.c.source_worlddao_id",
+        secondaryjoin="CollegeDisciplineDAO.database_id == worlddao_college_disciplines_association.c.target_collegedisciplinedao_id",
         cascade="save-update, merge",
     )
