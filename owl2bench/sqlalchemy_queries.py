@@ -34,10 +34,21 @@ sqlalchemy_q4 = select(PersonDAO.age).where(
 )
 q4 = SQLAlchemyQuery(sparql_queries.q4, sqlalchemy_q4)
 
+sqlalchemy_q6 = select(persondao_knows_association).where(
+    persondao_knows_association.c.source_persondao_id
+    == persondao_knows_association.c.target_persondao_id
+)
+q6 = SQLAlchemyQuery(sparql_queries.q6, sqlalchemy_q6)
+
+sqlalchemy_q7 = select(universitydao_alumni_association)
+q7 = SQLAlchemyQuery(sparql_queries.q7, sqlalchemy_q7)
+
 
 all_queries = [
     q1,
     q2,
     q3,
     q4,
+    q6,
+    q7,
 ]

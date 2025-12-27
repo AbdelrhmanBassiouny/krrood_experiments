@@ -122,7 +122,8 @@ q5 = SPARQLQuery(
 
 q6 = SPARQLQuery(
     number=6,
-    raw_sparql_string="""
+    raw_sparql_string=PREFIXES
+    + """
     SELECT DISTINCT ?x ?y WHERE { ?x rdf:type owl2bench:SelfAwarePerson  }
     """,
     description="Find all the instances of class SelfAwarePerson. SelfAwarePerson is a Person who knows themselves.",
