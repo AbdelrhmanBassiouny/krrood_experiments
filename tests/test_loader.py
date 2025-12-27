@@ -7,7 +7,7 @@ import rdflib
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 from owl2bench.loader import WorldLoader, OntologyLoadError
-from owl2bench.model.base import Person
+from owl2bench.model.base import Person, Organization
 
 
 @pytest.fixture(scope="session")
@@ -41,3 +41,19 @@ def test_get_persons(sparql_wrapper):
                 assert isinstance(known_person, Person)
 
     assert any_knows, "No 'knows' relationships found in the loaded data"
+
+
+def test_get_organization_members(sparql_wrapper):
+    loader = WorldLoader(sparql_wrapper)
+    loader.parse()
+    organizations = loader.world.organizations
+    assert len(organizations) > 0
+    any_members = False
+    for org in organizations:
+        assert isinstance(org, Organization)
+        if len(org.members) > 0:
+            any_members = True
+            for member in org.members:
+                assert isinstance(member, Person)
+
+    assert any_members, "No organization members found in the loaded data"

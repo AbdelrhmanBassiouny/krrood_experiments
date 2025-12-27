@@ -6,6 +6,7 @@ from typing import List, Any, Optional
 @dataclass
 class World:
     persons: List[Person] = field(default_factory=list)
+    organizations: List[Organization] = field(default_factory=list)
 
 
 @dataclass
