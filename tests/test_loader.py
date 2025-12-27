@@ -105,3 +105,18 @@ def test_get_college_disciplines(sparql_wrapper):
                 assert isinstance(discipline, CollegeDiscipline)
 
     assert any_disciplines, "No college disciplines found in the loaded data"
+
+
+def test_get_person_collaborations(sparql_wrapper):
+    loader = WorldLoader(sparql_wrapper)
+    loader.parse()
+    persons = loader.world.persons
+    assert len(persons) > 0
+    any_collaborations = False
+    for person in persons:
+        if len(person.collaborates_with) > 0:
+            any_collaborations = True
+            for collaborator in person.collaborates_with:
+                assert isinstance(collaborator, Person)
+
+    assert any_collaborations, "No person collaborations found in the loaded data"
