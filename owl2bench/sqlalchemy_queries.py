@@ -57,4 +57,10 @@ q10 = SQLAlchemyQuery(sparql_queries.q10, sqlalchemy_q10)
 sqlalchemy_q11 = select(persondao_is_advised_by_association)
 q11 = SQLAlchemyQuery(sparql_queries.q11, sqlalchemy_q11)
 
-all_queries = [q1, q2, q3, q4, q6, q7, q8, q9, q10, q11]
+sqlalchemy_q12 = select(PersonDAO)
+q12 = SQLAlchemyQuery(sparql_queries.q12, sqlalchemy_q12)
+
+sqlalchemy_q13 = select(CollegeDAO)
+q13 = SQLAlchemyQuery(sparql_queries.q13, sqlalchemy_q13)
+
+all_queries = [q1, q2, q3, q4, q6, q7, q8, q9, q10, q11, q12, q13]

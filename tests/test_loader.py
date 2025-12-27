@@ -27,10 +27,14 @@ def test_get_persons(sparql_wrapper):
     persons = loader.world.persons
     assert len(persons) > 0
     any_knows = False
+    any_gender = False
     for person in persons:
         assert isinstance(person.identifier, str)
         assert isinstance(person.first_name, str)
         assert isinstance(person.last_name, str)
+        assert person.gender is None or person.gender in ["Man", "Woman"]
+        if person.gender:
+            any_gender = True
         assert isinstance(person.telephone_number, str)
         assert isinstance(person.age, str)
         assert isinstance(person.e_mail_address, str)
@@ -42,6 +46,7 @@ def test_get_persons(sparql_wrapper):
                 assert isinstance(known_person, Person)
 
     assert any_knows, "No 'knows' relationships found in the loaded data"
+    assert any_gender, "No gender information found in the loaded data"
 
 
 def test_get_organization_members(sparql_wrapper):
