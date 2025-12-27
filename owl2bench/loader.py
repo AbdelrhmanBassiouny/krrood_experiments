@@ -47,7 +47,7 @@ class WorldLoader:
         self.world.persons = self._get_persons()
 
         # get all relationships between persons
-        self._update_inter_person_relationships()
+        self._update_person_knows_relationships()
 
         # get all Courses
 
@@ -69,19 +69,21 @@ class WorldLoader:
 
     def _get_persons(self) -> List[Person]:
         """
-        Retrieves all persons with their first name, last name, email, gender and hometown.
+        Retrieves all persons with their attributes.
 
         :return: A list of Person objects.
         """
         query = (
             PREFIXES
             + """
-            SELECT DISTINCT ?x ?firstName ?lastName ?email ?isWoman ?hometown WHERE {
+            SELECT DISTINCT ?x ?firstName ?lastName ?telephone ?age ?email ?title WHERE {
                 ?x rdf:type owl2bench:Person .
                 OPTIONAL { ?x owl2bench:hasFirstName ?firstName }
                 OPTIONAL { ?x owl2bench:hasLastName ?lastName }
+                OPTIONAL { ?x owl2bench:hasTelephone ?telephone }
+                OPTIONAL { ?x owl2bench:hasAge ?age }
                 OPTIONAL { ?x owl2bench:hasEmailAddress ?email }
-                OPTIONAL { ?x rdf:type owl2bench:Woman . BIND(true AS ?isWoman) }
+                OPTIONAL { ?x owl2bench:hasTitle ?title }
             }
             """
         )
@@ -93,13 +95,47 @@ class WorldLoader:
 
         persons = []
         for b in bindings:
+            age_value = b.get("age", {}).get("value", "0")
+            try:
+                age = int(age_value)
+            except ValueError:
+                age = 0
             persons.append(
                 Person(
                     identifier=str(b["x"]["value"]),
-                    first_name=b.get("firstName", {}).get("value"),
-                    last_name=b.get("lastName", {}).get("value"),
-                    email=b.get("email", {}).get("value"),
-                    is_woman=b.get("isWoman", {}).get("value") == "true",
+                    first_name=b.get("firstName", {}).get("value", ""),
+                    last_name=b.get("lastName", {}).get("value", ""),
+                    telephone_number=b.get("telephone", {}).get("value", ""),
+                    age=age,
+                    e_mail_address=b.get("email", {}).get("value", ""),
+                    title=b.get("title", {}).get("value"),
                 )
             )
         return persons
+
+    def _update_person_knows_relationships(self):
+        """
+        Updates the knows relationship between persons.
+        """
+        query = (
+            PREFIXES
+            + """
+            SELECT DISTINCT ?x ?y WHERE {
+                ?x owl2bench:knows ?y .
+            }
+            """
+        )
+
+        # Execute query
+        self.sparql_wrapper.setQuery(query)
+        results = self.sparql_wrapper.query().convert()
+        bindings = results["results"]["bindings"]
+
+        person_map = {p.identifier: p for p in self.world.persons}
+
+        for b in bindings:
+            subj_id = str(b["x"]["value"])
+            obj_id = str(b["y"]["value"])
+
+            if subj_id in person_map and obj_id in person_map:
+                person_map[subj_id].knows.append(person_map[obj_id])
