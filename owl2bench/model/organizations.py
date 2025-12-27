@@ -3,14 +3,15 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from .base import Organization
+from .base import Organization, CollegeDiscipline
 
 if TYPE_CHECKING:
     from .base import Person
 
 
 @dataclass
-class College(Organization): ...
+class College(Organization):
+    disciplines: list[CollegeDiscipline] = field(default_factory=list)
 
 
 @dataclass

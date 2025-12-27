@@ -9,5 +9,6 @@ def pytest_sessionstart(session) -> None:
 
     this_file_path = os.path.abspath(__file__)
     runpy.run_path(
-        os.path.join(this_file_path, "..", "..", "scripts", "generate_orm.py")
+        os.path.join(this_file_path, "..", "..", "scripts", "generate_orm.py"),
+        run_name="__main__",
     )
