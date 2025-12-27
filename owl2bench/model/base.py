@@ -63,3 +63,4 @@ class Person(IdentifiedEntity):
     title: Optional[str]
     knows: List[Person] = field(default_factory=list)
     collaborates_with: List[Person] = field(default_factory=list)
+    is_advised_by: List[Person] = field(default_factory=list)
