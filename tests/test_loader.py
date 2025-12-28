@@ -149,17 +149,42 @@ def test_get_person_advisors(sparql_wrapper):
     assert any_advisors, "No person advisors found in the loaded data"
 
 
+def test_get_person_hometown_relationships(sparql_wrapper):
+    loader = WorldLoader(sparql_wrapper)
+    loader.parse()
+    persons = loader.world.persons
+    assert len(persons) > 0
+    any_hometown_relationships = False
+    for person in persons:
+        if len(person.has_same_hometown_as) > 0:
+            any_hometown_relationships = True
+            for other_person in person.has_same_hometown_as:
+                assert isinstance(other_person, Person)
+
+    assert (
+        any_hometown_relationships
+    ), "No person hometown relationships found in the loaded data"
+
+
 def test_get_courses(sparql_wrapper):
     loader = WorldLoader(sparql_wrapper)
     loader.parse()
     courses = loader.world.courses
     assert len(courses) > 0
     any_person_takes_course = False
+    any_teacher = False
     for course in courses:
         assert isinstance(course, Course)
         assert isinstance(course.identifier, str)
         assert isinstance(course.organization, Organization)
         assert isinstance(course.topic, CollegeDiscipline)
+        assert isinstance(course.teachers, list)
+        if len(course.teachers) > 0:
+            any_teacher = True
+            for teacher in course.teachers:
+                assert isinstance(teacher, Person)
+
+    assert any_teacher, "No Course.teachers relationships found in the loaded data"
 
     for person in loader.world.persons:
         if len(person.takes_course) > 0:
