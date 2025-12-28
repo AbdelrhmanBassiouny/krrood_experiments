@@ -467,53 +467,20 @@ class WorldLoader:
         bindings = results["results"]["bindings"]
 
         disciplines = []
-        # Map of RDF type to Python class
+
+        def get_all_subclasses(cls):
+            all_subclasses = []
+            for subclass in cls.__subclasses__():
+                all_subclasses.append(subclass)
+                all_subclasses.extend(get_all_subclasses(subclass))
+            return all_subclasses
+
+        subclasses = get_all_subclasses(CollegeDiscipline)
         type_mapping = {
-            "http://benchmark/OWL2Bench#Engineering": Engineering,
-            "http://benchmark/OWL2Bench#AeronauticalEngineering": AeronauticalEngineering,
-            "http://benchmark/OWL2Bench#BiomedicalEngineering": BiomedicalEngineering,
-            "http://benchmark/OWL2Bench#ChemicalEngineering": ChemicalEngineering,
-            "http://benchmark/OWL2Bench#CivilEngineering": CivilEngineering,
-            "http://benchmark/OWL2Bench#ComputerEngineering": ComputerEngineering,
-            "http://benchmark/OWL2Bench#ElectricalEngineering": ElectricalEngineering,
-            "http://benchmark/OWL2Bench#IndustryEngineering": IndustryEngineering,
-            "http://benchmark/OWL2Bench#MaterialScienceEngineering": MaterialScienceEngineering,
-            "http://benchmark/OWL2Bench#MechanicalEngineering": MechanicalEngineering,
-            "http://benchmark/OWL2Bench#PetroleumlEngineering": PetroleumlEngineering,
-            "http://benchmark/OWL2Bench#FineArts": FineArts,
-            "http://benchmark/OWL2Bench#Architecture": Architecture,
-            "http://benchmark/OWL2Bench#AsianArts": AsianArts,
-            "http://benchmark/OWL2Bench#Drama": Drama,
-            "http://benchmark/OWL2Bench#LatinArts": LatinArts,
-            "http://benchmark/OWL2Bench#MediaArtsAndSciences": MediaArtsAndSciences,
-            "http://benchmark/OWL2Bench#MedievalArts": MedievalArts,
-            "http://benchmark/OWL2Bench#ModernArts": ModernArts,
-            "http://benchmark/OWL2Bench#MusicsClass": MusicsClass,
-            "http://benchmark/OWL2Bench#PerformingArts": PerformingArts,
-            "http://benchmark/OWL2Bench#TheatreAndDance": TheatreAndDance,
-            "http://benchmark/OWL2Bench#HumanitiesAndSocial": HumanitiesAndSocial,
-            "http://benchmark/OWL2Bench#Anthropology": Anthropology,
-            "http://benchmark/OWL2Bench#Economics": Economics,
-            "http://benchmark/OWL2Bench#English": English,
-            "http://benchmark/OWL2Bench#History": History,
-            "http://benchmark/OWL2Bench#Humanities": Humanities,
-            "http://benchmark/OWL2Bench#Linguistics": Linguistics,
-            "http://benchmark/OWL2Bench#ModernLanguages": ModernLanguages,
-            "http://benchmark/OWL2Bench#Philosophy": Philosophy,
-            "http://benchmark/OWL2Bench#Psychology": Psychology,
-            "http://benchmark/OWL2Bench#Religions": Religions,
-            "http://benchmark/OWL2Bench#Management": Management,
-            "http://benchmark/OWL2Bench#DesignManagement": DesignManagement,
-            "http://benchmark/OWL2Bench#FinancialAndAccountingManagement": FinancialAndAccountingManagement,
-            "http://benchmark/OWL2Bench#HumanResourceManagement": HumanResourceManagement,
-            "http://benchmark/OWL2Bench#MarketingManagement": MarketingManagement,
-            "http://benchmark/OWL2Bench#OperationsManagement": OperationsManagement,
-            "http://benchmark/OWL2Bench#ProjectManagement": ProjectManagement,
-            "http://benchmark/OWL2Bench#PublicRelationsManagement": PublicRelationsManagement,
-            "http://benchmark/OWL2Bench#RiskManagement": RiskManagement,
-            "http://benchmark/OWL2Bench#SalesManagement": SalesManagement,
-            "http://benchmark/OWL2Bench#SupplyChainManagement": SupplyChainManagement,
+            f"http://benchmark/OWL2Bench#{cls.__name__}": cls for cls in subclasses
         }
+        # Also include the base class itself
+        type_mapping["http://benchmark/OWL2Bench#CollegeDiscipline"] = CollegeDiscipline
 
         for b in bindings:
             discipline_type = b["type"]["value"]
@@ -564,7 +531,7 @@ class WorldLoader:
         query = (
             PREFIXES
             + """
-            SELECT DISTINCT ?x ?org ?teacher WHERE {
+            SELECT DISTINCT ?x ?type ?org ?teacher WHERE {
                 ?x rdf:type ?type .
                 ?type rdfs:subClassOf* owl2bench:Course .
                 ?org owl2bench:offerCourse ?x .
@@ -579,6 +546,7 @@ class WorldLoader:
 
         org_map = {o.identifier: o for o in self.world.organizations}
         person_map = {p.identifier: p for p in self.world.persons}
+        discipline_map = {d.identifier: d for d in self.world.college_disciplines}
 
         # First, group bindings by course identifier to handle multiple teachers
         course_data = {}
@@ -586,6 +554,7 @@ class WorldLoader:
             course_identifier = str(b["x"]["value"])
             if course_identifier not in course_data:
                 course_data[course_identifier] = {
+                    "type": b.get("type", {}).get("value"),
                     "org_identifier": b.get("org", {}).get("value"),
                     "teachers": [],
                 }
@@ -601,26 +570,64 @@ class WorldLoader:
             org_identifier = data["org_identifier"]
             organization = org_map.get(org_identifier)
             teachers = data["teachers"]
+            course_type = data["type"]
 
             topic = None
-            if isinstance(organization, College) and organization.disciplines:
-                topic = organization.disciplines[0]
-            elif isinstance(organization, Department):
-                current_org = organization
-                while current_org:
-                    if isinstance(current_org, College) and current_org.disciplines:
-                        topic = current_org.disciplines[0]
-                        break
-                    if current_org.is_part_of:
-                        current_org = current_org.is_part_of[0]
+            # Try to infer topic from course type name
+            if course_type:
+                topic_name = course_type.split("#")[-1]
+                # Many course types are named like 'AeronauticalEngineeringCourse'
+                if topic_name.endswith("Course"):
+                    discipline_name = topic_name[:-6]
+                    discipline_identifier = (
+                        f"http://benchmark/OWL2Bench#{discipline_name}"
+                    )
+                    topic = discipline_map.get(discipline_identifier)
+
+            if not topic:
+                if isinstance(organization, College) and organization.disciplines:
+                    # Prefer specific disciplines over generic ones
+                    specific_disciplines = [
+                        d
+                        for d in organization.disciplines
+                        if type(d) is not CollegeDiscipline
+                    ]
+                    if specific_disciplines:
+                        topic = specific_disciplines[0]
                     else:
-                        break
-                    if current_org == organization:
-                        break
+                        topic = organization.disciplines[0]
+                elif isinstance(organization, Department):
+                    current_org = organization
+                    visited = set()
+                    while current_org and current_org.identifier not in visited:
+                        visited.add(current_org.identifier)
+                        if isinstance(current_org, College) and current_org.disciplines:
+                            specific_disciplines = [
+                                d
+                                for d in current_org.disciplines
+                                if type(d) is not CollegeDiscipline
+                            ]
+                            if specific_disciplines:
+                                topic = specific_disciplines[0]
+                            else:
+                                topic = current_org.disciplines[0]
+                            break
+                        if current_org.is_part_of:
+                            current_org = current_org.is_part_of[0]
+                        else:
+                            break
 
             if organization:
                 if not topic and self.world.college_disciplines:
-                    topic = self.world.college_disciplines[0]
+                    specific_disciplines = [
+                        d
+                        for d in self.world.college_disciplines
+                        if type(d) is not CollegeDiscipline
+                    ]
+                    if specific_disciplines:
+                        topic = specific_disciplines[0]
+                    else:
+                        topic = self.world.college_disciplines[0]
 
                 if topic:
                     courses.append(

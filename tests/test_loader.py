@@ -110,13 +110,25 @@ def test_get_college_disciplines(sparql_wrapper):
     colleges = [org for org in loader.world.organizations if isinstance(org, College)]
     assert len(colleges) > 0
     any_disciplines = False
+    any_specific_disciplines = False
     for college in colleges:
         if len(college.disciplines) > 0:
             any_disciplines = True
             for discipline in college.disciplines:
                 assert isinstance(discipline, CollegeDiscipline)
+                if type(discipline) is not CollegeDiscipline:
+                    any_specific_disciplines = True
 
     assert any_disciplines, "No college disciplines found in the loaded data"
+    # We expect some specific subclasses to be present in the loaded disciplines globally
+    any_specific_disciplines_global = False
+    for discipline in loader.world.college_disciplines:
+        if type(discipline) is not CollegeDiscipline:
+            any_specific_disciplines_global = True
+            break
+    assert (
+        any_specific_disciplines_global
+    ), "No specific college discipline subclasses found in the loaded data"
 
 
 def test_get_person_collaborations(sparql_wrapper):
@@ -185,6 +197,13 @@ def test_get_courses(sparql_wrapper):
                 assert isinstance(teacher, Person)
 
     assert any_teacher, "No Course.teachers relationships found in the loaded data"
+
+    any_specific_topic = False
+    for course in courses:
+        if type(course.topic) is not CollegeDiscipline:
+            any_specific_topic = True
+            break
+    assert any_specific_topic, "No Course.topic with a specific subclass found"
 
     for person in loader.world.persons:
         if len(person.takes_course) > 0:
