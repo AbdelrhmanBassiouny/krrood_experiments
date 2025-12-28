@@ -29,9 +29,11 @@ class Interest(IdentifiedEntity): ...
 @dataclass
 class Organization(IdentifiedEntity):
     head: Optional[Person] = None
-    members: List[Person] = field(default_factory=list)
-    is_part_of: List[Organization] = field(default_factory=list)
-    affiliated_organizations: List[Organization] = field(default_factory=list)
+    members: List[Person] = field(default_factory=list, repr=False)
+    is_part_of: List[Organization] = field(default_factory=list, repr=False)
+    affiliated_organizations: List[Organization] = field(
+        default_factory=list, repr=False
+    )
 
 
 @dataclass
@@ -40,13 +42,13 @@ class Program(IdentifiedEntity): ...
 
 @dataclass
 class Work(IdentifiedEntity):
-    organization: Organization
+    organization: Organization = field(repr=False)
 
 
 @dataclass
 class Course(Work):
     topic: CollegeDiscipline
-    teachers: List[Person] = field(default_factory=list)
+    teachers: List[Person] = field(default_factory=list, repr=False)
 
 
 @dataclass
@@ -55,7 +57,7 @@ class ResearchProject(Work): ...
 
 @dataclass
 class Publication(IdentifiedEntity):
-    authors: List[Person] = field(default_factory=list)
+    authors: List[Person] = field(default_factory=list, repr=False)
 
 
 @dataclass
@@ -67,10 +69,10 @@ class Person(IdentifiedEntity):
     age: Optional[str] = field(repr=False)
     e_mail_address: str = field(repr=False)
     title: Optional[str] = field(repr=False)
-    knows: List[Person] = field(default_factory=list)
-    collaborates_with: List[Person] = field(default_factory=list)
-    is_advised_by: List[Person] = field(default_factory=list)
-    takes_course: List[Course] = field(default_factory=list)
-    enrolled_in: List[Program] = field(default_factory=list)
-    hobbies: List[Interest] = field(default_factory=list)
-    has_same_hometown_as: List[Person] = field(default_factory=list)
+    knows: List[Person] = field(default_factory=list, repr=False)
+    collaborates_with: List[Person] = field(default_factory=list, repr=False)
+    is_advised_by: List[Person] = field(default_factory=list, repr=False)
+    takes_course: List[Course] = field(default_factory=list, repr=False)
+    enrolled_in: List[Program] = field(default_factory=list, repr=False)
+    hobbies: List[Interest] = field(default_factory=list, repr=False)
+    has_same_hometown_as: List[Person] = field(default_factory=list, repr=False)
