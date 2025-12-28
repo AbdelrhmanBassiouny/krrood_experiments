@@ -76,8 +76,8 @@ sqlalchemy_q14 = (
 q14 = SQLAlchemyQuery(sparql_queries.q14, sqlalchemy_q14)
 
 
-sqlalchemy_q15 = select()
-q15 = SQLAlchemyQuery(sparql_queries.q15, sqlalchemy_q12)
+sqlalchemy_q15 = select(OrganizationDAO.head_id).where(OrganizationDAO.head_id != None)
+q15 = SQLAlchemyQuery(sparql_queries.q15, sqlalchemy_q15)
 
 
 all_queries = [
@@ -94,4 +94,5 @@ all_queries = [
     q12,
     q13,
     #  q14,
+    q15,
 ]

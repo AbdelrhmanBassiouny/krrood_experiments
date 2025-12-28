@@ -844,6 +844,15 @@ class OrganizationDAO(
         use_existing_column=True,
     )
 
+    head_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
+        ForeignKey("PersonDAO.database_id", use_alter=True),
+        nullable=True,
+        use_existing_column=True,
+    )
+
+    head: Mapped[PersonDAO] = relationship(
+        "PersonDAO", uselist=False, foreign_keys=[head_id], post_update=True
+    )
     members: Mapped[typing.List[PersonDAO]] = relationship(
         "PersonDAO",
         secondary="organizationdao_members_association",
