@@ -1,40 +1,25 @@
 import os
-import sys
-from tempfile import NamedTemporaryFile
 
 import SPARQLWrapper
 import pytest
 from krrood.ormatic.dao import to_dao
 from krrood.ormatic.utils import drop_database, create_engine
-from rdflib import Graph
 from sqlalchemy.orm import sessionmaker
 
-import owl2bench.sqlalchemy_queries  # type: ignore
 import owl2bench.sparql_queries  # type: ignore
-from owl2bench.loader import WorldLoader
+import owl2bench.sqlalchemy_queries  # type: ignore
 from owl2bench.orm.ormatic_interface import *
 
 
-def get_world_from_graph_db():
-    sys.setrecursionlimit(10000)
-    sparql = SPARQLWrapper.SPARQLWrapper("http://localhost:7200/repositories/KRROOD")
-    sparql.setReturnFormat(SPARQLWrapper.JSON)
-    loader = WorldLoader(sparql)
-    loader.parse()
-    return loader.world
-
-
 @pytest.fixture(scope="session")
-def sqlalchemy_session():
+def sqlalchemy_session(world_from_graph_db):
     engine = create_engine(os.environ["KRROOD_EXPERIMENTS_DATABASE_URI"])
     drop_database(engine)
     Base.metadata.create_all(engine)
 
     session = sessionmaker(engine)()
 
-    world = get_world_from_graph_db()
-
-    dao: WorldDAO = to_dao(world)
+    dao: WorldDAO = to_dao(world_from_graph_db)
 
     session.add(dao)
     session.commit()
