@@ -4,6 +4,7 @@ import SPARQLWrapper
 import pytest
 from krrood.ormatic.dao import to_dao
 from krrood.ormatic.utils import drop_database, create_engine
+from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
 import owl2bench.sparql_queries  # type: ignore
@@ -52,3 +53,10 @@ def test_query(sqlalchemy_session, sql_query_obj):
 
 def test_db_setup(sqlalchemy_session):
     assert sqlalchemy_session.query(WorldDAO).count() == 1
+    r = sqlalchemy_session.scalars(
+        select(IdentifiedEntityDAO.polymorphic_type).where(
+            IdentifiedEntityDAO.identifier == "http://benchmark/OWL2Bench#U0C3D2"
+        )
+    ).all()
+
+    print(list(r))
