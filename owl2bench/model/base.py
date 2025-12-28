@@ -46,6 +46,7 @@ class Work(IdentifiedEntity):
 @dataclass
 class Course(Work):
     topic: CollegeDiscipline
+    teachers: List[Person] = field(default_factory=list)
 
 
 @dataclass
@@ -61,14 +62,15 @@ class Publication(IdentifiedEntity):
 class Person(IdentifiedEntity):
     first_name: str
     last_name: str
-    gender: Optional[str]
-    telephone_number: str
-    age: Optional[str]
-    e_mail_address: str
-    title: Optional[str]
+    gender: Optional[str] = field(repr=False)
+    telephone_number: str = field(repr=False)
+    age: Optional[str] = field(repr=False)
+    e_mail_address: str = field(repr=False)
+    title: Optional[str] = field(repr=False)
     knows: List[Person] = field(default_factory=list)
     collaborates_with: List[Person] = field(default_factory=list)
     is_advised_by: List[Person] = field(default_factory=list)
     takes_course: List[Course] = field(default_factory=list)
     enrolled_in: List[Program] = field(default_factory=list)
     hobbies: List[Interest] = field(default_factory=list)
+    has_same_hometown_as: List[Person] = field(default_factory=list)

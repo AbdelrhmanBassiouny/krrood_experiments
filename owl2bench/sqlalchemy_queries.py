@@ -98,6 +98,19 @@ sqlalchemy_q18 = (
 )
 q18 = SQLAlchemyQuery(sparql_queries.q18, sqlalchemy_q18)
 
+sqlalchemy_q19 = select(coursedao_teachers_association.c.target_persondao_id).distinct()
+q19 = SQLAlchemyQuery(sparql_queries.q19, sqlalchemy_q19)
+
+sqlalchemy_q20 = select(persondao_has_same_hometown_as_association)
+q20 = SQLAlchemyQuery(sparql_queries.q20, sqlalchemy_q20)
+
+sqlalchemy_q21 = select(
+    PersonDAO.takes_course.any(
+        CourseDAO.topic_id.in_(select(EngineeringDAO.database_id))
+    )
+)
+q21 = SQLAlchemyQuery(sparql_queries.q21, sqlalchemy_q21)
+
 all_queries = [
     q1,
     q2,
@@ -116,4 +129,7 @@ all_queries = [
     q16,
     q17,
     # q18,
+    q19,
+    q20,
+    q21,
 ]

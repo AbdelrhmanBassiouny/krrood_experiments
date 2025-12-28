@@ -54,6 +54,7 @@ class WorldLoader:
         self._update_person_knows_relationships()
         self._update_person_collaborations()
         self._update_person_advisors()
+        self._update_person_hometown_relationships()
 
         # get all organizations
         self.world.organizations = self._get_organizations()
@@ -304,6 +305,35 @@ class WorldLoader:
                     person_map[object_identifier]
                 )
 
+    def _update_person_hometown_relationships(self):
+        """
+        Updates the hasSameHomeTownWith relationship between persons.
+        """
+        query = (
+            PREFIXES
+            + """
+            SELECT DISTINCT ?x ?y WHERE {
+                ?x owl2bench:hasSameHomeTownWith ?y .
+            }
+            """
+        )
+
+        # Execute query
+        self.sparql_wrapper.setQuery(query)
+        results = self.sparql_wrapper.query().convert()
+        bindings = results["results"]["bindings"]
+
+        person_map = {p.identifier: p for p in self.world.persons}
+
+        for b in bindings:
+            subject_identifier = str(b["x"]["value"])
+            object_identifier = str(b["y"]["value"])
+
+            if subject_identifier in person_map and object_identifier in person_map:
+                person_map[subject_identifier].has_same_hometown_as.append(
+                    person_map[object_identifier]
+                )
+
     def _update_organization_is_part_of_relationships(self):
         """
         Updates the isPartOf relationship between organizations.
@@ -527,17 +557,18 @@ class WorldLoader:
 
     def _get_courses(self) -> List[Course]:
         """
-        Retrieves all courses with their organization and topic.
+        Retrieves all courses with their organization, topic and teachers.
 
         :return: A list of Course objects.
         """
         query = (
             PREFIXES
             + """
-            SELECT DISTINCT ?x ?org WHERE {
+            SELECT DISTINCT ?x ?org ?teacher WHERE {
                 ?x rdf:type ?type .
                 ?type rdfs:subClassOf* owl2bench:Course .
                 ?org owl2bench:offerCourse ?x .
+                OPTIONAL { ?x owl2bench:isTaughtBy ?teacher . }
             }
             """
         )
@@ -547,35 +578,34 @@ class WorldLoader:
         bindings = results["results"]["bindings"]
 
         org_map = {o.identifier: o for o in self.world.organizations}
-        # For courses, topic seems to be linked to the organization (department/college)
-        # In OWL2Bench, courses are often offered by departments which have a discipline.
-        # Let's see if we can find the topic through the department.
+        person_map = {p.identifier: p for p in self.world.persons}
 
-        courses = []
+        # First, group bindings by course identifier to handle multiple teachers
+        course_data = {}
         for b in bindings:
             course_identifier = str(b["x"]["value"])
-            org_identifier = b.get("org", {}).get("value")
+            if course_identifier not in course_data:
+                course_data[course_identifier] = {
+                    "org_identifier": b.get("org", {}).get("value"),
+                    "teachers": [],
+                }
 
+            teacher_identifier = b.get("teacher", {}).get("value")
+            if teacher_identifier and teacher_identifier in person_map:
+                course_data[course_identifier]["teachers"].append(
+                    person_map[teacher_identifier]
+                )
+
+        courses = []
+        for course_identifier, data in course_data.items():
+            org_identifier = data["org_identifier"]
             organization = org_map.get(org_identifier)
+            teachers = data["teachers"]
+
             topic = None
             if isinstance(organization, College) and organization.disciplines:
                 topic = organization.disciplines[0]
-            # If it's a department, we might need to find the college it's part of
             elif isinstance(organization, Department):
-                # find college this department belongs to
-                for potential_college in self.world.organizations:
-                    if (
-                        isinstance(potential_college, College)
-                        and organization in potential_college.members
-                    ):  # This might not be the right way
-                        pass
-                # Better: check isPartOf
-                for org in self.world.organizations:
-                    if (
-                        organization in org.is_part_of
-                    ):  # Wait, isPartOf is usually child -> parent
-                        pass
-                # Let's try to find a parent college
                 current_org = organization
                 while current_org:
                     if isinstance(current_org, College) and current_org.disciplines:
@@ -585,26 +615,20 @@ class WorldLoader:
                         current_org = current_org.is_part_of[0]
                     else:
                         break
+                    if current_org == organization:
+                        break
 
-            if organization and topic:
-                courses.append(
-                    Course(
-                        identifier=course_identifier,
-                        organization=organization,
-                        topic=topic,
-                    )
-                )
-            elif organization:
-                # Fallback: if no topic found, use a dummy or just skip for now if mandatory
-                # For now, let's just use the first discipline we find in the world if desperate,
-                # or just skip. The test requires topic to be CollegeDiscipline.
-                if self.world.college_disciplines:
+            if organization:
+                if not topic and self.world.college_disciplines:
                     topic = self.world.college_disciplines[0]
+
+                if topic:
                     courses.append(
                         Course(
                             identifier=course_identifier,
                             organization=organization,
                             topic=topic,
+                            teachers=teachers,
                         )
                     )
             else:
