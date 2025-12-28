@@ -68,3 +68,4 @@ class Person(IdentifiedEntity):
     collaborates_with: List[Person] = field(default_factory=list)
     is_advised_by: List[Person] = field(default_factory=list)
     takes_course: List[Course] = field(default_factory=list)
+    enrolled_in: List[Program] = field(default_factory=list)

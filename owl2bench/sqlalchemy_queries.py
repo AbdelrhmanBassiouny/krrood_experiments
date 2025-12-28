@@ -79,6 +79,16 @@ q14 = SQLAlchemyQuery(sparql_queries.q14, sqlalchemy_q14)
 sqlalchemy_q15 = select(OrganizationDAO.head_id).where(OrganizationDAO.head_id != None)
 q15 = SQLAlchemyQuery(sparql_queries.q15, sqlalchemy_q15)
 
+sqlalchemy_q16 = select(OrganizationDAO).where(OrganizationDAO.head_id != None)
+q16 = SQLAlchemyQuery(sparql_queries.q16, sqlalchemy_q16)
+
+sqlalchemy_q17 = (
+    select(PersonDAO)
+    .join(PersonDAO.enrolled_in)
+    .group_by(PersonDAO)
+    .having(func.count(UndergraduateProgramDAO.database_id) == 1)
+)
+q17 = SQLAlchemyQuery(sparql_queries.q17, sqlalchemy_q17)
 
 all_queries = [
     q1,
@@ -95,4 +105,6 @@ all_queries = [
     q13,
     #  q14,
     q15,
+    q16,
+    q17,
 ]
