@@ -9,6 +9,7 @@ class World:
     organizations: List[Organization] = field(default_factory=list)
     college_disciplines: List[CollegeDiscipline] = field(default_factory=list)
     courses: List[Course] = field(default_factory=list)
+    programs: List[Program] = field(default_factory=list)
 
 
 @dataclass

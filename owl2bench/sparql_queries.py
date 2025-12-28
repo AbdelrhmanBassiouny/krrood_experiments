@@ -246,7 +246,7 @@ q17 = SPARQLQuery(
     number=17,
     raw_sparql_string=PREFIXES
     + """
-    SELECT  DISTINCT  ?x  WHERE {?x  rdf:type  :UGStudent}
+    SELECT  DISTINCT  ?x  WHERE {?x  rdf:type  owl2bench:UGStudent}
     """,
     description="Find all the instances of class UGStudent. UGStudent is a Student who enrolls in exactly one UGProgram.",
     construct_involved="ObjectExactCardinality",
