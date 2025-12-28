@@ -87,6 +87,12 @@ persondao_takes_course_association = Table(
     Column("source_persondao_id", ForeignKey("PersonDAO.database_id")),
     Column("target_coursedao_id", ForeignKey("CourseDAO.database_id")),
 )
+persondao_enrolled_in_association = Table(
+    "persondao_enrolled_in_association",
+    Base.metadata,
+    Column("source_persondao_id", ForeignKey("PersonDAO.database_id")),
+    Column("target_programdao_id", ForeignKey("ProgramDAO.database_id")),
+)
 publicationdao_authors_association = Table(
     "publicationdao_authors_association",
     Base.metadata,
@@ -1013,6 +1019,13 @@ class PersonDAO(IdentifiedEntityDAO, DataAccessObject[owl2bench.model.base.Perso
         secondary="persondao_takes_course_association",
         primaryjoin="PersonDAO.database_id == persondao_takes_course_association.c.source_persondao_id",
         secondaryjoin="CourseDAO.database_id == persondao_takes_course_association.c.target_coursedao_id",
+        cascade="save-update, merge",
+    )
+    enrolled_in: Mapped[typing.List[ProgramDAO]] = relationship(
+        "ProgramDAO",
+        secondary="persondao_enrolled_in_association",
+        primaryjoin="PersonDAO.database_id == persondao_enrolled_in_association.c.source_persondao_id",
+        secondaryjoin="ProgramDAO.database_id == persondao_enrolled_in_association.c.target_programdao_id",
         cascade="save-update, merge",
     )
 
