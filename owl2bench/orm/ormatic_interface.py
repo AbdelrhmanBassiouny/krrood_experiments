@@ -93,6 +93,12 @@ persondao_enrolled_in_association = Table(
     Column("source_persondao_id", ForeignKey("PersonDAO.database_id")),
     Column("target_programdao_id", ForeignKey("ProgramDAO.database_id")),
 )
+persondao_hobbies_association = Table(
+    "persondao_hobbies_association",
+    Base.metadata,
+    Column("source_persondao_id", ForeignKey("PersonDAO.database_id")),
+    Column("target_interestdao_id", ForeignKey("InterestDAO.database_id")),
+)
 publicationdao_authors_association = Table(
     "publicationdao_authors_association",
     Base.metadata,
@@ -136,6 +142,12 @@ worlddao_programs_association = Table(
     Base.metadata,
     Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
     Column("target_programdao_id", ForeignKey("ProgramDAO.database_id")),
+)
+worlddao_interests_association = Table(
+    "worlddao_interests_association",
+    Base.metadata,
+    Column("source_worlddao_id", ForeignKey("WorldDAO.database_id")),
+    Column("target_interestdao_id", ForeignKey("InterestDAO.database_id")),
 )
 
 
@@ -1034,6 +1046,13 @@ class PersonDAO(IdentifiedEntityDAO, DataAccessObject[owl2bench.model.base.Perso
         secondaryjoin="ProgramDAO.database_id == persondao_enrolled_in_association.c.target_programdao_id",
         cascade="save-update, merge",
     )
+    hobbies: Mapped[typing.List[InterestDAO]] = relationship(
+        "InterestDAO",
+        secondary="persondao_hobbies_association",
+        primaryjoin="PersonDAO.database_id == persondao_hobbies_association.c.source_persondao_id",
+        secondaryjoin="InterestDAO.database_id == persondao_hobbies_association.c.target_interestdao_id",
+        cascade="save-update, merge",
+    )
 
     __mapper_args__ = {
         "polymorphic_identity": "PersonDAO",
@@ -1748,5 +1767,12 @@ class WorldDAO(Base, DataAccessObject[owl2bench.model.base.World]):
         secondary="worlddao_programs_association",
         primaryjoin="WorldDAO.database_id == worlddao_programs_association.c.source_worlddao_id",
         secondaryjoin="ProgramDAO.database_id == worlddao_programs_association.c.target_programdao_id",
+        cascade="save-update, merge",
+    )
+    interests: Mapped[typing.List[InterestDAO]] = relationship(
+        "InterestDAO",
+        secondary="worlddao_interests_association",
+        primaryjoin="WorldDAO.database_id == worlddao_interests_association.c.source_worlddao_id",
+        secondaryjoin="InterestDAO.database_id == worlddao_interests_association.c.target_interestdao_id",
         cascade="save-update, merge",
     )

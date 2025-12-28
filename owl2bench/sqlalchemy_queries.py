@@ -90,6 +90,14 @@ sqlalchemy_q17 = (
 )
 q17 = SQLAlchemyQuery(sparql_queries.q17, sqlalchemy_q17)
 
+sqlalchemy_q18 = (
+    select(PersonDAO)
+    .join(PersonDAO.hobbies)
+    .group_by(PersonDAO)
+    .having(func.count(InterestDAO.database_id) >= 3)
+)
+q18 = SQLAlchemyQuery(sparql_queries.q18, sqlalchemy_q18)
+
 all_queries = [
     q1,
     q2,
@@ -107,4 +115,5 @@ all_queries = [
     q15,
     q16,
     q17,
+    # q18,
 ]

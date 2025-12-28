@@ -13,6 +13,7 @@ from owl2bench.model.base import (
     CollegeDiscipline,
     Course,
     Program,
+    Interest,
 )
 from owl2bench.model.organizations import University, College
 
@@ -199,3 +200,22 @@ def test_get_programs(sparql_wrapper):
                 assert isinstance(program, Program)
 
     assert any_enrolled, "No person enrolled_in relationships found"
+
+
+def test_get_interests(sparql_wrapper):
+    loader = WorldLoader(sparql_wrapper)
+    loader.parse()
+    interests = loader.world.interests
+    assert len(interests) > 0
+    any_hobbies = False
+    for interest in interests:
+        assert isinstance(interest, Interest)
+        assert isinstance(interest.identifier, str)
+
+    for person in loader.world.persons:
+        if len(person.hobbies) > 0:
+            any_hobbies = True
+            for interest in person.hobbies:
+                assert isinstance(interest, Interest)
+
+    assert any_hobbies, "No person hobbies found in the loaded data"
