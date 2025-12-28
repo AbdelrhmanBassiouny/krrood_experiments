@@ -84,7 +84,7 @@ q16 = SQLAlchemyQuery(sparql_queries.q16, sqlalchemy_q16)
 
 sqlalchemy_q17 = (
     select(PersonDAO)
-    .join(PersonDAO.enrolled_in)
+    .join(PersonDAO.enrolled_in.of_type(UndergraduateProgramDAO))
     .group_by(PersonDAO)
     .having(func.count(UndergraduateProgramDAO.database_id) == 1)
 )

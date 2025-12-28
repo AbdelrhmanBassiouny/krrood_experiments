@@ -7,7 +7,13 @@ import rdflib
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 from owl2bench.loader import WorldLoader, OntologyLoadError
-from owl2bench.model.base import Person, Organization, CollegeDiscipline, Course
+from owl2bench.model.base import (
+    Person,
+    Organization,
+    CollegeDiscipline,
+    Course,
+    Program,
+)
 from owl2bench.model.organizations import University, College
 
 
@@ -175,3 +181,21 @@ def test_get_organization_heads(sparql_wrapper):
             assert isinstance(org.head, Person)
 
     assert any_heads, "No organization heads found in the loaded data"
+
+
+def test_get_programs(sparql_wrapper):
+    loader = WorldLoader(sparql_wrapper)
+    loader.parse()
+    programs = loader.world.programs
+    assert len(programs) > 0
+    any_enrolled = False
+    for program in programs:
+        assert isinstance(program.identifier, str)
+
+    for person in loader.world.persons:
+        if len(person.enrolled_in) > 0:
+            any_enrolled = True
+            for program in person.enrolled_in:
+                assert isinstance(program, Program)
+
+    assert any_enrolled, "No person enrolled_in relationships found"

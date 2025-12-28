@@ -11,6 +11,7 @@ from rdflib import Graph, Namespace, RDF, RDFS, URIRef, Literal
 from .model.base import *
 from .model.organizations import *
 from .model.college_disciplines import *
+from .model.programs import *
 
 
 class OntologyLoadError(Exception):
@@ -82,6 +83,8 @@ class WorldLoader:
         self._update_person_takes_course()
 
         # get all Programs
+        self.world.programs = self._get_programs()
+        self._update_person_enrolled_in()
 
         # get all Publications
 
@@ -633,4 +636,72 @@ class WorldLoader:
             if person_identifier in person_map and course_identifier in course_map:
                 person_map[person_identifier].takes_course.append(
                     course_map[course_identifier]
+                )
+
+    def _get_programs(self) -> List[Program]:
+        """
+        Retrieves all programs.
+
+        :return: A list of Program objects.
+        """
+        query = (
+            PREFIXES
+            + """
+            SELECT DISTINCT ?x ?type WHERE {
+                ?x rdf:type ?type .
+                FILTER(?type IN (owl2bench:UGProgram, owl2bench:PGProgram, owl2bench:PhDProgram, owl2bench:Program))
+            }
+            """
+        )
+
+        self.sparql_wrapper.setQuery(query)
+        results = self.sparql_wrapper.query().convert()
+        bindings = results["results"]["bindings"]
+
+        type_mapping = {
+            "http://benchmark/OWL2Bench#UGProgram": UndergraduateProgram,
+            "http://benchmark/OWL2Bench#PGProgram": PostgraduateProgram,
+            "http://benchmark/OWL2Bench#PhDProgram": PhDProgram,
+        }
+
+        programs_dict = {}
+        for b in bindings:
+            identifier = str(b["x"]["value"])
+            program_type = b["type"]["value"]
+            cls = type_mapping.get(program_type)
+
+            if identifier not in programs_dict or cls:
+                programs_dict[identifier] = cls or Program
+
+        return [cls(identifier=id) for id, cls in programs_dict.items()]
+
+    def _update_person_enrolled_in(self):
+        """
+        Updates the enrolledIn relationship between persons and programs.
+        """
+        query = (
+            PREFIXES
+            + """
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            SELECT DISTINCT ?person ?program WHERE {
+                ?p rdfs:subPropertyOf* owl2bench:enrollFor .
+                ?person ?p ?program .
+            }
+            """
+        )
+
+        self.sparql_wrapper.setQuery(query)
+        results = self.sparql_wrapper.query().convert()
+        bindings = results["results"]["bindings"]
+
+        person_map = {p.identifier: p for p in self.world.persons}
+        program_map = {pr.identifier: pr for pr in self.world.programs}
+
+        for b in bindings:
+            person_identifier = str(b["person"]["value"])
+            program_identifier = str(b["program"]["value"])
+
+            if person_identifier in person_map and program_identifier in program_map:
+                person_map[person_identifier].enrolled_in.append(
+                    program_map[program_identifier]
                 )
