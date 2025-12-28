@@ -161,3 +161,17 @@ def test_get_courses(sparql_wrapper):
                 assert isinstance(course, Course)
 
     assert any_person_takes_course, "No person takes_course relationships found"
+
+
+def test_get_organization_heads(sparql_wrapper):
+    loader = WorldLoader(sparql_wrapper)
+    loader.parse()
+    organizations = loader.world.organizations
+    assert len(organizations) > 0
+    any_heads = False
+    for org in organizations:
+        if org.head is not None:
+            any_heads = True
+            assert isinstance(org.head, Person)
+
+    assert any_heads, "No organization heads found in the loaded data"
