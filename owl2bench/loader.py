@@ -12,6 +12,7 @@ from .model.base import *
 from .model.organizations import *
 from .model.college_disciplines import *
 from .model.programs import *
+from .model.interests import *
 
 
 class OntologyLoadError(Exception):
@@ -85,6 +86,10 @@ class WorldLoader:
         # get all Programs
         self.world.programs = self._get_programs()
         self._update_person_enrolled_in()
+
+        # get all interests
+        self.world.interests = self._get_interests()
+        self._update_person_hobbies()
 
         # get all Publications
 
@@ -704,4 +709,78 @@ class WorldLoader:
             if person_identifier in person_map and program_identifier in program_map:
                 person_map[person_identifier].enrolled_in.append(
                     program_map[program_identifier]
+                )
+
+    def _get_interests(self) -> List[Interest]:
+        """
+        Retrieves all interests.
+
+        :return: A list of Interest objects.
+        """
+        query = (
+            PREFIXES
+            + """
+            SELECT DISTINCT ?x ?type WHERE {
+                ?x rdf:type ?type .
+                ?type rdfs:subClassOf* owl2bench:Interest .
+            }
+            """
+        )
+
+        self.sparql_wrapper.setQuery(query)
+        results = self.sparql_wrapper.query().convert()
+        bindings = results["results"]["bindings"]
+
+        interests = []
+        # Map of RDF type to Python class
+        type_mapping = {
+            "http://benchmark/OWL2Bench#Interest": Interest,
+            "http://benchmark/OWL2Bench#Game": Game,
+            "http://benchmark/OWL2Bench#Movie": Movie,
+            "http://benchmark/OWL2Bench#Music": Music,
+            "http://benchmark/OWL2Bench#Painting": Painting,
+            "http://benchmark/OWL2Bench#Reading": Reading,
+            "http://benchmark/OWL2Bench#Travelling": Travelling,
+            "http://benchmark/OWL2Bench#Sports": Sports,
+            "http://benchmark/OWL2Bench#Badminton": Badminton,
+            "http://benchmark/OWL2Bench#BasketBall": BasketBall,
+            "http://benchmark/OWL2Bench#Cricket": Cricket,
+            "http://benchmark/OWL2Bench#FootBall": FootBall,
+            "http://benchmark/OWL2Bench#Swimming": Swimming,
+            "http://benchmark/OWL2Bench#Tennis": Tennis,
+        }
+
+        for b in bindings:
+            interest_type = b["type"]["value"]
+            cls = type_mapping.get(interest_type, Interest)
+            interests.append(cls(identifier=str(b["x"]["value"])))
+        return interests
+
+    def _update_person_hobbies(self):
+        """
+        Updates the hobbies relationship for persons.
+        """
+        query = (
+            PREFIXES
+            + """
+            SELECT DISTINCT ?person ?interest WHERE {
+                ?person owl2bench:likes ?interest .
+            }
+            """
+        )
+
+        self.sparql_wrapper.setQuery(query)
+        results = self.sparql_wrapper.query().convert()
+        bindings = results["results"]["bindings"]
+
+        person_map = {p.identifier: p for p in self.world.persons}
+        interest_map = {i.identifier: i for i in self.world.interests}
+
+        for b in bindings:
+            person_identifier = str(b["person"]["value"])
+            interest_identifier = str(b["interest"]["value"])
+
+            if person_identifier in person_map and interest_identifier in interest_map:
+                person_map[person_identifier].hobbies.append(
+                    interest_map[interest_identifier]
                 )

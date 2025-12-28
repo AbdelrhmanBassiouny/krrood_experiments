@@ -257,7 +257,7 @@ q18 = SPARQLQuery(
     number=18,
     raw_sparql_string=PREFIXES
     + """
-    SELECT DISTINCT ?x WHERE { ?x rdf:type :PeopleWithManyHobbies}
+    SELECT DISTINCT ?x WHERE { ?x rdf:type owl2bench:PeopleWithManyHobbies}
     """,
     description="Find all the instances of class PeopleWithManyHobbies. PeopleWithManyHobbies is a Person who has minimum 3 Hobbies.",
     construct_involved="ObjectMinCardinality",

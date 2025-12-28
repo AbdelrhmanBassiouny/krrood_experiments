@@ -10,6 +10,7 @@ class World:
     college_disciplines: List[CollegeDiscipline] = field(default_factory=list)
     courses: List[Course] = field(default_factory=list)
     programs: List[Program] = field(default_factory=list)
+    interests: List[Interest] = field(default_factory=list)
 
 
 @dataclass
@@ -70,3 +71,4 @@ class Person(IdentifiedEntity):
     is_advised_by: List[Person] = field(default_factory=list)
     takes_course: List[Course] = field(default_factory=list)
     enrolled_in: List[Program] = field(default_factory=list)
+    hobbies: List[Interest] = field(default_factory=list)
