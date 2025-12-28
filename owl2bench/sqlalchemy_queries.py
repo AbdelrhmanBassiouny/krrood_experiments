@@ -104,11 +104,29 @@ q19 = SQLAlchemyQuery(sparql_queries.q19, sqlalchemy_q19)
 sqlalchemy_q20 = select(persondao_has_same_hometown_as_association)
 q20 = SQLAlchemyQuery(sparql_queries.q20, sqlalchemy_q20)
 
-sqlalchemy_q21 = select(
-    PersonDAO.takes_course.any(
-        CourseDAO.topic_id.in_(select(EngineeringDAO.database_id))
+engineering_departments = [
+    "http://benchmark/OWL2Bench#U0C3D0",
+    "http://benchmark/OWL2Bench#U0C3D1",
+    "http://benchmark/OWL2Bench#U0C3D2",
+]
+
+
+sqlalchemy_q21 = (
+    select(PersonDAO)
+    .join(
+        organizationdao_members_association,
+        PersonDAO.database_id
+        == organizationdao_members_association.c.target_persondao_id,
     )
+    .join(
+        DepartmentDAO,
+        DepartmentDAO.database_id
+        == organizationdao_members_association.c.source_organizationdao_id,
+    )
+    .where(DepartmentDAO.identifier.in_(engineering_departments))
+    .distinct()
 )
+
 q21 = SQLAlchemyQuery(sparql_queries.q21, sqlalchemy_q21)
 
 all_queries = [
