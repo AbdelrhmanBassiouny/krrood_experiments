@@ -22,7 +22,6 @@ def pytest_sessionstart(session) -> None:
 
 @pytest.fixture(scope="session")
 def world_from_graph_db():
-    sys.setrecursionlimit(10000)
     sparql = SPARQLWrapper.SPARQLWrapper("http://localhost:7200/repositories/KRROOD")
     sparql.setReturnFormat(SPARQLWrapper.JSON)
     loader = WorldLoader(sparql)
