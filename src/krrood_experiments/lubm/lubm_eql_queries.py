@@ -73,7 +73,7 @@ def get_eql_queries(
     grad_student = variable(GraduateStudent, domain=None)
     takes_course = variable_from(grad_student.takes_course)
     q1 = an(
-        entity(grad_student.person).where(
+        entity(grad_student).where(
             takes_course.uri == "http://www.Department0.University0.edu/GraduateCourse0"
         )
     )
@@ -81,9 +81,9 @@ def get_eql_queries(
 
     # 2
     grad_student = variable(GraduateStudent, domain=None)
-    member_of = variable(Department, domain=grad_student.person.member_of)
+    member_of = variable(Department, domain=grad_student.member_of)
     under_graduate_degree_from = variable(
-        University, domain=grad_student.person.undergraduate_degree_from
+        University, domain=grad_student.undergraduate_degree_from
     )
     q2 = an(
         entity(grad_student).where(
@@ -112,16 +112,16 @@ def get_eql_queries(
     works_for = variable_from(professor.works_for)
     q4 = a(
         set_of(
-            professor.person,
-            name := professor.person.name,
-            email := professor.person.email_address,
-            telephone := professor.person.telephone,
-        ).where(works_for.uri == "http://www.Department0.University0.edu").distinct(professor.person.uri)
+            professor,
+            name := professor.name,
+            email := professor.email_address,
+            telephone := professor.telephone,
+        ).where(works_for.uri == "http://www.Department0.University0.edu")
     )
     q4 = QueryWithSelectables(
         q4,
         {
-            "X": professor.person,
+            "X": professor,
             "Y1": name,
             "Y2": email,
             "Y3": telephone,
@@ -139,57 +139,57 @@ def get_eql_queries(
 
     # 6
     student = variable(Student, domain=None)
-    q6 = an(entity(student.person))
-    q6 = QueryWithSelectables(q6, {"X": student.person})
+    q6 = an(entity(student))
+    q6 = QueryWithSelectables(q6, {"X": student})
 
     # 7
     associate_professor = variable(AssociateProfessor, domain=None)
     the_associate_professor = the(
         entity(associate_professor).where(
-            associate_professor.person.uri
+            associate_professor.uri
             == "http://www.Department0.University0.edu/AssociateProfessor0"
         )
     )
     student = variable(Student, domain=None)
     student_course = variable_from(student.takes_course)
     q7 = a(
-        set_of(student.person, student_course).where(
+        set_of(student, student_course).where(
             contains(the_associate_professor.teacher_of, student_course),
         )
     )
-    q7 = QueryWithSelectables(q7, {"X": student.person, "Y": student_course})
+    q7 = QueryWithSelectables(q7, {"X": student, "Y": student_course})
 
     # 8
     student = variable(Student, domain=None)
-    member_of = variable(Department, domain=student.person.member_of)
+    member_of = variable(Department, domain=student.member_of)
     member_of_sub_organization_of = variable_from(member_of.sub_organization_of)
     q8 = a(
-        set_of(student.person, member_of, email := student.person.email_address).where(
+        set_of(student, member_of, email := student.email_address).where(
             member_of_sub_organization_of.uri == "http://www.University0.edu"
         )
     )
-    q8 = QueryWithSelectables(q8, {"X": student.person, "Y": member_of, "Z": email})
+    q8 = QueryWithSelectables(q8, {"X": student, "Y": member_of, "Z": email})
 
     # 9
     student = variable(Student, domain=None)
-    advisor = variable(Faculty, domain=student.person.advisor)
+    advisor = variable(Faculty, domain=student.advisor)
     takes_course = variable_from(student.takes_course)
     q9 = a(
-        set_of(student.person, advisor.person, takes_course).where(
+        set_of(student, advisor, takes_course).where(
             contains(advisor.teacher_of, takes_course)
         )
     )
-    q9 = QueryWithSelectables(q9, {"X": student.person, "Y": advisor.person, "Z": takes_course})
+    q9 = QueryWithSelectables(q9, {"X": student, "Y": advisor, "Z": takes_course})
 
     # 10
     student = variable(Student, domain=None)
     takes_course = variable_from(student.takes_course)
     q10 = an(
-        entity(student.person).where(
+        entity(student).where(
             takes_course.uri == "http://www.Department0.University0.edu/GraduateCourse0"
         )
     )
-    q10 = QueryWithSelectables(q10, {"X": student.person})
+    q10 = QueryWithSelectables(q10, {"X": student})
 
     # 11
     research_group = variable(ResearchGroup, domain=None)
@@ -206,11 +206,11 @@ def get_eql_queries(
     works_for = variable(Department, domain=chair.works_for)
     sub_organization_of = variable_from(works_for.sub_organization_of)
     q12 = a(
-        set_of(chair.person, works_for).where(
+        set_of(chair, works_for).where(
             sub_organization_of.uri == "http://www.University0.edu"
         )
     )
-    q12 = QueryWithSelectables(q12, {"X": chair.person, "Y": works_for})
+    q12 = QueryWithSelectables(q12, {"X": chair, "Y": works_for})
 
     # 13
     university = variable(University, domain=None)
@@ -223,8 +223,8 @@ def get_eql_queries(
 
     # 14
     undergraduate_student = variable(UndergraduateStudent, domain=None)
-    q14 = an(entity(undergraduate_student.person))
-    q14 = QueryWithSelectables(q14, {"X": undergraduate_student.person})
+    q14 = an(entity(undergraduate_student))
+    q14 = QueryWithSelectables(q14, {"X": undergraduate_student})
 
     eql_queries = [q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13, q14]
     return eql_queries
