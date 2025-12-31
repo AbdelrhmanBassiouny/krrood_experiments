@@ -309,6 +309,8 @@ def load_instances(
         if not field_name:
             if snake in [f.name for f in fields(subj_cls)]:
                 field_name = snake
+            elif hasattr(subj, snake):
+                field_name = snake
 
         role_taker_association = symbol_graph.class_diagram.get_role_taker_associations_of_cls(subj_cls)
         role_taker_val = getattr(subj, role_taker_association.field.public_name, None) if role_taker_association else None
@@ -332,10 +334,8 @@ def load_instances(
         if obj_roles is not None:
             obj = obj_roles[0]
         if field_name and hasattr(subj, field_name):
-            subj_wrapped_cls = symbol_graph.class_diagram.get_wrapped_class(subj_cls)
-            subj_wrapped_field = subj_wrapped_cls._wrapped_field_name_map_.get(
-                field_name
-            )
+            class_diagram = symbol_graph.class_diagram
+            subj_wrapped_field = [assoc.field for assoc in class_diagram.associations if assoc.field.public_name == field_name][0]
             req_obj_type = subj_wrapped_field.type_endpoint
             matched_obj = None
             for obj_role in obj_roles:
