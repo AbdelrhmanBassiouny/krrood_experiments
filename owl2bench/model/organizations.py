@@ -15,8 +15,7 @@ class College(Organization):
 
 
 @dataclass
-class Department(Organization):
-    courses: list[Course] = field(default_factory=list)
+class Department(Organization): ...
 
 
 @dataclass

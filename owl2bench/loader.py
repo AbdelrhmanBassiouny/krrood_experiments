@@ -637,8 +637,7 @@ class WorldLoader:
                         teachers=teachers,
                     )
                     courses.append(course)
-                    if isinstance(organization, Department):
-                        organization.courses.append(course)
+                    organization.courses.append(course)
             else:
                 warnings.warn(
                     f"Course {course_identifier} missing organization mapping."

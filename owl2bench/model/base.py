@@ -34,6 +34,7 @@ class Organization(IdentifiedEntity):
     affiliated_organizations: List[Organization] = field(
         default_factory=list, repr=False
     )
+    courses: List[Course] = field(default_factory=list, repr=False)
 
 
 @dataclass
