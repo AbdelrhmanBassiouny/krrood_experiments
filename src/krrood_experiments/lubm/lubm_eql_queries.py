@@ -16,6 +16,7 @@ from krrood.entity_query_language.entity_result_processors import (
     an,
     the,
 )
+from krrood.entity_query_language.predicate import HasType
 from krrood.entity_query_language.symbolic import An, UnificationDict
 from typing_extensions import Any, Optional
 
@@ -38,7 +39,7 @@ from krrood_experiments.lubm.lubm_with_predicates import (
     ResearchGroup,
     UndergraduateStudent,
     AssistantProfessor,
-    FullProfessor, Organization,
+    FullProfessor, Organization, Employee,
 )
 from krrood_experiments.lubm.owl_instances_loader import OwlInstancesRegistry
 
@@ -81,12 +82,11 @@ def get_eql_queries(
 
     # 2
     grad_student = variable(GraduateStudent, domain=None)
-    member_of = variable(Department, domain=grad_student.member_of)
-    under_graduate_degree_from = variable(
-        University, domain=grad_student.undergraduate_degree_from
-    )
+    member_of = variable_from(grad_student.member_of)
+    under_graduate_degree_from = variable_from(grad_student.undergraduate_degree_from)
     q2 = an(
         entity(grad_student).where(
+            HasType(member_of, Department),
             contains(member_of.sub_organization_of, under_graduate_degree_from)
         )
     )
@@ -161,10 +161,11 @@ def get_eql_queries(
 
     # 8
     student = variable(Student, domain=None)
-    member_of = variable(Department, domain=student.member_of)
+    member_of = variable_from(student.member_of)
     member_of_sub_organization_of = variable_from(member_of.sub_organization_of)
     q8 = a(
         set_of(student, member_of, email := student.email_address).where(
+            HasType(member_of, Department),
             member_of_sub_organization_of.uri == "http://www.University0.edu"
         )
     )
@@ -172,10 +173,11 @@ def get_eql_queries(
 
     # 9
     student = variable(Student, domain=None)
-    advisor = variable(Faculty, domain=student.advisor)
+    advisor = variable_from(student.advisor)
     takes_course = variable_from(student.takes_course)
     q9 = a(
         set_of(student, advisor, takes_course).where(
+            HasType(advisor, Faculty),
             contains(advisor.teacher_of, takes_course)
         )
     )
@@ -203,10 +205,11 @@ def get_eql_queries(
 
     # 12
     chair = variable(Chair, domain=None)
-    works_for = variable(Department, domain=chair.works_for)
+    works_for = variable_from(chair.works_for)
     sub_organization_of = variable_from(works_for.sub_organization_of)
     q12 = a(
         set_of(chair, works_for).where(
+            HasType(works_for, Department),
             sub_organization_of.uri == "http://www.University0.edu"
         )
     )
