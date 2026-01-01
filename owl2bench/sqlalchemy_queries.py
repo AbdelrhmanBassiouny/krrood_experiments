@@ -118,13 +118,10 @@ Student = aliased(PersonDAO, name="student")
 TeacherHead = aliased(PersonDAO, name="teacher_head")
 
 sqlalchemy_q22 = (
-    select(Student)
+    select(Student, CourseDAO)
     .join(Student.takes_course)
-    .join(CourseDAO.organization)
-    .filter(
-        # Check if any teacher of the course has the same ID as the organization's head
-        CourseDAO.teachers.any(PersonDAO.database_id == OrganizationDAO.head_id)
-    )
+    .join(CourseDAO.teachers)
+    .join(OrganizationDAO, PersonDAO.database_id == OrganizationDAO.dean_id)
     .distinct()
 )
 

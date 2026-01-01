@@ -77,6 +77,7 @@ class WorldLoader:
 
         # get all organization heads
         self._update_organization_heads()
+        self._update_organization_deans()
 
         # get all college disciplines
 
@@ -451,6 +452,41 @@ class WorldLoader:
 
             if person_identifier in person_map and organization_identifier in org_map:
                 org_map[organization_identifier].head = person_map[person_identifier]
+
+    def _update_organization_deans(self):
+        """
+        Updates the dean relationship for organizations.
+        """
+        query = (
+            PREFIXES
+            + """
+            SELECT DISTINCT ?person ?org WHERE {
+                ?org owl2bench:hasDean ?person .
+            }
+            """
+        )
+
+        self.sparql_wrapper.setQuery(query)
+        results = self.sparql_wrapper.query().convert()
+        bindings = results["results"]["bindings"]
+
+        person_map = {person.identifier: person for person in self.world.persons}
+        organization_map = {
+            organization.identifier: organization
+            for organization in self.world.organizations
+        }
+
+        for binding in bindings:
+            person_identifier = str(binding["person"]["value"])
+            organization_identifier = str(binding["org"]["value"])
+
+            if (
+                person_identifier in person_map
+                and organization_identifier in organization_map
+            ):
+                organization_map[organization_identifier].dean = person_map[
+                    person_identifier
+                ]
 
     def _get_college_disciplines(self) -> List[CollegeDiscipline]:
         """

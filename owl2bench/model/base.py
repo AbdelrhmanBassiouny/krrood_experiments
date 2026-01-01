@@ -38,6 +38,7 @@ class Interest(IdentifiedEntity): ...
 class Organization(IdentifiedEntity):
     name: Optional[str] = None
     head: Optional[Person] = None
+    dean: Optional[Person] = None
     members: List[Person] = field(default_factory=list, repr=False)
     is_part_of: List[Organization] = field(default_factory=list, repr=False)
     affiliated_organizations: List[Organization] = field(
