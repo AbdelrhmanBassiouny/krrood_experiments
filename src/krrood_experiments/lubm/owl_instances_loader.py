@@ -1,24 +1,18 @@
 from __future__ import annotations
 
-import os
 from collections import defaultdict
 from dataclasses import fields, is_dataclass
 from types import ModuleType
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union
 
 import rdflib
-from krrood.utils import recursive_subclasses, inheritance_path_length
-from rdflib import RDF, RDFS, URIRef, Literal
-
-from krrood.class_diagrams.utils import get_generic_type_param
 from krrood.class_diagrams.class_diagram import Association
-
-# Import PropertyDescriptor to correctly detect descriptor class attributes
-from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
-
-from .lubm_with_predicates import *
+from krrood.entity_query_language.predicate import Symbol
 from krrood.entity_query_language.symbol_graph import SymbolGraph
+from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
 from krrood.ormatic.utils import classes_of_module
+from krrood.utils import inheritance_path_length
+from rdflib import RDF, URIRef, Literal
 
 
 class OwlInstancesRegistry:

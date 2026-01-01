@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import os
 import time
 from collections import defaultdict
@@ -6,7 +7,6 @@ from os.path import dirname
 from pathlib import Path
 from typing import List, Any, Tuple, TYPE_CHECKING
 
-from krrood.entity_query_language.symbolic import ResultQuantifier
 from owlrl import DeductiveClosure, OWLRL_Semantics
 from rdflib import Graph
 
