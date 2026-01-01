@@ -5,6 +5,7 @@ Generated using custom converter
 
 from __future__ import annotations
 
+from krrood_experiments.lubm.lubm_with_predicates import Chair
 from .lubm_with_predicates_properties import *
 from .lubm_with_predicates_base import *
 
@@ -133,7 +134,7 @@ class Department(Organization):
 
 
 @dataclass(eq=False)
-class Employee(Symbol, PersonMixinProtocol):
+class Employee(PersonMixinProtocol, Symbol):
     """Employee"""
     # Works For
     works_for: Set[Organization] = field(default_factory=set)
@@ -194,15 +195,14 @@ class Specification(Publication):
 
 
 @dataclass(eq=False)
-class Student(Symbol, PersonMixinProtocol):
+class Student(PersonMixinProtocol, Symbol):
     """student"""
     # is taking
     takes_course: Set[Course] = field(default_factory=set)
 
 
-
 @dataclass(eq=False)
-class TeachingAssistant(Symbol, PersonMixinProtocol):
+class TeachingAssistant(PersonMixinProtocol, Symbol):
     """university teaching assistant"""
     # is a teaching assistant for
     teaching_assistant_of: Set[Course] = field(default_factory=set)
@@ -310,19 +310,19 @@ class ClericalStaff(AdministrativeStaff):
 
 
 @dataclass(eq=False)
-class Lecturer(Symbol, FacultyMixinProtocol):
+class Lecturer(FacultyMixinProtocol, Symbol):
     """lecturer"""
 
 
 
 @dataclass(eq=False)
-class PostDoc(Symbol, FacultyMixinProtocol):
+class PostDoc(FacultyMixinProtocol, Symbol):
     """post doctorate"""
 
 
 
 @dataclass(eq=False)
-class ProfessorMixinProtocol(Symbol, FacultyMixinProtocol):
+class ProfessorMixinProtocol(FacultyMixinProtocol, Symbol):
     """professor"""
     # is tenured:
     tenured: Optional[bool]
@@ -355,7 +355,7 @@ class AssociateProfessor(Professor):
 
 
 @dataclass(eq=False)
-class Chair(Symbol, ProfessorMixinProtocol):
+class Chair(ProfessorMixinProtocol, Symbol):
     """chair"""
     # is the head of
     head_of: Set[Department] = field(default_factory=set)
@@ -363,7 +363,7 @@ class Chair(Symbol, ProfessorMixinProtocol):
 
 
 @dataclass(eq=False)
-class Dean(Symbol, ProfessorMixinProtocol):
+class Dean(ProfessorMixinProtocol, Symbol):
     """dean"""
     # is the head of
     head_of: Set[College] = field(default_factory=set)
@@ -378,7 +378,7 @@ class FullProfessor(Professor):
 
 
 @dataclass(eq=False)
-class VisitingProfessor(Symbol, ProfessorMixinProtocol):
+class VisitingProfessor(ProfessorMixinProtocol, Symbol):
     """visiting professor"""
 
 
