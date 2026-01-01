@@ -15,33 +15,11 @@ from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDes
 from krrood.ontomatic.property_descriptor.mixins import HasInverseProperty, TransitiveProperty
 from krrood.class_diagrams.utils import Role
 
-
-# Property descriptor classes (object properties)
-{% for prop_name in properties_order %}
-{% set prop = properties[prop_name] %}
-{% if prop.type == 'ObjectProperty' and not prop.is_specialized%}
-@dataclass
-class {{ prop.descriptor_name }}({{ ', '.join(prop.base_descriptors) }}):
-    {% if prop.label or prop.comment %}
-    """{{ prop.label if prop.label else '' }}{% if prop.label and prop.comment %}\n\n{% endif %}{{ prop.comment if prop.comment else '' }}"""
-    {% else %}
-    ...
-    {% endif %}
-    {# Only emit a typed inverse if the target descriptor is already defined earlier #}
-    {% if prop.inverse_of%}
-    {% set inverse = properties[prop.inverse_of].descriptor_name %}
-    @classmethod
-    def get_inverse(cls) -> Type[{{ inverse }}]:
-        return {{ inverse }}
-    {% endif %}
-
-
-{% endif %}
-{% endfor %}
-
 # Generated classes
 {% for cls_name in classes_order %}
 {% set cls = classes[cls_name] %}
+{% if cls.role_taker|length > 0 %}
+{% if cls.add_role_taker %}
 @dataclass(eq=False)
 class {{ cls.name }}({% if cls.base_classes %}{{ ', '.join(cls.base_classes) }}{% else %}{{ ontology_base_class_name }}{% endif %}):
     {% if cls.label or cls.comment %}
@@ -50,8 +28,6 @@ class {{ cls.name }}({% if cls.base_classes %}{{ ', '.join(cls.base_classes) }}{
     {% if cls.declared_properties|length == 0  and cls.role_taker|length == 0%}
     ...
     {% else %}
-    {% if cls.role_taker|length > 0 %}
-    {% if cls.add_role_taker %}
     # Role taker
     {{ cls.role_taker.field_name }}: {{ cls.role_taker.class_name }}
     {% endif %}
