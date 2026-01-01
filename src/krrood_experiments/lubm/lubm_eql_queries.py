@@ -38,7 +38,7 @@ from krrood_experiments.lubm.lubm_with_predicates import (
     ResearchGroup,
     UndergraduateStudent,
     AssistantProfessor,
-    FullProfessor,
+    FullProfessor, Organization,
 )
 from krrood_experiments.lubm.owl_instances_loader import OwlInstancesRegistry
 

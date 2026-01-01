@@ -1,7 +1,7 @@
 import os
 import re
 from collections import defaultdict
-from copy import copy
+from copy import copy, deepcopy
 from enum import Enum
 from typing import Dict, List, Callable, Optional, Any
 
@@ -935,10 +935,16 @@ class OwlToPythonConverter:
                 prior = index_map.get(inv, 10**9) < index_map.get(name, 10**9)
             info["inverse_target_is_prior"] = prior
 
-        for info in classes_copy.values():
+        classes_for_stubs = deepcopy(classes_copy)
+        for cls_name, info in classes_copy.items():
             if role_cls_name in info["base_classes"]:
                 info["base_classes"].remove(role_cls_name)
-                info["base_classes"] = [f"{role_cls_name}[{info['role_taker']['class_name']}]"] + info["base_classes"]
+                new_role_cls_name = f"{role_cls_name}[{info['role_taker']['class_name']}]"
+                info["base_classes"] = [new_role_cls_name] + info["base_classes"]
+                classes_for_stubs[cls_name]["base_classes"].remove(role_cls_name)
+            else:
+                info["add_role_taker"] = False
+                classes_for_stubs[cls_name]["add_role_taker"] = False
         if "Role" in classes_copy:
             del classes_copy["Role"]
 
@@ -954,8 +960,13 @@ class OwlToPythonConverter:
         )
 
         properties_file_name = base_file_name + "_properties.py"
+        ontology_base_file_name = base_file_name + "_base.py"
         classes_file_name = base_file_name + ".py"
         stub_file_name = base_file_name + ".pyi"
+
+        properties_module_name = properties_file_name.replace(".py", "")
+        ontology_module_name = ontology_base_file_name.replace(".py", "")
+
 
         template = env.get_template("onto_properties.j2")
         properties_file = template.render(
@@ -963,9 +974,16 @@ class OwlToPythonConverter:
             properties_order=properties_order,
         )
 
+        template = env.get_template("onto_base.j2")
+        ontology_base_file = template.render(
+            cls=classes_copy[ontology_base_class_name],
+            properties=properties_copy,
+        )
+
         template = env.get_template("onto_classes.j2")
         classes_file = template.render(
-            properties_file_name=properties_file_name,
+            ontology_base_module_name=ontology_module_name,
+            properties_module_name=properties_module_name,
             classes=classes_copy,
             properties=properties_copy,
             classes_order=classes_order,
@@ -973,29 +991,31 @@ class OwlToPythonConverter:
             ontology_base_class_name=ontology_base_class_name,
         )
 
-        role_takers_order = OrderedSet([c["role_taker"]["class_name"] for c in classes_copy.values()
-                                        if "role_taker" in c and c["role_taker"]])
-        role_takers = {k: classes_copy[k] for k in role_takers_order}
+        role_takers = list(OrderedSet([c["role_taker"]["class_name"] for c in classes_copy.values()
+                                        if "role_taker" in c and c["role_taker"]]))
 
         template = env.get_template("onto_stubs.j2")
         stub_file = template.render(
-            properties_file_name=properties_file_name,
+            ontology_base_module_name=ontology_module_name,
+            properties_module_name=properties_module_name,
             role_takers=role_takers,
-            classes=classes_copy,
+            classes=classes_for_stubs,
             properties=properties_copy,
             classes_order=classes_order,
             ontology_base_class_name=ontology_base_class_name,
         )
         return {properties_file_name: properties_file,
+                ontology_base_file_name: ontology_base_file,
                 classes_file_name: classes_file,
                 stub_file_name: stub_file}
 
     def save_to_file(self, output_path: str):
         """Generate and save Python code to file"""
-        base_file_name = os.path.splitext(output_path)[0]
+        base_file_name = os.path.splitext(os.path.basename(output_path))[0]
+        dir_name = os.path.dirname(output_path)
         file_name_map = self.generate_python_code_external(base_file_name)
         for file_name, file_content in file_name_map.items():
-            with open(file_name, "w", encoding="utf-8") as f:
+            with open(os.path.join(dir_name, file_name), "w", encoding="utf-8") as f:
                 f.write(file_content)
         logger.info(f"Generated Python classes saved to: {output_path}")
 

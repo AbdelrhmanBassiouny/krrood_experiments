@@ -5,11 +5,9 @@ Generated using custom converter
 
 from __future__ import annotations
 
-from functools import lru_cache
-
-from krrood.class_diagrams.utils import Role
 from .lubm_with_predicates_properties import *
 from .lubm_with_predicates_base import *
+
 
 # Generated classes
 @dataclass(eq=False)
@@ -23,6 +21,7 @@ class UnivBenchOntology(Symbol, ABC):
     research_interest: Optional[str] = field(kw_only=True, default=None)
     # URI of the ontology element - The unique resource identifier (URI) of the ontology element.
     uri: Optional[str] = field(kw_only=True, default=None)
+
 
 
 @dataclass(eq=False)
@@ -40,29 +39,35 @@ class Organization(UnivBenchOntology):
     sub_organization_of: Set[Organization] = field(default_factory=set)
 
 
+
 @dataclass(eq=False)
-class Person(UnivBenchOntology):
+class PersonMixinProtocol(UnivBenchOntology):
     """person"""
     # is being advised by
-    advisor: Set[Professor] = field(default_factory=set)
+    advisor: Set[Professor]
     # has a degree from
-    degree_from: Set[University] = field(default_factory=set)
+    degree_from: Set[University]
     # has a doctoral degree from
-    doctoral_degree_from: Set[University] = field(default_factory=set)
+    doctoral_degree_from: Set[University]
     # has a masters degree from
-    masters_degree_from: Set[University] = field(default_factory=set)
+    masters_degree_from: Set[University]
     # member of
-    member_of: Set[Organization] = field(default_factory=set)
+    member_of: Set[Organization]
     # has an undergraduate degree from
-    undergraduate_degree_from: Set[University] = field(default_factory=set)
+    undergraduate_degree_from: Set[University]
     # is age
-    age: Optional[int] = field(kw_only=True, default=None)
+    age: Optional[int]
     # can be reached at
-    email_address: Optional[str] = field(kw_only=True, default=None)
+    email_address: Optional[str]
     # telephone number
-    telephone: Optional[str] = field(kw_only=True, default=None)
+    telephone: Optional[str]
     # title
-    title: Optional[str] = field(kw_only=True, default=None)
+    title: Optional[str]
+
+
+@dataclass(eq=False)
+class Person(PersonMixinProtocol):
+    ...
 
 
 @dataclass(eq=False)
@@ -76,11 +81,13 @@ class Publication(UnivBenchOntology):
     publication_research: Set[Research] = field(default_factory=set)
 
 
+
 @dataclass(eq=False)
 class Schedule(UnivBenchOntology):
     """schedule"""
     # lists as a course
     listed_course: Set[Course] = field(default_factory=set)
+
 
 
 @dataclass(eq=False)
@@ -89,10 +96,12 @@ class Work(UnivBenchOntology):
     ...
 
 
+
 @dataclass(eq=False)
 class Article(Publication):
     """article"""
     ...
+
 
 
 @dataclass(eq=False)
@@ -101,10 +110,12 @@ class Book(Publication):
     ...
 
 
+
 @dataclass(eq=False)
 class College(Organization):
     """school"""
     ...
+
 
 
 @dataclass(eq=False)
@@ -113,24 +124,20 @@ class Course(Work):
     ...
 
 
+
 @dataclass(eq=False)
 class Department(Organization):
     """university department"""
     ...
 
 
+
 @dataclass(eq=False)
-class Employee(Role[Person], Symbol):
+class Employee(Symbol, PersonMixinProtocol):
     """Employee"""
-    # Role taker
-    person: Person
     # Works For
     works_for: Set[Organization] = field(default_factory=set)
 
-    @classmethod
-    @lru_cache(maxsize=None)
-    def role_taker_field(cls) -> Field:
-        return next(iter(f for f in fields(cls) if f.name == "person"))
 
 
 @dataclass(eq=False)
@@ -139,10 +146,12 @@ class Institute(Organization):
     ...
 
 
+
 @dataclass(eq=False)
 class Manual(Publication):
     """manual"""
     ...
+
 
 
 @dataclass(eq=False)
@@ -151,10 +160,12 @@ class Program(Organization):
     ...
 
 
+
 @dataclass(eq=False)
 class Research(Work):
     """research work"""
     ...
+
 
 
 @dataclass(eq=False)
@@ -162,6 +173,7 @@ class ResearchGroup(Organization):
     """research group"""
     # has as a research project
     research_project: Set[Research] = field(default_factory=set)
+
 
 
 @dataclass(eq=False)
@@ -173,38 +185,28 @@ class Software(Publication):
     software_version: Optional[str] = field(kw_only=True, default=None)
 
 
+
 @dataclass(eq=False)
 class Specification(Publication):
     """published specification"""
     ...
 
 
+
 @dataclass(eq=False)
-class Student(Role[Person], Symbol):
+class Student(Symbol, PersonMixinProtocol):
     """student"""
-    # Role taker
-    person: Person
     # is taking
     takes_course: Set[Course] = field(default_factory=set)
 
-    @classmethod
-    @lru_cache(maxsize=None)
-    def role_taker_field(cls) -> Field:
-        return next(iter(f for f in fields(cls) if f.name == "person"))
 
 
 @dataclass(eq=False)
-class TeachingAssistant(Role[Person], Symbol):
+class TeachingAssistant(Symbol, PersonMixinProtocol):
     """university teaching assistant"""
-    # Role taker
-    person: Person
     # is a teaching assistant for
     teaching_assistant_of: Set[Course] = field(default_factory=set)
 
-    @classmethod
-    @lru_cache(maxsize=None)
-    def role_taker_field(cls) -> Field:
-        return next(iter(f for f in fields(cls) if f.name == "person"))
 
 
 @dataclass(eq=False)
@@ -214,10 +216,12 @@ class University(Organization):
     has_alumnus: Set[Person] = field(default_factory=set)
 
 
+
 @dataclass(eq=False)
 class UnofficialPublication(Publication):
     """unnoficial publication"""
     ...
+
 
 
 @dataclass(eq=False)
@@ -226,10 +230,12 @@ class AdministrativeStaff(Employee):
     ...
 
 
+
 @dataclass(eq=False)
 class ConferencePaper(Article):
     """conference paper"""
     ...
+
 
 
 @dataclass(eq=False)
@@ -239,17 +245,24 @@ class Director(Employee):
     head_of: Set[Program] = field(default_factory=set)
 
 
+
 @dataclass(eq=False)
-class Faculty(Employee):
+class FacultyMixinProtocol(Employee):
     """faculty member"""
     # teaches
-    teacher_of: Set[Course] = field(default_factory=set)
+    teacher_of: Set[Course]
+
+
+@dataclass(eq=False)
+class Faculty(FacultyMixinProtocol):
+    ...
 
 
 @dataclass(eq=False)
 class GraduateCourse(Course):
     """Graduate Level Courses"""
     ...
+
 
 
 @dataclass(eq=False)
@@ -259,10 +272,12 @@ class GraduateStudent(Student):
     takes_course: Set[GraduateCourse] = field(default_factory=set)
 
 
+
 @dataclass(eq=False)
 class JournalArticle(Article):
     """journal article"""
     ...
+
 
 
 @dataclass(eq=False)
@@ -272,10 +287,12 @@ class ResearchAssistant(Employee):
     works_for: Set[ResearchGroup] = field(default_factory=set)
 
 
+
 @dataclass(eq=False)
 class TechnicalReport(Article):
     """technical report"""
     ...
+
 
 
 @dataclass(eq=False)
@@ -284,48 +301,36 @@ class UndergraduateStudent(Student):
     ...
 
 
+
 @dataclass(eq=False)
 class ClericalStaff(AdministrativeStaff):
     """clerical staff worker"""
     ...
 
 
+
 @dataclass(eq=False)
-class Lecturer(Role[Faculty], Symbol):
+class Lecturer(Symbol, FacultyMixinProtocol):
     """lecturer"""
-    # Role taker
-    faculty: Faculty
 
-    @classmethod
-    @lru_cache(maxsize=None)
-    def role_taker_field(cls) -> Field:
-        return next(iter(f for f in fields(cls) if f.name == "faculty"))
 
 
 @dataclass(eq=False)
-class PostDoc(Role[Faculty], Symbol):
+class PostDoc(Symbol, FacultyMixinProtocol):
     """post doctorate"""
-    # Role taker
-    faculty: Faculty
 
-    @classmethod
-    @lru_cache(maxsize=None)
-    def role_taker_field(cls) -> Field:
-        return next(iter(f for f in fields(cls) if f.name == "faculty"))
 
 
 @dataclass(eq=False)
-class Professor(Role[Faculty], Symbol):
+class ProfessorMixinProtocol(Symbol, FacultyMixinProtocol):
     """professor"""
-    # Role taker
-    faculty: Faculty
     # is tenured:
-    tenured: Optional[bool] = field(kw_only=True, default=None)
+    tenured: Optional[bool]
 
-    @classmethod
-    @lru_cache(maxsize=None)
-    def role_taker_field(cls) -> Field:
-        return next(iter(f for f in fields(cls) if f.name == "faculty"))
+
+@dataclass(eq=False)
+class Professor(ProfessorMixinProtocol):
+    ...
 
 
 @dataclass(eq=False)
@@ -334,10 +339,12 @@ class SystemsStaff(AdministrativeStaff):
     ...
 
 
+
 @dataclass(eq=False)
 class AssistantProfessor(Professor):
     """assistant professor"""
     ...
+
 
 
 @dataclass(eq=False)
@@ -346,32 +353,21 @@ class AssociateProfessor(Professor):
     ...
 
 
+
 @dataclass(eq=False)
-class Chair(Role[Professor], Symbol):
+class Chair(Symbol, ProfessorMixinProtocol):
     """chair"""
-    # Role taker
-    professor: Professor
     # is the head of
     head_of: Set[Department] = field(default_factory=set)
 
-    @classmethod
-    @lru_cache(maxsize=None)
-    def role_taker_field(cls) -> Field:
-        return next(iter(f for f in fields(cls) if f.name == "professor"))
 
 
 @dataclass(eq=False)
-class Dean(Role[Professor], Symbol):
+class Dean(Symbol, ProfessorMixinProtocol):
     """dean"""
-    # Role taker
-    professor: Professor
     # is the head of
     head_of: Set[College] = field(default_factory=set)
 
-    @classmethod
-    @lru_cache(maxsize=None)
-    def role_taker_field(cls) -> Field:
-        return next(iter(f for f in fields(cls) if f.name == "professor"))
 
 
 @dataclass(eq=False)
@@ -380,44 +376,10 @@ class FullProfessor(Professor):
     ...
 
 
+
 @dataclass(eq=False)
-class VisitingProfessor(Role[Professor], Symbol):
+class VisitingProfessor(Symbol, ProfessorMixinProtocol):
     """visiting professor"""
-    # Role taker
-    professor: Professor
-
-    @classmethod
-    @lru_cache(maxsize=None)
-    def role_taker_field(cls) -> Field:
-        return next(iter(f for f in fields(cls) if f.name == "professor"))
 
 
 
-
-# Descriptor assignments
-Organization.affiliated_organization_of = AffiliatedOrganizationOf(Organization, 'affiliated_organization_of')
-Organization.affiliate_of = AffiliateOf(Organization, 'affiliate_of')
-Organization.member = Member(Organization, 'member')
-Organization.org_publication = OrgPublication(Organization, 'org_publication')
-Organization.sub_organization_of = SubOrganizationOf(Organization, 'sub_organization_of')
-Person.advisor = Advisor(Person, 'advisor')
-Person.degree_from = DegreeFrom(Person, 'degree_from')
-Person.doctoral_degree_from = DoctoralDegreeFrom(Person, 'doctoral_degree_from')
-Person.masters_degree_from = MastersDegreeFrom(Person, 'masters_degree_from')
-Person.member_of = MemberOf(Person, 'member_of')
-Person.undergraduate_degree_from = UndergraduateDegreeFrom(Person, 'undergraduate_degree_from')
-Publication.publication_author = PublicationAuthor(Publication, 'publication_author')
-Publication.publication_research = PublicationResearch(Publication, 'publication_research')
-Schedule.listed_course = ListedCourse(Schedule, 'listed_course')
-Employee.works_for = WorksFor(Employee, 'works_for')
-ResearchGroup.research_project = ResearchProject(ResearchGroup, 'research_project')
-Software.software_documentation = SoftwareDocumentation(Software, 'software_documentation')
-Student.takes_course = TakesCourse(Student, 'takes_course')
-TeachingAssistant.teaching_assistant_of = TeachingAssistantOf(TeachingAssistant, 'teaching_assistant_of')
-University.has_alumnus = HasAlumnus(University, 'has_alumnus')
-Director.head_of = HeadOf(Director, 'head_of')
-Faculty.teacher_of = TeacherOf(Faculty, 'teacher_of')
-GraduateStudent.takes_course = TakesCourse(GraduateStudent, 'takes_course')
-ResearchAssistant.works_for = WorksFor(ResearchAssistant, 'works_for')
-Chair.head_of = HeadOf(Chair, 'head_of')
-Dean.head_of = HeadOf(Dean, 'head_of')

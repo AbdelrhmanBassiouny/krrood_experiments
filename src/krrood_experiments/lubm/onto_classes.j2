@@ -5,16 +5,11 @@ Generated using custom converter
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, Field, fields
-from abc import ABC
-from typing_extensions import Optional, Set, TypeVar, Type
 from functools import lru_cache
 
-from krrood.entity_query_language.predicate import Symbol
-from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
-from krrood.ontomatic.property_descriptor.mixins import HasInverseProperty, TransitiveProperty
 from krrood.class_diagrams.utils import Role
-from .lubm_properties import *
+from .{{ properties_module_name }} import *
+from .{{ ontology_base_module_name }} import *
 
 # Generated classes
 {% for cls_name in classes_order %}
@@ -55,18 +50,8 @@ class {{ cls.name }}({% if cls.base_classes %}{{ ', '.join(cls.base_classes) }}{
         return next(iter(f for f in fields(cls) if f.name == "{{ cls.role_taker.field_name }}"))
     {% endif %}
     {% endif %}
-    {% if cls.name == ontology_base_class_name %}
-
-    def __hash__(self):
-        return hash(id(self))
-    {% endif %}
 
 
-{% if cls_name == ontology_base_class_name %}
-T = TypeVar('T', bound={{ ontology_base_class_name }})
-
-
-{% endif %}
 {% endfor %}
 
 
