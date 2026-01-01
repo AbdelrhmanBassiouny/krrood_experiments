@@ -630,14 +630,15 @@ class WorldLoader:
                         topic = self.world.college_disciplines[0]
 
                 if topic:
-                    courses.append(
-                        Course(
-                            identifier=course_identifier,
-                            organization=organization,
-                            topic=topic,
-                            teachers=teachers,
-                        )
+                    course = Course(
+                        identifier=course_identifier,
+                        organization=organization,
+                        topic=topic,
+                        teachers=teachers,
                     )
+                    courses.append(course)
+                    if isinstance(organization, Department):
+                        organization.courses.append(course)
             else:
                 warnings.warn(
                     f"Course {course_identifier} missing organization mapping."

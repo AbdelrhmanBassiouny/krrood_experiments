@@ -63,6 +63,12 @@ collegedao_disciplines_association = Table(
         "target_collegedisciplinedao_id", ForeignKey("CollegeDisciplineDAO.database_id")
     ),
 )
+departmentdao_courses_association = Table(
+    "departmentdao_courses_association",
+    Base.metadata,
+    Column("source_departmentdao_id", ForeignKey("DepartmentDAO.database_id")),
+    Column("target_coursedao_id", ForeignKey("CourseDAO.database_id")),
+)
 persondao_knows_association = Table(
     "persondao_knows_association",
     Base.metadata,
@@ -953,6 +959,14 @@ class DepartmentDAO(
         ForeignKey(OrganizationDAO.database_id),
         primary_key=True,
         use_existing_column=True,
+    )
+
+    courses: Mapped[typing.List[CourseDAO]] = relationship(
+        "CourseDAO",
+        secondary="departmentdao_courses_association",
+        primaryjoin="DepartmentDAO.database_id == departmentdao_courses_association.c.source_departmentdao_id",
+        secondaryjoin="CourseDAO.database_id == departmentdao_courses_association.c.target_coursedao_id",
+        cascade="save-update, merge",
     )
 
     __mapper_args__ = {
