@@ -162,8 +162,9 @@ class WorldLoader:
         query = (
             PREFIXES
             + """
-            SELECT DISTINCT ?x ?type WHERE {
+            SELECT DISTINCT ?x ?type ?name WHERE {
                 ?x rdf:type ?type .
+                OPTIONAL { ?x owl2bench:hasName ?name . }
                 FILTER(?type IN (owl2bench:University, owl2bench:College, owl2bench:Department, owl2bench:ResearchGroup))
             }
             """
@@ -184,7 +185,12 @@ class WorldLoader:
         for b in bindings:
             organization_type = b["type"]["value"]
             cls = type_mapping.get(organization_type, Organization)
-            organizations.append(cls(identifier=str(b["x"]["value"])))
+            organizations.append(
+                cls(
+                    identifier=str(b["x"]["value"]),
+                    name=b.get("name", {}).get("value"),
+                )
+            )
         return organizations
 
     def _update_organization_members(self):
@@ -584,6 +590,25 @@ class WorldLoader:
                     )
                     topic = discipline_map.get(discipline_identifier)
 
+            # If not inferred from course type, try to infer from organization name
+            if not topic and organization and organization.name:
+                # Organizations like "Department of Architecture" -> "Architecture"
+                name = organization.name
+                if "Department of " in name:
+                    discipline_name = name.replace("Department of ", "").strip()
+                    discipline_identifier = (
+                        f"http://benchmark/OWL2Bench#{discipline_name}"
+                    )
+                    topic = discipline_map.get(discipline_identifier)
+
+                # Fallback: check if any discipline name is contained in the organization name
+                if not topic:
+                    for d_id, d_obj in discipline_map.items():
+                        d_name = d_id.split("#")[-1]
+                        if d_name in name:
+                            topic = d_obj
+                            break
+
             if not topic:
                 if isinstance(organization, College) and organization.disciplines:
                     # Prefer specific disciplines over generic ones
@@ -618,17 +643,6 @@ class WorldLoader:
                             break
 
             if organization:
-                if not topic and self.world.college_disciplines:
-                    specific_disciplines = [
-                        d
-                        for d in self.world.college_disciplines
-                        if type(d) is not CollegeDiscipline
-                    ]
-                    if specific_disciplines:
-                        topic = specific_disciplines[0]
-                    else:
-                        topic = self.world.college_disciplines[0]
-
                 if topic:
                     course = Course(
                         identifier=course_identifier,

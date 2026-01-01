@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from typing import List, Any, Optional
 
 
-@dataclass
+@dataclass(eq=False)
 class World:
     persons: List[Person] = field(default_factory=list)
     organizations: List[Organization] = field(default_factory=list)
@@ -13,21 +13,30 @@ class World:
     interests: List[Interest] = field(default_factory=list)
 
 
-@dataclass
+@dataclass(eq=False)
 class IdentifiedEntity:
     identifier: str
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, IdentifiedEntity):
+            return NotImplemented
+        return self.identifier == other.identifier
 
-@dataclass
+    def __hash__(self) -> int:
+        return hash(self.identifier)
+
+
+@dataclass(eq=False)
 class CollegeDiscipline(IdentifiedEntity): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Interest(IdentifiedEntity): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Organization(IdentifiedEntity):
+    name: Optional[str] = None
     head: Optional[Person] = None
     members: List[Person] = field(default_factory=list, repr=False)
     is_part_of: List[Organization] = field(default_factory=list, repr=False)
@@ -37,31 +46,31 @@ class Organization(IdentifiedEntity):
     courses: List[Course] = field(default_factory=list, repr=False)
 
 
-@dataclass
+@dataclass(eq=False)
 class Program(IdentifiedEntity): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Work(IdentifiedEntity):
     organization: Organization = field(repr=False)
 
 
-@dataclass
+@dataclass(eq=False)
 class Course(Work):
     topic: CollegeDiscipline
     teachers: List[Person] = field(default_factory=list, repr=False)
 
 
-@dataclass
+@dataclass(eq=False)
 class ResearchProject(Work): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Publication(IdentifiedEntity):
     authors: List[Person] = field(default_factory=list, repr=False)
 
 
-@dataclass
+@dataclass(eq=False)
 class Person(IdentifiedEntity):
     first_name: str
     last_name: str

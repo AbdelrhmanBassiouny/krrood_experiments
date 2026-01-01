@@ -4,37 +4,37 @@ from dataclasses import dataclass
 from .base import Publication
 
 
-@dataclass
+@dataclass(eq=False)
 class Article(Publication): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class ConferencePaper(Article): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class JournalArticle(Article): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class TechnicalReport(Article): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Book(Publication): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Manual(Publication): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Software(Publication): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Specification(Publication): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class UnofficialPublication(Publication): ...
