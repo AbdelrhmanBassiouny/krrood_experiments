@@ -20,7 +20,7 @@ from krrood.entity_query_language.predicate import HasType
 from krrood.entity_query_language.symbolic import An, UnificationDict
 from typing_extensions import Any, Optional
 
-from krrood_experiments.lubm.helpers import (
+from krrood_experiments.helpers import (
     evaluate_eql,
     load_instances_for_lubm_with_predicates,
     get_lubm_answers,
@@ -35,13 +35,10 @@ from krrood_experiments.lubm.lubm_with_predicates import (
     Person,
     Chair,
     AssociateProfessor,
-    Faculty,
     ResearchGroup,
     UndergraduateStudent,
-    AssistantProfessor,
-    FullProfessor, Organization, Employee,
 )
-from krrood_experiments.lubm.owl_instances_loader import OwlInstancesRegistry
+from krrood_experiments.owl_instances_loader import OwlInstancesRegistry
 
 
 @dataclass
