@@ -55,6 +55,12 @@ organizationdao_affiliated_organizations_association = Table(
     Column("source_organizationdao_id", ForeignKey("OrganizationDAO.database_id")),
     Column("target_organizationdao_id", ForeignKey("OrganizationDAO.database_id")),
 )
+organizationdao_courses_association = Table(
+    "organizationdao_courses_association",
+    Base.metadata,
+    Column("source_organizationdao_id", ForeignKey("OrganizationDAO.database_id")),
+    Column("target_coursedao_id", ForeignKey("CourseDAO.database_id")),
+)
 collegedao_disciplines_association = Table(
     "collegedao_disciplines_association",
     Base.metadata,
@@ -62,12 +68,6 @@ collegedao_disciplines_association = Table(
     Column(
         "target_collegedisciplinedao_id", ForeignKey("CollegeDisciplineDAO.database_id")
     ),
-)
-departmentdao_courses_association = Table(
-    "departmentdao_courses_association",
-    Base.metadata,
-    Column("source_departmentdao_id", ForeignKey("DepartmentDAO.database_id")),
-    Column("target_coursedao_id", ForeignKey("CourseDAO.database_id")),
 )
 persondao_knows_association = Table(
     "persondao_knows_association",
@@ -916,6 +916,13 @@ class OrganizationDAO(
         secondaryjoin="OrganizationDAO.database_id == organizationdao_affiliated_organizations_association.c.target_organizationdao_id",
         cascade="save-update, merge",
     )
+    courses: Mapped[typing.List[CourseDAO]] = relationship(
+        "CourseDAO",
+        secondary="organizationdao_courses_association",
+        primaryjoin="OrganizationDAO.database_id == organizationdao_courses_association.c.source_organizationdao_id",
+        secondaryjoin="CourseDAO.database_id == organizationdao_courses_association.c.target_coursedao_id",
+        cascade="save-update, merge",
+    )
 
     __mapper_args__ = {
         "polymorphic_identity": "OrganizationDAO",
@@ -959,14 +966,6 @@ class DepartmentDAO(
         ForeignKey(OrganizationDAO.database_id),
         primary_key=True,
         use_existing_column=True,
-    )
-
-    courses: Mapped[typing.List[CourseDAO]] = relationship(
-        "CourseDAO",
-        secondary="departmentdao_courses_association",
-        primaryjoin="DepartmentDAO.database_id == departmentdao_courses_association.c.source_departmentdao_id",
-        secondaryjoin="CourseDAO.database_id == departmentdao_courses_association.c.target_coursedao_id",
-        cascade="save-update, merge",
     )
 
     __mapper_args__ = {

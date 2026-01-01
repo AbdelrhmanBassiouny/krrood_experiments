@@ -15,7 +15,7 @@ from owl2bench.model.base import (
     Program,
     Interest,
 )
-from owl2bench.model.organizations import University, College, Department
+from owl2bench.model.organizations import University, College, Department, ResearchGroup
 
 
 @pytest.fixture(scope="session")
@@ -213,15 +213,14 @@ def test_get_courses(sparql_wrapper):
 
     assert any_person_takes_course, "No person takes_course relationships found"
 
-    any_department_course = False
+    any_organization_course = False
     for org in loader.world.organizations:
-        if isinstance(org, Department):
-            if len(org.courses) > 0:
-                any_department_course = True
-                for course in org.courses:
-                    assert isinstance(course, Course)
-                    assert course.organization == org
-    assert any_department_course, "No department courses found in the loaded data"
+        if len(org.courses) > 0:
+            any_organization_course = True
+            for course in org.courses:
+                assert isinstance(course, Course)
+                assert course.organization == org
+    assert any_organization_course, "No organization courses found in the loaded data"
 
 
 def test_get_organization_heads(sparql_wrapper):
@@ -273,3 +272,42 @@ def test_get_interests(sparql_wrapper):
                 assert isinstance(interest, Interest)
 
     assert any_hobbies, "No person hobbies found in the loaded data"
+
+
+def test_organizations_match_graphdb(sparql_wrapper):
+    loader = WorldLoader(sparql_wrapper)
+    loader.parse()
+    loaded_organizations = loader.world.organizations
+
+    # Get organizations from GraphDB directly
+    query = """
+    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+    PREFIX owl2bench: <http://benchmark/OWL2Bench#>
+    SELECT DISTINCT ?x ?type WHERE {
+        ?x rdf:type ?type .
+        FILTER(?type IN (owl2bench:University, owl2bench:College, owl2bench:Department, owl2bench:ResearchGroup))
+    }
+    """
+    sparql_wrapper.setQuery(query)
+    results = sparql_wrapper.query().convert()
+    bindings = results["results"]["bindings"]
+
+    type_mapping = {
+        "http://benchmark/OWL2Bench#University": University,
+        "http://benchmark/OWL2Bench#College": College,
+        "http://benchmark/OWL2Bench#Department": Department,
+        "http://benchmark/OWL2Bench#ResearchGroup": ResearchGroup,
+    }
+
+    graphdb_orgs = {}
+    for b in bindings:
+        identifier = str(b["x"]["value"])
+        org_type = b["type"]["value"]
+        cls = type_mapping.get(org_type, Organization)
+        graphdb_orgs[identifier] = cls
+
+    assert len(loaded_organizations) == len(graphdb_orgs)
+
+    for org in loaded_organizations:
+        assert org.identifier in graphdb_orgs
+        assert isinstance(org, graphdb_orgs[org.identifier])
