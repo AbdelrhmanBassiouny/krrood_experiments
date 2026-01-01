@@ -15,7 +15,7 @@ from owl2bench.model.base import (
     Program,
     Interest,
 )
-from owl2bench.model.organizations import University, College
+from owl2bench.model.organizations import University, College, Department
 
 
 @pytest.fixture(scope="session")
@@ -212,6 +212,16 @@ def test_get_courses(sparql_wrapper):
                 assert isinstance(course, Course)
 
     assert any_person_takes_course, "No person takes_course relationships found"
+
+    any_department_course = False
+    for org in loader.world.organizations:
+        if isinstance(org, Department):
+            if len(org.courses) > 0:
+                any_department_course = True
+                for course in org.courses:
+                    assert isinstance(course, Course)
+                    assert course.organization == org
+    assert any_department_course, "No department courses found in the loaded data"
 
 
 def test_get_organization_heads(sparql_wrapper):

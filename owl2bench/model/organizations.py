@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from .base import Organization, CollegeDiscipline
 
 if TYPE_CHECKING:
-    from .base import Person
+    from .base import Person, Course
 
 
 @dataclass
@@ -15,7 +15,8 @@ class College(Organization):
 
 
 @dataclass
-class Department(Organization): ...
+class Department(Organization):
+    courses: list[Course] = field(default_factory=list)
 
 
 @dataclass
