@@ -17,7 +17,7 @@ from .owl_instances_loader import (
 from .owl_to_python import OwlToPythonConverter
 
 if TYPE_CHECKING:
-    from .lubm_eql_queries import QueryWithSelectables
+    from .lubm.lubm_eql_queries import QueryWithSelectables
 
 
 def generate_lubm_with_predicates(clean: bool = False):
@@ -46,12 +46,48 @@ def generate_lubm_with_predicates(clean: bool = False):
     }
     converter = OwlToPythonConverter(predefined_data_types=_default_overrides)
     resources_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "..", "lubm", "resources"
+        os.path.dirname(__file__), "..", "..", "lubm", "resources"
     )
     file_name = f"lubm_clean.owl" if clean else "lubm.owl"
     converter.load_ontology(os.path.join(resources_path, file_name))
     # Save into the package module so tests import the updated code
-    output_path = os.path.join(os.path.dirname(__file__), "lubm_with_predicates.py")
+    output_path = os.path.join(os.path.dirname(__file__), "lubm/lubm_with_predicates.py")
+    converter.save_to_file(output_path)
+
+
+def generate_owl2bench_with_predicates(clean: bool = False):
+    # Provide default overrides for common LUBM datatype properties
+    _default_overrides = {
+        "Person": {
+            "age": "int",
+            "telephone": "str",
+            "title": "str",
+            "email_address": "str",
+        },
+        "Professor": {
+            "tenured": "bool",
+        },
+        "Publication": {
+            "publication_date": "str",
+        },
+        "Software": {
+            "software_version": "str",
+        },
+        "Thing": {
+            "name": "str",
+            "office_number": "int",
+            "research_interest": "str",
+        },
+    }
+    converter = OwlToPythonConverter(predefined_data_types=_default_overrides)
+    resources_path = os.path.join(
+        os.path.dirname(__file__), "..", "..", "owl2bench", "resources", "generated_ontologies"
+    )
+    base_name = "OWL2RL-1"
+    file_name = f"{base_name}_clean.owl" if clean else f"{base_name}.owl"
+    converter.load_ontology(os.path.join(resources_path, file_name))
+    # Save into the package module so tests import the updated code
+    output_path = os.path.join(os.path.dirname(__file__), "owl2bench/owl2bench_with_predicates.py")
     converter.save_to_file(output_path)
 
 
@@ -90,10 +126,10 @@ def evaluate_eql(
 
 def load_instances_for_lubm_with_predicates() -> OwlInstancesRegistry:
     """Load instances from the given path and add them to the given model module."""
-    from . import lubm_with_predicates
+    from .lubm import lubm_with_predicates
 
     folder_path = Path(
-        f"{dirname(__file__)}", "..", "..", "..", "lubm", "resources", "instances"
+        f"{dirname(__file__)}", "", "..", "..", "lubm", "resources", "instances"
     )
     files = [f.name for f in folder_path.iterdir() if f.is_file()]
     files.sort(key=lambda x: int(x.split("_")[1].split(".")[0]))
@@ -108,7 +144,7 @@ def get_lubm_answers():
     queries_answers = defaultdict(list)
     answers_path = os.path.join(
         os.path.dirname(__file__),
-        "..",
+        "",
         "..",
         "..",
         "lubm",

@@ -5,7 +5,6 @@ Generated using custom converter
 
 from __future__ import annotations
 
-from krrood_experiments.lubm.lubm_with_predicates import Chair
 from .lubm_with_predicates_properties import *
 from .lubm_with_predicates_base import *
 
@@ -199,6 +198,7 @@ class Student(PersonMixinProtocol, Symbol):
     """student"""
     # is taking
     takes_course: Set[Course] = field(default_factory=set)
+
 
 
 @dataclass(eq=False)

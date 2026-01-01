@@ -10,7 +10,6 @@ from jinja2 import Environment, FileSystemLoader
 from krrood import logger
 from rdflib.namespace import RDF, RDFS, OWL, XSD
 from sqlalchemy.util import OrderedSet
-from typing_extensions import Tuple
 
 
 class SubsumptionType(Enum):
@@ -43,7 +42,7 @@ class OwlToPythonConverter:
         # If a relative path was provided and does not exist relative to CWD, try repository resources
         if not os.path.isabs(path) and not os.path.exists(path):
             repo_root = os.path.abspath(
-                os.path.join(os.path.dirname(__file__), "..", "..", "..")
+                os.path.join(os.path.dirname(__file__), "", "..", "..")
             )
             candidate = os.path.join(
                 repo_root, "lubm", "resources", os.path.basename(path)
@@ -865,20 +864,6 @@ class OwlToPythonConverter:
                     subsumption_type = SubsumptionType.SUBTYPE
                 else:
                     subsumption_type = SubsumptionType.ROLE
-                # for prop_name in copy(matched_prop_names):
-                #     parent_prop_name = [prop for prop in parent_props_names if prop.split("{")[0] == prop_name][0]
-                #     child_prop_name = [prop for prop in child_props_names if prop.split("{")[0] == prop_name][0]
-                #     child_prop_info = properties_copy.get(child_prop_name)
-                #     parent_prop_info = properties_copy.get(parent_prop_name)
-                #     if (
-                #         child_prop_info["type"] == "DataProperty"
-                #         or parent_prop_info["type"] == "DataProperty"
-                #     ):
-                #         continue
-                #     child_prop_range = child_prop_info["object_range_hint"]
-                #     parent_prop_range = parent_prop_info["object_range_hint"]
-                #     if parent_prop_range not in ancestors_map[child_prop_range]:
-                #         matched_prop_names.remove(prop_name)
                 if not matched_prop_names:
                     continue
                 child_info = classes_copy[child_cls_name]
@@ -1022,6 +1007,6 @@ class OwlToPythonConverter:
 
 # Usage
 if __name__ == "__main__":
-    from krrood_experiments.lubm.helpers import generate_lubm_with_predicates
+    from krrood_experiments.helpers import generate_lubm_with_predicates
 
     generate_lubm_with_predicates(clean=True)
