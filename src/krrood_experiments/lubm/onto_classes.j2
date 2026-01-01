@@ -1,0 +1,82 @@
+"""
+Auto-generated Python classes from OWL ontology
+Generated using custom converter
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field, Field, fields
+from abc import ABC
+from typing_extensions import Optional, Set, TypeVar, Type
+from functools import lru_cache
+
+from krrood.entity_query_language.predicate import Symbol
+from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
+from krrood.ontomatic.property_descriptor.mixins import HasInverseProperty, TransitiveProperty
+from krrood.class_diagrams.utils import Role
+from .lubm_properties import *
+
+# Generated classes
+{% for cls_name in classes_order %}
+{% set cls = classes[cls_name] %}
+@dataclass(eq=False)
+class {{ cls.name }}({% if cls.base_classes %}{{ ', '.join(cls.base_classes) }}{% else %}{{ ontology_base_class_name }}{% endif %}):
+    {% if cls.label or cls.comment %}
+    """{{ cls.label if cls.label else '' }}{% if cls.label and cls.comment %}\n\n{% endif %}{{ cls.comment if cls.comment else '' }}"""
+    {% endif %}
+    {% if cls.declared_properties|length == 0  and cls.role_taker|length == 0%}
+    ...
+    {% else %}
+    {% if cls.role_taker|length > 0 %}
+    {% if cls.add_role_taker %}
+    # Role taker
+    {{ cls.role_taker.field_name }}: {{ cls.role_taker.class_name }}
+    {% endif %}
+    {% endif %}
+    {% if cls.declared_properties|length > 0 %}
+    {% for prop_name in cls.declared_properties %}
+    {% set prop = properties[prop_name] %}
+    {% if prop.label or prop.comment %}    # {{ prop.label if prop.label else '' }}{% if prop.label and prop.comment %} - {% endif %}{{ prop.comment if prop.comment else '' }}
+    {% endif %}
+    {% if prop.type == 'ObjectProperty' %}
+    {{ prop.field_name }}: Set[{{ prop.object_range_hint }}] = field(default_factory=set)
+    {% else %}
+    {{ prop.field_name }}: Optional[{{ prop.data_type_hint_inner }}] = field(kw_only=True, default=None)
+    {% endif %}
+    {% endfor %}
+    {% endif %}
+    {% endif %}
+    {% if cls.role_taker|length > 0 %}
+    {% if cls.add_role_taker %}
+
+    @classmethod
+    @lru_cache(maxsize=None)
+    def role_taker_field(cls) -> Field:
+        return next(iter(f for f in fields(cls) if f.name == "{{ cls.role_taker.field_name }}"))
+    {% endif %}
+    {% endif %}
+    {% if cls.name == ontology_base_class_name %}
+
+    def __hash__(self):
+        return hash(id(self))
+    {% endif %}
+
+
+{% if cls_name == ontology_base_class_name %}
+T = TypeVar('T', bound={{ ontology_base_class_name }})
+
+
+{% endif %}
+{% endfor %}
+
+
+# Descriptor assignments
+{% for cls_name in classes_order %}
+{% set cls = classes[cls_name] %}
+{% for prop_name in cls.declared_properties %}
+{% set prop = properties[prop_name] %}
+{% if prop.type == 'ObjectProperty' %}
+{{ cls.name }}.{{ prop.field_name }} = {{ prop.descriptor_name }}({{ cls.name }}, '{{ prop.field_name }}')
+{% endif %}
+{% endfor %}
+{% endfor %}

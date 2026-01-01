@@ -9,6 +9,8 @@ import rdflib
 from jinja2 import Environment, FileSystemLoader
 from krrood import logger
 from rdflib.namespace import RDF, RDFS, OWL, XSD
+from sqlalchemy.util import OrderedSet
+from typing_extensions import Tuple
 
 
 class SubsumptionType(Enum):
@@ -304,7 +306,7 @@ class OwlToPythonConverter:
                 deps.difference_update(ready)
         return ordered
 
-    def generate_python_code_external(self) -> str:
+    def generate_python_code_external(self, base_file_name: str) -> Dict[str, str]:
         """Generate Python code using the external Jinja2 template with proper class/property inheritance.
 
         - Object properties: List[Range] where Range is a class name, or Union[...] if multiple ranges
@@ -950,8 +952,20 @@ class OwlToPythonConverter:
             trim_blocks=True,
             lstrip_blocks=True,
         )
-        template = env.get_template("jinja_template.j2")
-        return template.render(
+
+        properties_file_name = base_file_name + "_properties.py"
+        classes_file_name = base_file_name + ".py"
+        stub_file_name = base_file_name + ".pyi"
+
+        template = env.get_template("onto_properties.j2")
+        properties_file = template.render(
+            properties=properties_copy,
+            properties_order=properties_order,
+        )
+
+        template = env.get_template("onto_classes.j2")
+        classes_file = template.render(
+            properties_file_name=properties_file_name,
             classes=classes_copy,
             properties=properties_copy,
             classes_order=classes_order,
@@ -959,11 +973,30 @@ class OwlToPythonConverter:
             ontology_base_class_name=ontology_base_class_name,
         )
 
+        role_takers_order = OrderedSet([c["role_taker"]["class_name"] for c in classes_copy.values()
+                                        if "role_taker" in c and c["role_taker"]])
+        role_takers = {k: classes_copy[k] for k in role_takers_order}
+
+        template = env.get_template("onto_stubs.j2")
+        stub_file = template.render(
+            properties_file_name=properties_file_name,
+            role_takers=role_takers,
+            classes=classes_copy,
+            properties=properties_copy,
+            classes_order=classes_order,
+            ontology_base_class_name=ontology_base_class_name,
+        )
+        return {properties_file_name: properties_file,
+                classes_file_name: classes_file,
+                stub_file_name: stub_file}
+
     def save_to_file(self, output_path: str):
         """Generate and save Python code to file"""
-        python_code = self.generate_python_code_external()
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(python_code)
+        base_file_name = os.path.splitext(output_path)[0]
+        file_name_map = self.generate_python_code_external(base_file_name)
+        for file_name, file_content in file_name_map.items():
+            with open(file_name, "w", encoding="utf-8") as f:
+                f.write(file_content)
         logger.info(f"Generated Python classes saved to: {output_path}")
 
 

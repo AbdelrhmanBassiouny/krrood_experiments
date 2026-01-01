@@ -1,0 +1,38 @@
+"""
+Auto-generated Python classes from OWL ontology
+Generated using custom converter
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field, Field, fields
+from abc import ABC
+from typing_extensions import Optional, Set, TypeVar, Type
+
+from krrood.entity_query_language.predicate import Symbol
+from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
+from krrood.ontomatic.property_descriptor.mixins import HasInverseProperty, TransitiveProperty
+
+
+# Property descriptor classes (object properties)
+{% for prop_name in properties_order %}
+{% set prop = properties[prop_name] %}
+{% if prop.type == 'ObjectProperty' and not prop.is_specialized%}
+@dataclass
+class {{ prop.descriptor_name }}({{ ', '.join(prop.base_descriptors) }}):
+    {% if prop.label or prop.comment %}
+    """{{ prop.label if prop.label else '' }}{% if prop.label and prop.comment %}\n\n{% endif %}{{ prop.comment if prop.comment else '' }}"""
+    {% else %}
+    ...
+    {% endif %}
+    {# Only emit a typed inverse if the target descriptor is already defined earlier #}
+    {% if prop.inverse_of%}
+    {% set inverse = properties[prop.inverse_of].descriptor_name %}
+    @classmethod
+    def get_inverse(cls) -> Type[{{ inverse }}]:
+        return {{ inverse }}
+    {% endif %}
+
+
+{% endif %}
+{% endfor %}
