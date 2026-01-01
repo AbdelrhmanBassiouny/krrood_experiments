@@ -41,7 +41,15 @@ def generate_orm() -> None:
     instance.make_all_tables()
 
     file_path = os.path.join(
-        os.path.dirname(__file__), "..", "owl2bench", "orm", "ormatic_interface.py"
+        os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__),
+                "..",
+                "owl2bench",
+                "orm",
+                "ormatic_interface.py",
+            )
+        )
     )
 
     with open(file_path, "w") as f:
