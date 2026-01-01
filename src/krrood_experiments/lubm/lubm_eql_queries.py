@@ -177,7 +177,6 @@ def get_eql_queries(
     takes_course = variable_from(student.takes_course)
     q9 = a(
         set_of(student, advisor, takes_course).where(
-            HasType(advisor, Faculty),
             contains(advisor.teacher_of, takes_course)
         )
     )
