@@ -886,6 +886,10 @@ class OrganizationDAO(
         use_existing_column=True,
     )
 
+    name: Mapped[typing.Optional[builtins.str]] = mapped_column(
+        String(255), use_existing_column=True
+    )
+
     head_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
         ForeignKey("PersonDAO.database_id", use_alter=True),
         nullable=True,

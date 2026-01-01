@@ -4,182 +4,182 @@ from .base import CollegeDiscipline
 
 
 # %% Engineering
-@dataclass
+@dataclass(eq=False)
 class Engineering(CollegeDiscipline): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class AeronauticalEngineering(Engineering): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class BiomedicalEngineering(Engineering): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class ChemicalEngineering(Engineering): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class CivilEngineering(Engineering): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class ComputerEngineering(Engineering): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class ElectricalEngineering(Engineering): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class IndustryEngineering(Engineering): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class MaterialScienceEngineering(Engineering): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class MechanicalEngineering(Engineering): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class PetroleumlEngineering(Engineering): ...
 
 
 # %% Fine Arts
-@dataclass
+@dataclass(eq=False)
 class FineArts(CollegeDiscipline): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Architecture(FineArts): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class AsianArts(FineArts): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Drama(FineArts): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class LatinArts(FineArts): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class MediaArtsAndSciences(FineArts): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class MedievalArts(FineArts): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class ModernArts(FineArts): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class MusicsClass(FineArts): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class PerformingArts(FineArts): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class TheatreAndDance(FineArts): ...
 
 
 # %% Humanities and Social Sciences
 
 
-@dataclass
+@dataclass(eq=False)
 class HumanitiesAndSocial(CollegeDiscipline): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Anthropology(HumanitiesAndSocial): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Economics(HumanitiesAndSocial): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class English(HumanitiesAndSocial): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class History(HumanitiesAndSocial): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Humanities(HumanitiesAndSocial): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Linguistics(HumanitiesAndSocial): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class ModernLanguages(HumanitiesAndSocial): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Philosophy(HumanitiesAndSocial): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Psychology(HumanitiesAndSocial): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Religions(HumanitiesAndSocial): ...
 
 
 # %% Management
-@dataclass
+@dataclass(eq=False)
 class Management(CollegeDiscipline): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class DesignManagement(Management): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class FinancialAndAccountingManagement(Management): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class HumanResourceManagement(Management): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class MarketingManagement(Management): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class OperationsManagement(Management): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class ProjectManagement(Management): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class PublicRelationsManagement(Management): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class RiskManagement(Management): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class SalesManagement(Management): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class SupplyChainManagement(Management): ...

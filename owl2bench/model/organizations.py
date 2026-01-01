@@ -9,19 +9,19 @@ if TYPE_CHECKING:
     from .base import Person, Course
 
 
-@dataclass
+@dataclass(eq=False)
 class College(Organization):
     disciplines: list[CollegeDiscipline] = field(default_factory=list)
 
 
-@dataclass
+@dataclass(eq=False)
 class Department(Organization): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class ResearchGroup(Organization): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class University(Organization):
     alumni: list[Person] = field(default_factory=list)

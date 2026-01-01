@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 
 from sqlalchemy import select, Select
+from sqlalchemy.orm import aliased
+
 from .orm.ormatic_interface import *
 
 from . import sparql_queries
@@ -104,30 +106,29 @@ q19 = SQLAlchemyQuery(sparql_queries.q19, sqlalchemy_q19)
 sqlalchemy_q20 = select(persondao_has_same_hometown_as_association)
 q20 = SQLAlchemyQuery(sparql_queries.q20, sqlalchemy_q20)
 
-engineering_departments = [
-    "http://benchmark/OWL2Bench#U0C3D0",
-    "http://benchmark/OWL2Bench#U0C3D1",
-    "http://benchmark/OWL2Bench#U0C3D2",
-]
-
-
 sqlalchemy_q21 = (
     select(PersonDAO)
-    .join(
-        organizationdao_members_association,
-        PersonDAO.database_id
-        == organizationdao_members_association.c.target_persondao_id,
+    .join(PersonDAO.takes_course)
+    .join(CourseDAO.topic.of_type(EngineeringDAO))
+    .distinct()
+)
+q21 = SQLAlchemyQuery(sparql_queries.q21, sqlalchemy_q21)
+
+Student = aliased(PersonDAO, name="student")
+TeacherHead = aliased(PersonDAO, name="teacher_head")
+
+sqlalchemy_q22 = (
+    select(Student)
+    .join(Student.takes_course)
+    .join(CourseDAO.organization)
+    .filter(
+        # Check if any teacher of the course has the same ID as the organization's head
+        CourseDAO.teachers.any(PersonDAO.database_id == OrganizationDAO.head_id)
     )
-    .join(
-        DepartmentDAO,
-        DepartmentDAO.database_id
-        == organizationdao_members_association.c.source_organizationdao_id,
-    )
-    .where(DepartmentDAO.identifier.in_(engineering_departments))
     .distinct()
 )
 
-q21 = SQLAlchemyQuery(sparql_queries.q21, sqlalchemy_q21)
+q22 = SQLAlchemyQuery(sparql_queries.q22, sqlalchemy_q22)
 
 all_queries = [
     q1,
@@ -149,5 +150,6 @@ all_queries = [
     # q18,
     q19,
     q20,
-    # q21,
+    q21,
+    q22,
 ]

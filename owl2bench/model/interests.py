@@ -3,53 +3,53 @@ from dataclasses import dataclass
 from .base import Interest
 
 
-@dataclass
+@dataclass(eq=False)
 class Game(Interest): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Movie(Interest): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Music(Interest): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Painting(Interest): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Reading(Interest): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Travelling(Interest): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Sports(Interest): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Badminton(Sports): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class BasketBall(Sports): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Cricket(Sports): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class FootBall(Sports): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Swimming(Sports): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class Tennis(Sports): ...

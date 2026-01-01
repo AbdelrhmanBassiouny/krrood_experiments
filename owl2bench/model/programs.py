@@ -3,13 +3,13 @@ from dataclasses import dataclass
 from .base import Program
 
 
-@dataclass
+@dataclass(eq=False)
 class UndergraduateProgram(Program): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class PostgraduateProgram(Program): ...
 
 
-@dataclass
+@dataclass(eq=False)
 class PhDProgram(Program): ...
