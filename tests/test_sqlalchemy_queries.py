@@ -58,5 +58,3 @@ def test_db_setup(sqlalchemy_session):
             IdentifiedEntityDAO.identifier == "http://benchmark/OWL2Bench#U0C3D2"
         )
     ).all()
-
-    print(list(r))
