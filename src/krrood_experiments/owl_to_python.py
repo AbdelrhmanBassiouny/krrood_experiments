@@ -886,9 +886,6 @@ class OwlToPythonConverter:
                         child_info["base_classes"].append(parent_cls_name)
                         child_info["all_base_classes"].append(parent_cls_name)
                         child_info["all_base_classes_including_role_takers"].append(parent_cls_name)
-                    rt = child_info["role_taker"]
-                    if rt and rt == parent_info["role_taker"]:
-                        child_info["role_taker"] = {}
                     for prop in copy(child_info["declared_properties"]):
                         if prop in parent_info["declared_properties"]:
                             child_info["declared_properties"].remove(prop)
@@ -1007,6 +1004,7 @@ class OwlToPythonConverter:
 
 # Usage
 if __name__ == "__main__":
-    from krrood_experiments.helpers import generate_lubm_with_predicates
+    from krrood_experiments.helpers import generate_lubm_with_predicates, generate_owl2bench_with_predicates
 
-    generate_lubm_with_predicates(clean=True)
+    # generate_lubm_with_predicates(clean=True)
+    generate_owl2bench_with_predicates(clean=False)
