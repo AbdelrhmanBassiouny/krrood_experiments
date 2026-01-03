@@ -28,9 +28,9 @@ class UnivBenchOntology(Symbol, ABC):
 class Organization(UnivBenchOntology):
     """organization"""
     # is affiliated with
-    affiliated_organization_of: Set[Organization] = field(default_factory=set)
-    # is affiliated with
     affiliate_of: Set[Person] = field(default_factory=set)
+    # is affiliated with
+    affiliated_organization_of: Set[Organization] = field(default_factory=set)
     # has as a member
     member: Set[Person] = field(default_factory=set)
     # publishes
@@ -45,24 +45,24 @@ class PersonMixinProtocol(UnivBenchOntology):
     """person"""
     # is being advised by
     advisor: Set[Professor]
+    # is age
+    age: Optional[int]
     # has a degree from
     degree_from: Set[University]
     # has a doctoral degree from
     doctoral_degree_from: Set[University]
+    # can be reached at
+    email_address: Optional[str]
     # has a masters degree from
     masters_degree_from: Set[University]
     # member of
     member_of: Set[Organization]
-    # has an undergraduate degree from
-    undergraduate_degree_from: Set[University]
-    # is age
-    age: Optional[int]
-    # can be reached at
-    email_address: Optional[str]
     # telephone number
     telephone: Optional[str]
     # title
     title: Optional[str]
+    # has an undergraduate degree from
+    undergraduate_degree_from: Set[University]
 
 
 @dataclass(eq=False)

@@ -10,7 +10,7 @@ from collections import defaultdict
 from copy import copy, deepcopy
 from dataclasses import dataclass, field, asdict
 from enum import Enum
-from typing import Dict, List, Callable, Optional, Any
+from typing import Dict, List, Callable, Optional, Any, Set
 
 import rdflib
 from jinja2 import Environment, FileSystemLoader
@@ -31,6 +31,13 @@ class SubsumptionType(Enum):
     (e.g. Student is a role that a Person can take on in the context of taking a course).
     Thi is the equivalent to OOP composition.
     """
+
+
+class PropertyType(str, Enum):
+    """Enumeration of OWL property types."""
+
+    OBJECT_PROPERTY = "ObjectProperty"
+    DATA_PROPERTY = "DataProperty"
 
 
 @dataclass
@@ -74,7 +81,7 @@ class PropertyInfo:
 
     name: str
     uri: str
-    type: str  # "ObjectProperty" or "DataProperty"
+    type: PropertyType
     domains: List[str] = field(default_factory=list)
     ranges: List[str] = field(default_factory=list)
     range_uris: List[Any] = field(default_factory=list)
@@ -246,11 +253,11 @@ class PropertyExtractor:
                 inverses.append(NamingRegistry.uri_to_python_name(inv_subj))
 
         # Determine property type
-        prop_type = "ObjectProperty"
+        prop_type = PropertyType.OBJECT_PROPERTY
         is_transitive = False
         for prop_type_uri in self.graph.objects(property_uri, RDF.type):
             if prop_type_uri == OWL.DatatypeProperty:
-                prop_type = "DataProperty"
+                prop_type = PropertyType.DATA_PROPERTY
             if prop_type_uri == OWL.TransitiveProperty:
                 is_transitive = True
 
@@ -280,6 +287,34 @@ class PropertyExtractor:
 
 class InferenceEngine:
     """Engine for performing ontological inference and computing class/property relationships."""
+
+    XSD_TO_PYTHON_TYPES = {
+        XSD.string: "str",
+        XSD.normalizedString: "str",
+        XSD.token: "str",
+        XSD.language: "str",
+        XSD.boolean: "bool",
+        XSD.decimal: "float",
+        XSD.float: "float",
+        XSD.double: "float",
+        XSD.integer: "int",
+        XSD.nonPositiveInteger: "int",
+        XSD.negativeInteger: "int",
+        XSD.long: "int",
+        XSD.int: "int",
+        XSD.short: "int",
+        XSD.byte: "int",
+        XSD.nonNegativeInteger: "int",
+        XSD.unsignedLong: "int",
+        XSD.unsignedInt: "int",
+        XSD.unsignedShort: "int",
+        XSD.unsignedByte: "int",
+        XSD.positiveInteger: "int",
+        XSD.date: "str",
+        XSD.dateTime: "str",
+        XSD.time: "str",
+        XSD.anyURI: "str",
+    }
 
     def __init__(self, graph: rdflib.Graph):
         """
@@ -476,7 +511,7 @@ class InferenceEngine:
         for cls_name, props in property_restrictions.items():
             for prop_name, rng_names in props.items():
                 base = properties.get(prop_name)
-                if not base or base.type != "ObjectProperty":
+                if not base or base.type != PropertyType.OBJECT_PROPERTY:
                     continue
                 if rng_names.issubset(set(original_properties[prop_name].ranges)):
                     continue
@@ -489,7 +524,7 @@ class InferenceEngine:
                     specialized_props[spec_key] = PropertyInfo(
                         name=prop_name,
                         uri=base.uri,
-                        type="ObjectProperty",
+                        type=PropertyType.OBJECT_PROPERTY,
                         domains=[cls_name],
                         ranges=[rng_name],
                         label=base.label,
@@ -531,7 +566,7 @@ class InferenceEngine:
                     )
                     continue
                 p = properties[target_prop_name]
-                p.type = "DataProperty"
+                p.type = PropertyType.DATA_PROPERTY
                 p.data_type_hint_inner = py_type
                 p._predefined_data_type = True
                 ov = set(p._overrides_for)
@@ -545,7 +580,7 @@ class InferenceEngine:
 
     def compute_type_hints(
         self, classes: Dict[str, ClassInfo], properties: Dict[str, PropertyInfo]
-    ):
+    ) -> Dict[str, Set[str]]:
         """
         Compute Python type hints for all properties.
         Handles both object properties (referencing classes) and data properties (XSD types).
@@ -553,119 +588,130 @@ class InferenceEngine:
         :param properties: Dictionary of PropertyInfo.
         :return: Ancestor map for classes.
         """
-        xsd_to_py = {
-            XSD.string: "str",
-            XSD.normalizedString: "str",
-            XSD.token: "str",
-            XSD.language: "str",
-            XSD.boolean: "bool",
-            XSD.decimal: "float",
-            XSD.float: "float",
-            XSD.double: "float",
-            XSD.integer: "int",
-            XSD.nonPositiveInteger: "int",
-            XSD.negativeInteger: "int",
-            XSD.long: "int",
-            XSD.int: "int",
-            XSD.short: "int",
-            XSD.byte: "int",
-            XSD.nonNegativeInteger: "int",
-            XSD.unsignedLong: "int",
-            XSD.unsignedInt: "int",
-            XSD.unsignedShort: "int",
-            XSD.unsignedByte: "int",
-            XSD.positiveInteger: "int",
-            XSD.date: "str",
-            XSD.dateTime: "str",
-            XSD.time: "str",
-            XSD.anyURI: "str",
-        }
         ancestors_map = {
             name: set(info.all_base_classes) for name, info in classes.items()
         }
-        for name, info in properties.items():
-            bases = [
-                properties[sp].descriptor_name
-                for sp in info.superproperties
-                if sp in properties
-            ] or ["PropertyDescriptor"]
-            if info.is_transitive:
-                bases.append("TransitiveProperty")
-            if info.inverse_of:
-                bases.append("HasInverseProperty")
-            info.base_descriptors = bases
-
-            if info.type == "ObjectProperty":
-                ranges = list(info.ranges)
-                if ranges:
-                    rng_set = set(ranges)
-                    simplified = [
-                        r
-                        for r in sorted(rng_set)
-                        if not any(a in rng_set for a in ancestors_map.get(r, set()))
-                    ]
-                    ranges = simplified or ranges
-                if len(ranges) > 1:
-                    info.object_range_hint = f"Union[{', '.join(sorted(set(ranges)))}]"
-                elif len(ranges) == 1:
-                    info.object_range_hint = ranges[0]
-                else:
-                    logger.warning(
-                        f"[owl_to_python]: Could not infer object range type for property '{name}'. Using Any."
-                    )
-                    info.object_range_hint = "Any"
+        for info in properties.values():
+            self._set_base_descriptors(info, properties)
+            if info.type == PropertyType.OBJECT_PROPERTY:
+                self._set_object_range_hint(info, ancestors_map)
             elif not (info._predefined_data_type and info.data_type_hint_inner):
-                py_types: List[str] = []
-                for uri in info.range_uris:
-                    try:
-                        if isinstance(uri, rdflib.URIRef) and uri in xsd_to_py:
-                            py_types.append(xsd_to_py[uri])
-                    except Exception:
-                        pass
-                if not py_types:
-                    textual = [r.lower() for r in info.ranges]
-                    for t in textual:
-                        if t in (
-                            "string",
-                            "normalizedstring",
-                            "token",
-                            "language",
-                            "anyuri",
-                            "datetime",
-                            "date",
-                            "time",
-                        ):
-                            py_types.append("str")
-                        elif t in (
-                            "integer",
-                            "int",
-                            "long",
-                            "short",
-                            "byte",
-                            "nonnegativeinteger",
-                            "positiveinteger",
-                            "unsignedlong",
-                            "unsignedint",
-                            "unsignedshort",
-                            "unsignedbyte",
-                        ):
-                            py_types.append("int")
-                        elif t in ("float", "double", "decimal"):
-                            py_types.append("float")
-                        elif t == "boolean":
-                            py_types.append("bool")
-                    if not py_types:
-                        logger.warning(
-                            f"[owl_to_python]: Could not infer data type for property '{name}'. Using Any."
-                        )
-                        py_types.append("Any")
-                unique_types = list(OrderedSet(py_types))
-                info.data_type_hint_inner = (
-                    f"Union[{', '.join(unique_types)}]"
-                    if len(unique_types) > 1
-                    else unique_types[0]
-                )
+                self._set_data_type_hint(info)
         return ancestors_map
+
+    def _set_base_descriptors(
+        self, info: PropertyInfo, properties: Dict[str, PropertyInfo]
+    ):
+        """
+        Determine the base descriptor classes for a property.
+        :param info: The PropertyInfo to update.
+        :param properties: Dictionary of all properties.
+        """
+        bases = [
+            properties[sp].descriptor_name
+            for sp in info.superproperties
+            if sp in properties
+        ] or ["PropertyDescriptor"]
+        if info.is_transitive:
+            bases.append("TransitiveProperty")
+        if info.inverse_of:
+            bases.append("HasInverseProperty")
+        info.base_descriptors = bases
+
+    def _set_object_range_hint(
+        self, info: PropertyInfo, ancestors_map: Dict[str, Set[str]]
+    ):
+        """
+        Compute and set the object_range_hint for an ObjectProperty.
+        :param info: The PropertyInfo to update.
+        :param ancestors_map: Map of class names to their ancestors.
+        """
+        ranges = list(info.ranges)
+        if ranges:
+            rng_set = set(ranges)
+            simplified = [
+                r
+                for r in sorted(rng_set)
+                if not any(a in rng_set for a in ancestors_map.get(r, set()))
+            ]
+            ranges = simplified or ranges
+
+        if len(ranges) > 1:
+            info.object_range_hint = f"Union[{', '.join(sorted(set(ranges)))}]"
+        elif len(ranges) == 1:
+            info.object_range_hint = ranges[0]
+        else:
+            logger.warning(
+                f"[owl_to_python]: Could not infer object range type for property '{info.name}'. Using Any."
+            )
+            info.object_range_hint = "Any"
+
+    def _set_data_type_hint(self, info: PropertyInfo):
+        """
+        Compute and set the data_type_hint_inner for a DataProperty.
+        :param info: The PropertyInfo to update.
+        """
+        py_types: List[str] = []
+        # 1. Try mapping from XSD URIs
+        for uri in info.range_uris:
+            try:
+                if isinstance(uri, rdflib.URIRef) and uri in self.XSD_TO_PYTHON_TYPES:
+                    py_types.append(self.XSD_TO_PYTHON_TYPES[uri])
+            except Exception:
+                pass
+
+        # 2. Try mapping from range names if URI mapping failed
+        if not py_types:
+            py_types = self._map_range_names_to_python_types(info.ranges)
+
+        if not py_types:
+            logger.warning(
+                f"[owl_to_python]: Could not infer data type for property '{info.name}'. Using Any."
+            )
+            py_types.append("Any")
+
+        unique_types = list(OrderedSet(py_types))
+        info.data_type_hint_inner = (
+            f"Union[{', '.join(unique_types)}]"
+            if len(unique_types) > 1
+            else unique_types[0]
+        )
+
+    def _map_range_names_to_python_types(self, range_names: List[str]) -> List[str]:
+        """Map OWL range names (as strings) to Python types."""
+        py_types = []
+        textual = [r.lower() for r in range_names]
+        for t in textual:
+            if t in (
+                "string",
+                "normalizedstring",
+                "token",
+                "language",
+                "anyuri",
+                "datetime",
+                "date",
+                "time",
+            ):
+                py_types.append("str")
+            elif t in (
+                "integer",
+                "int",
+                "long",
+                "short",
+                "byte",
+                "nonnegativeinteger",
+                "positiveinteger",
+                "unsignedlong",
+                "unsignedint",
+                "unsignedshort",
+                "unsignedbyte",
+            ):
+                py_types.append("int")
+            elif t in ("float", "double", "decimal"):
+                py_types.append("float")
+            elif t == "boolean":
+                py_types.append("bool")
+        return py_types
 
     def find_implicit_subtypes(
         self,
@@ -683,104 +729,162 @@ class InferenceEngine:
         :param ontology_base_class_name: Name of the root ontology class.
         :param role_cls_name: Name of the Role class.
         """
-        for parent_cls_name, parent_cls_info in classes.items():
-            parent_props_names = parent_cls_info.declared_properties
-            parent_props_names_filtered = {
-                prop.split("{")[0] for prop in parent_props_names
-            }
-            for child_cls_name, child_cls_info in classes.items():
-                if parent_cls_name == child_cls_name:
-                    continue
-                if (
-                    parent_cls_name
-                    in child_cls_info.all_base_classes_including_role_takers
+        for parent_name, parent_info in classes.items():
+            for child_name, child_info in classes.items():
+                if not self._is_subsumption_candidate(
+                    parent_name, parent_info, child_name, child_info
                 ):
                     continue
-                if (
-                    child_cls_name
-                    in parent_cls_info.all_base_classes_including_role_takers
-                ):
-                    continue
-                child_props_names = child_cls_info.declared_properties
-                child_props_names_filtered = {
-                    prop.split("{")[0] for prop in child_props_names
-                }
-                matched_prop_names = parent_props_names_filtered.intersection(
-                    child_props_names_filtered
+
+                matched_props = self._get_matched_properties(
+                    parent_info, child_info, properties, ancestors_map
                 )
-                for parent_prop_name in parent_props_names:
-                    for child_prop_name in child_props_names:
-                        child_prop_info, parent_prop_info = properties.get(
-                            child_prop_name
-                        ), properties.get(parent_prop_name)
-                        parent_prop_filtered_name = parent_prop_name.split("{")[0]
-                        if not child_prop_info or not parent_prop_info:
-                            continue
-                        if (
-                            child_prop_info.type == "DataProperty"
-                            or parent_prop_info.type == "DataProperty"
-                        ):
-                            continue
-                        if (
-                            parent_prop_filtered_name
-                            not in child_prop_info.all_superproperties
-                        ):
-                            continue
-                        child_prop_range, parent_prop_range = (
-                            child_prop_info.object_range_hint,
-                            parent_prop_info.object_range_hint,
-                        )
-                        if parent_prop_range not in ancestors_map.get(
-                            child_prop_range, set()
-                        ):
-                            if parent_prop_filtered_name in matched_prop_names:
-                                matched_prop_names.remove(parent_prop_filtered_name)
-                            continue
-                        matched_prop_names.add(parent_prop_filtered_name)
-                if not matched_prop_names:
+                if not matched_props:
                     continue
-                if matched_prop_names == parent_props_names_filtered:
-                    if parent_cls_info.role_taker:
-                        if child_cls_info.role_taker:
-                            if (
-                                child_cls_info.role_taker.class_name
-                                != parent_cls_info.role_taker.class_name
-                            ):
-                                continue
-                        else:
-                            continue
-                    subsumption_type = SubsumptionType.SUBTYPE
-                else:
-                    subsumption_type = SubsumptionType.ROLE
-                if not matched_prop_names:
+
+                subsumption_type = self._determine_subsumption_type(
+                    matched_props, parent_info, child_info
+                )
+                if subsumption_type:
+                    self._apply_implicit_subsumption(
+                        child_name,
+                        child_info,
+                        parent_name,
+                        parent_info,
+                        subsumption_type,
+                        ontology_base_class_name,
+                        role_cls_name,
+                    )
+
+    def _is_subsumption_candidate(
+        self,
+        parent_name: str,
+        parent_info: ClassInfo,
+        child_name: str,
+        child_info: ClassInfo,
+    ) -> bool:
+        """Check if parent and child are candidates for implicit subsumption."""
+        if parent_name == child_name:
+            return False
+        if parent_name in child_info.all_base_classes_including_role_takers:
+            return False
+        if child_name in parent_info.all_base_classes_including_role_takers:
+            return False
+        return True
+
+    def _get_matched_properties(
+        self,
+        parent_info: ClassInfo,
+        child_info: ClassInfo,
+        properties: Dict[str, PropertyInfo],
+        ancestors_map: Dict[str, Set[str]],
+    ) -> Set[str]:
+        """
+        Find property base names that are compatible between parent and child.
+        """
+        parent_props = parent_info.declared_properties
+        child_props = child_info.declared_properties
+
+        parent_props_filtered = {p.split("{")[0] for p in parent_props}
+        child_props_filtered = {p.split("{")[0] for p in child_props}
+
+        matched_prop_names = parent_props_filtered.intersection(child_props_filtered)
+
+        # Re-verify based on original logic: check all combinations of parent/child properties
+        # and remove/add base name based on range and superproperty compatibility.
+        for parent_p_name in parent_props:
+            parent_base_name = parent_p_name.split("{")[0]
+            for child_p_name in child_props:
+                child_p_info, parent_p_info = properties.get(
+                    child_p_name
+                ), properties.get(parent_p_name)
+                if not child_p_info or not parent_p_info:
                     continue
-                if ontology_base_class_name in child_cls_info.base_classes:
-                    child_cls_info.base_classes.remove(ontology_base_class_name)
-                if subsumption_type == SubsumptionType.ROLE:
-                    child_cls_info.role_taker = RoleTakerInfo(
-                        parent_cls_name, NamingRegistry.to_snake_case(parent_cls_name)
-                    )
-                    if role_cls_name not in child_cls_info.all_base_classes:
-                        child_cls_info.base_classes = [
-                            role_cls_name
-                        ] + child_cls_info.base_classes
-                        child_cls_info.all_base_classes = [
-                            role_cls_name
-                        ] + child_cls_info.all_base_classes
-                    child_cls_info.all_base_classes_including_role_takers.append(
-                        parent_cls_name
-                    )
-                else:
-                    child_cls_info.base_classes = []
-                    if parent_cls_name not in child_cls_info.base_classes:
-                        child_cls_info.base_classes.append(parent_cls_name)
-                        child_cls_info.all_base_classes.append(parent_cls_name)
-                        child_cls_info.all_base_classes_including_role_takers.append(
-                            parent_cls_name
-                        )
-                    for prop in copy(child_cls_info.declared_properties):
-                        if prop in parent_cls_info.declared_properties:
-                            child_cls_info.declared_properties.remove(prop)
+                if (
+                    child_p_info.type == PropertyType.DATA_PROPERTY
+                    or parent_p_info.type == PropertyType.DATA_PROPERTY
+                ):
+                    continue
+                if parent_base_name not in child_p_info.all_superproperties:
+                    continue
+
+                child_prop_range, parent_prop_range = (
+                    child_p_info.object_range_hint,
+                    parent_p_info.object_range_hint,
+                )
+                if parent_prop_range not in ancestors_map.get(child_prop_range, set()):
+                    if parent_base_name in matched_prop_names:
+                        matched_prop_names.remove(parent_base_name)
+                    continue
+                matched_prop_names.add(parent_base_name)
+
+        return matched_prop_names
+
+    def _determine_subsumption_type(
+        self, matched_props: Set[str], parent_info: ClassInfo, child_info: ClassInfo
+    ) -> Optional[SubsumptionType]:
+        """Determine if the relationship is a SUBTYPE or a ROLE."""
+        parent_props_filtered = {
+            p.split("{")[0] for p in parent_info.declared_properties
+        }
+
+        if matched_props == parent_props_filtered:
+            if parent_info.role_taker:
+                if (
+                    not child_info.role_taker
+                    or child_info.role_taker.class_name
+                    != parent_info.role_taker.class_name
+                ):
+                    return None
+            return SubsumptionType.SUBTYPE
+        return SubsumptionType.ROLE
+
+    def _apply_implicit_subsumption(
+        self,
+        child_name: str,
+        child_info: ClassInfo,
+        parent_name: str,
+        parent_info: ClassInfo,
+        subsumption_type: SubsumptionType,
+        ontology_base_class_name: str,
+        role_cls_name: str,
+    ):
+        """Apply the determined subsumption to the child class."""
+        if ontology_base_class_name in child_info.base_classes:
+            child_info.base_classes.remove(ontology_base_class_name)
+
+        if subsumption_type == SubsumptionType.ROLE:
+            self._apply_role_subsumption(child_info, parent_name, role_cls_name)
+        else:
+            self._apply_subtype_subsumption(child_info, parent_name, parent_info)
+
+    def _apply_role_subsumption(
+        self, child_info: ClassInfo, parent_name: str, role_cls_name: str
+    ):
+        """Add a role taker relationship to the class."""
+        child_info.role_taker = RoleTakerInfo(
+            parent_name, NamingRegistry.to_snake_case(parent_name)
+        )
+        if role_cls_name not in child_info.all_base_classes:
+            child_info.base_classes = [role_cls_name] + child_info.base_classes
+            child_info.all_base_classes = [role_cls_name] + child_info.all_base_classes
+        child_info.all_base_classes_including_role_takers.append(parent_name)
+
+    def _apply_subtype_subsumption(
+        self, child_info: ClassInfo, parent_name: str, parent_info: ClassInfo
+    ):
+        """Make the class a subtype of another class."""
+        child_info.base_classes = []
+        if parent_name not in child_info.base_classes:
+            child_info.base_classes.append(parent_name)
+            child_info.all_base_classes.append(parent_name)
+            child_info.all_base_classes_including_role_takers.append(parent_name)
+
+        # Remove redundant properties already declared in the parent
+        parent_props = set(parent_info.declared_properties)
+        child_info.declared_properties = [
+            p for p in child_info.declared_properties if p not in parent_props
+        ]
 
 
 class JinjaRenderer:
@@ -899,11 +1003,17 @@ class CodeGenerator:
             classes, properties, orig_props, role_cls_name, base_cls_name
         )
         self._determine_class_properties(classes, properties)
-        self._finalize_and_sort(
+        classes_order, props_order = self._finalize_and_sort(
             classes, properties, ancestors_map, base_cls_name, role_cls_name
         )
         return self._perform_rendering(
-            base_file_name, classes, properties, base_cls_name, role_cls_name
+            base_file_name,
+            classes,
+            properties,
+            base_cls_name,
+            role_cls_name,
+            classes_order,
+            props_order,
         )
 
     def _prepare_initial_state(self, role_cls_name: str):
@@ -954,7 +1064,7 @@ class CodeGenerator:
             properties["uri"] = PropertyInfo(
                 "uri",
                 "",
-                "DataProperty",
+                PropertyType.DATA_PROPERTY,
                 domains=[base_cls_name],
                 ranges=["str"],
                 range_uris=[XSD.anyURI],
@@ -966,7 +1076,7 @@ class CodeGenerator:
             )
 
         for p in properties.values():
-            if p.type == "DataProperty" and not p.declared_domains:
+            if p.type == PropertyType.DATA_PROPERTY and not p.declared_domains:
                 p.declared_domains = [base_cls_name]
 
         self.engine.apply_predefined_overrides(
@@ -1001,18 +1111,19 @@ class CodeGenerator:
                         if sp in declared:
                             declared.remove(sp)
                 declared.append(pn)
-            info.declared_properties = declared
+            info.declared_properties = sorted(set(declared))
 
     def _finalize_and_sort(
         self, classes, properties, ancestors_map, base_cls_name, role_cls_name
     ):
         """
-        Compute transitive closures and prepare topological sort for output.
+        Compute transitive closures and determine final topological order for classes and properties.
         """
         for p in properties.values():
             p.all_superproperties = self._compute_closure(
                 p.superproperties, properties, "superproperties"
             )
+
         for info in classes.values():
             initial = set(info.all_base_classes)
             if info.role_taker:
@@ -1024,6 +1135,7 @@ class CodeGenerator:
         self.engine.find_implicit_subtypes(
             classes, properties, ancestors_map, base_cls_name, role_cls_name
         )
+
         for info in classes.values():
             info.base_classes_for_topological_sort = info.base_classes[:]
             if info.role_taker:
@@ -1031,25 +1143,34 @@ class CodeGenerator:
                     info.role_taker.class_name
                 )
 
-    def _perform_rendering(
-        self, base_file_name, classes, properties, base_cls_name, role_cls_name
-    ):
-        """
-        Render the final Python modules and stubs.
-        :return: Dictionary of filename to content.
-        """
         classes_order = self.engine.topological_order(
             classes, "base_classes_for_topological_sort"
         )
         prop_classes = {k: v for k, v in properties.items() if not v.is_specialized}
         props_order = self.engine.topological_order(prop_classes, "superproperties")
+
         idx_map = {n: i for i, n in enumerate(props_order)}
         for info in prop_classes.values():
-            info.inverse_target_is_prior = (
-                info.inverse_of in prop_classes
-                and idx_map.get(info.inverse_of, 1e9) < idx_map.get(info.name, 1e9)
-            )
+            if info.inverse_of in prop_classes:
+                info.inverse_target_is_prior = idx_map.get(
+                    info.inverse_of, 1e9
+                ) < idx_map.get(info.name, 1e9)
 
+        return classes_order, props_order
+
+    def _perform_rendering(
+        self,
+        base_file_name,
+        classes,
+        properties,
+        base_cls_name,
+        role_cls_name,
+        classes_order,
+        props_order,
+    ):
+        """
+        Render all templates and produce the final Python files and stubs.
+        """
         stubs_classes = deepcopy(classes)
         for cls_name, info in classes.items():
             if role_cls_name in info.base_classes:
@@ -1063,8 +1184,10 @@ class CodeGenerator:
 
         if "Role" in classes:
             del classes["Role"]
-        if "Role" in classes_order:
-            classes_order.remove("Role")
+
+        # topological_order might still have 'Role' name if it was in the items keys
+        # We need to filter the order as well
+        classes_order = [c for c in classes_order if c != "Role"]
 
         render_classes = {k: asdict(v) for k, v in classes.items()}
         for c in render_classes.values():
