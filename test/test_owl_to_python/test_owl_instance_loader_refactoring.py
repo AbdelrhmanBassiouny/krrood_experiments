@@ -26,8 +26,8 @@ from krrood.entity_query_language.symbol_graph import SymbolGraph
 @dataclass(eq=False)
 class Name(Symbol):
     value: Optional[str] = None
-    
-    
+
+
 @dataclass(eq=False)
 class Age(Symbol):
     value: Optional[int] = None
@@ -86,25 +86,8 @@ def test_model_metadata_collection():
 def test_owl_loader_basic():
     module = MockModule
 
-    # Mock SymbolGraph and its class_diagram
-    class MockClassDiagram:
-        def __init__(self):
-            self.associations = []
-
-        def get_role_taker_associations_of_cls(self, cls):
-            return None
-
-        def get_common_role_taker_associations(self, cls1, cls2):
-            return None, None
-
-    class MockSymbolGraph:
-        def __init__(self):
-            self.class_diagram = MockClassDiagram()
-
-        def clear(self):
-            pass
-
-    symbol_graph = MockSymbolGraph()
+    SymbolGraph().clear()
+    symbol_graph = SymbolGraph()
     registry = OwlInstancesRegistry()
 
     # Create a small RDF graph in memory
@@ -117,11 +100,11 @@ def test_owl_loader_basic():
     g.add((person_uri, RDF.type, URIRef("http://example.org#MockPerson")))
     g.add((alice_uri, RDF.type, URIRef("http://example.org#Name")))
     g.add((age_uri, RDF.type, URIRef("http://example.org#Age")))
-    
+
     # Add values for the intermediate nodes
     g.add((alice_uri, URIRef("http://example.org#value"), Literal("Alice")))
     g.add((age_uri, URIRef("http://example.org#value"), Literal(30)))
-    
+
     # Link person to the intermediate nodes
     g.add((person_uri, URIRef("http://example.org#name_attr"), alice_uri))
     g.add((person_uri, URIRef("http://example.org#age_attr"), age_uri))
@@ -142,7 +125,7 @@ def test_owl_loader_basic():
         assert instances is not None
         person = instances[0]
         assert isinstance(person, MockPerson)
-        
+
         # Accessing via descriptors
         assert person.name_attr is not None
         assert person.name_attr.value == "Alice"
