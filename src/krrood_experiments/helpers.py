@@ -3,10 +3,12 @@ from __future__ import annotations
 import os
 import time
 from collections import defaultdict
+from dataclasses import dataclass
 from os.path import dirname
 from pathlib import Path
 from typing import List, Any, Tuple, TYPE_CHECKING
 
+from krrood.entity_query_language.symbolic import An, UnificationDict
 from owlrl import DeductiveClosure, OWLRL_Semantics
 from rdflib import Graph
 
@@ -15,9 +17,6 @@ from .owl_instances_loader import (
     OwlInstancesRegistry,
 )
 from .owl_to_python import OwlToPythonConverter
-
-if TYPE_CHECKING:
-    from .lubm.lubm_eql_queries import QueryWithSelectables
 
 
 def generate_lubm_with_predicates(clean: bool = False):
@@ -153,6 +152,32 @@ def load_instances_for_lubm_with_predicates() -> OwlInstancesRegistry:
     return registry
 
 
+def load_instances_for_owl2bench_with_predicates() -> OwlInstancesRegistry:
+    """Load instances from the given path and add them to the given model module."""
+    from .owl2bench import (
+        owl2bench_with_predicates,
+        owl2bench_with_predicates_properties,
+    )
+
+    folder_path = Path(
+        f"{dirname(__file__)}",
+        "",
+        "..",
+        "..",
+        "owl2bench",
+        "resources",
+        "refactored_ontologies",
+    )
+    files = [f.name for f in folder_path.iterdir() if f.is_file()]
+    files.sort(key=lambda x: int(x.split("_")[1].split(".")[0]))
+    registry = OwlLoader.load_multi_file_instances(
+        [os.path.join(folder_path, file) for file in files],
+        classes_module=owl2bench_with_predicates,
+        properties_module=owl2bench_with_predicates_properties,
+    )
+    return registry
+
+
 def get_lubm_answers():
     queries_answers = defaultdict(list)
     answers_path = os.path.join(
@@ -176,3 +201,26 @@ def get_lubm_answers():
                     assert len(var_names) == len(var_values)
                     queries_answers[i].append(dict(zip(var_names, var_values)))
     return queries_answers
+
+
+@dataclass
+class QueryWithSelectables:
+    """
+    This class is for being able to compare LUBM query answers with eql query answers.
+    """
+
+    query: An
+    """
+    The query to evaluate.
+    """
+    selectables: dict
+    """
+    A dictionary mapping variable names to selectables.
+    """
+
+    def evaluate(self):
+        for value in self.query.evaluate():
+            if isinstance(value, UnificationDict):
+                yield {k: value[v] for k, v in self.selectables.items()}
+            else:
+                yield {k: value for k, v in self.selectables.items()}

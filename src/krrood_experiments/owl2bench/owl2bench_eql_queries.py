@@ -1,6 +1,5 @@
 import itertools
 import time
-from dataclasses import dataclass
 from typing import List
 
 import rdflib
@@ -17,7 +16,6 @@ from krrood.entity_query_language.entity_result_processors import (
     the,
 )
 from krrood.entity_query_language.predicate import HasType
-from krrood.entity_query_language.symbolic import An, UnificationDict
 from typing_extensions import Any, Optional
 
 from krrood_experiments.helpers import (

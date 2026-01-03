@@ -4,7 +4,7 @@ import time
 import numpy as np
 from SPARQLWrapper import SPARQLWrapper, JSON
 
-import krrood.experiments.lubm_sparql_queries
+import krrood_experiments.lubm.lubm_sparql_queries
 
 # -------------------------
 # SPARQL endpoint variable
@@ -47,7 +47,7 @@ for answer_file, query in zip(
     sorted(
         os.listdir(path_to_answers), key=lambda x: int("".join(filter(str.isdigit, x)))
     ),
-    krrood.experiments.lubm_sparql_queries.sparql_queries,
+    krrood_experiments.lubm.lubm_sparql_queries.sparql_queries,
 ):
 
     answer_file_full_path = os.path.join(path_to_answers, answer_file)
