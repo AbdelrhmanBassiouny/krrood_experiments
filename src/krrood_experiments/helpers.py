@@ -11,7 +11,7 @@ from owlrl import DeductiveClosure, OWLRL_Semantics
 from rdflib import Graph
 
 from .owl_instances_loader import (
-    load_multi_file_instances,
+    OwlLoader,
     OwlInstancesRegistry,
 )
 from .owl_to_python import OwlToPythonConverter
@@ -145,7 +145,7 @@ def load_instances_for_lubm_with_predicates() -> OwlInstancesRegistry:
     )
     files = [f.name for f in folder_path.iterdir() if f.is_file()]
     files.sort(key=lambda x: int(x.split("_")[1].split(".")[0]))
-    registry = load_multi_file_instances(
+    registry = OwlLoader.load_multi_file_instances(
         [os.path.join(folder_path, file) for file in files],
         classes_module=lubm_with_predicates,
         properties_module=lubm_with_predicates_properties,
