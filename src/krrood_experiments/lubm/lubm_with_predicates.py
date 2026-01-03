@@ -30,9 +30,9 @@ class UnivBenchOntology(Symbol, ABC):
 class Organization(UnivBenchOntology):
     """organization"""
     # is affiliated with
-    affiliated_organization_of: Set[Organization] = field(default_factory=set)
-    # is affiliated with
     affiliate_of: Set[Person] = field(default_factory=set)
+    # is affiliated with
+    affiliated_organization_of: Set[Organization] = field(default_factory=set)
     # has as a member
     member: Set[Person] = field(default_factory=set)
     # publishes
@@ -46,24 +46,24 @@ class Person(UnivBenchOntology):
     """person"""
     # is being advised by
     advisor: Set[Professor] = field(default_factory=set)
+    # is age
+    age: Optional[int] = field(kw_only=True, default=None)
     # has a degree from
     degree_from: Set[University] = field(default_factory=set)
     # has a doctoral degree from
     doctoral_degree_from: Set[University] = field(default_factory=set)
+    # can be reached at
+    email_address: Optional[str] = field(kw_only=True, default=None)
     # has a masters degree from
     masters_degree_from: Set[University] = field(default_factory=set)
     # member of
     member_of: Set[Organization] = field(default_factory=set)
-    # has an undergraduate degree from
-    undergraduate_degree_from: Set[University] = field(default_factory=set)
-    # is age
-    age: Optional[int] = field(kw_only=True, default=None)
-    # can be reached at
-    email_address: Optional[str] = field(kw_only=True, default=None)
     # telephone number
     telephone: Optional[str] = field(kw_only=True, default=None)
     # title
     title: Optional[str] = field(kw_only=True, default=None)
+    # has an undergraduate degree from
+    undergraduate_degree_from: Set[University] = field(default_factory=set)
 
 
 @dataclass(eq=False)
@@ -396,8 +396,8 @@ class VisitingProfessor(Role[Professor], Symbol):
 
 
 # Descriptor assignments
-Organization.affiliated_organization_of = AffiliatedOrganizationOf(Organization, 'affiliated_organization_of')
 Organization.affiliate_of = AffiliateOf(Organization, 'affiliate_of')
+Organization.affiliated_organization_of = AffiliatedOrganizationOf(Organization, 'affiliated_organization_of')
 Organization.member = Member(Organization, 'member')
 Organization.org_publication = OrgPublication(Organization, 'org_publication')
 Organization.sub_organization_of = SubOrganizationOf(Organization, 'sub_organization_of')
