@@ -51,7 +51,9 @@ def generate_lubm_with_predicates(clean: bool = False):
     file_name = f"lubm_clean.owl" if clean else "lubm.owl"
     converter.load_ontology(os.path.join(resources_path, file_name))
     # Save into the package module so tests import the updated code
-    output_path = os.path.join(os.path.dirname(__file__), "lubm/lubm_with_predicates.py")
+    output_path = os.path.join(
+        os.path.dirname(__file__), "lubm/lubm_with_predicates.py"
+    )
     converter.save_to_file(output_path)
 
 
@@ -81,7 +83,12 @@ def generate_owl2bench_with_predicates(clean: bool = False, save_to_file: bool =
     }
     converter = OwlToPythonConverter(predefined_data_types=_default_overrides)
     resources_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "owl2bench", "resources", "refactored_ontologies"
+        os.path.dirname(__file__),
+        "..",
+        "..",
+        "owl2bench",
+        "resources",
+        "refactored_ontologies",
     )
     # base_name = "OWL2RL-1"
     base_name = "owl2benchRlFixed"
@@ -89,7 +96,9 @@ def generate_owl2bench_with_predicates(clean: bool = False, save_to_file: bool =
     converter.load_ontology(os.path.join(resources_path, file_name))
     if save_to_file:
         # Save into the package module so tests import the updated code
-        output_path = os.path.join(os.path.dirname(__file__), "owl2bench/owl2bench_with_predicates.py")
+        output_path = os.path.join(
+            os.path.dirname(__file__), "owl2bench/owl2bench_with_predicates.py"
+        )
         converter.save_to_file(output_path)
     return
 
@@ -129,7 +138,7 @@ def evaluate_eql(
 
 def load_instances_for_lubm_with_predicates() -> OwlInstancesRegistry:
     """Load instances from the given path and add them to the given model module."""
-    from .lubm import lubm_with_predicates
+    from .lubm import lubm_with_predicates, lubm_with_predicates_properties
 
     folder_path = Path(
         f"{dirname(__file__)}", "", "..", "..", "lubm", "resources", "instances"
@@ -138,7 +147,8 @@ def load_instances_for_lubm_with_predicates() -> OwlInstancesRegistry:
     files.sort(key=lambda x: int(x.split("_")[1].split(".")[0]))
     registry = load_multi_file_instances(
         [os.path.join(folder_path, file) for file in files],
-        model_module=lubm_with_predicates,
+        classes_module=lubm_with_predicates,
+        properties_module=lubm_with_predicates_properties,
     )
     return registry
 
