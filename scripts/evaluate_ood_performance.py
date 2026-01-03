@@ -97,7 +97,7 @@ class TypstTableExporter:
         print(f"Typst table saved to {output_path}")
 
 
-iterations_per_query = 10
+iterations_per_query = 1
 
 sparql = SPARQLWrapper.SPARQLWrapper("http://localhost:7200/repositories/KRROOD")
 sparql.setReturnFormat(SPARQLWrapper.JSON)
@@ -145,7 +145,7 @@ for sparql_query in pbar:
 
         # Execute SQLAlchemy query
         start = time.time()
-        sql_results = session.execute(sqlalchemy_query.statement)
+        sql_results = session.execute(sqlalchemy_query.statement).all()
         current_sqlalchemy_runtimes.append(time.time() - start)
 
         # Execute SPARQL query
@@ -156,8 +156,14 @@ for sparql_query in pbar:
 
         # Execute EQL query
         start = time.time()
-        eql_results = eql_query.query(loader.world).evaluate()
+        eql_results = list(eql_query.query(loader.world).evaluate())
         current_eql_runtimes.append(time.time() - start)
+
+        assert (
+            len(sql_results)
+            == len(sparql_results["results"]["bindings"])
+            == len(eql_results)
+        )
 
     backend_runtimes = {
         Backend.SPARQLWrapper: current_sparqlwrapper_runtimes,
