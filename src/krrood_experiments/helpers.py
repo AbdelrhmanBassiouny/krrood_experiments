@@ -81,9 +81,10 @@ def generate_owl2bench_with_predicates(clean: bool = False):
     }
     converter = OwlToPythonConverter(predefined_data_types=_default_overrides)
     resources_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "owl2bench", "resources", "generated_ontologies"
+        os.path.dirname(__file__), "..", "..", "owl2bench", "resources", "refactored_ontologies"
     )
-    base_name = "OWL2RL-1"
+    # base_name = "OWL2RL-1"
+    base_name = "owl2benchRlFixed"
     file_name = f"{base_name}_clean.owl" if clean else f"{base_name}.owl"
     converter.load_ontology(os.path.join(resources_path, file_name))
     # Save into the package module so tests import the updated code
