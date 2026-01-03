@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from krrood.experiments.owl_to_python import OwlToPythonConverter
+import os.path
+
+from krrood_experiments.owl_to_python import OwlToPythonConverter
 
 
 def test_age_name_and_tenured_types():
@@ -14,8 +16,9 @@ def test_age_name_and_tenured_types():
         },
     }
     conv = OwlToPythonConverter(predefined_data_types=overrides)
-    conv.load_ontology("../resources/lubm.owl")
-    code = conv.generate_python_code_external()
+    conv.load_ontology(os.path.join(os.path.dirname(__file__), "..", "..", "lubm", "resources", "lubm.owl"))
+    base_file_name = "lubm_with_predicates"
+    code = conv.generate_python_code_external("lubm_with_predicates")[base_file_name + ".py"]
 
     # Check that the generated code includes the correct type hints
     assert "class Person" in code

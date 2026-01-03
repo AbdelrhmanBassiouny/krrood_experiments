@@ -55,7 +55,7 @@ def generate_lubm_with_predicates(clean: bool = False):
     converter.save_to_file(output_path)
 
 
-def generate_owl2bench_with_predicates(clean: bool = False):
+def generate_owl2bench_with_predicates(clean: bool = False, save_to_file: bool = True):
     # Provide default overrides for common LUBM datatype properties
     _default_overrides = {
         "Person": {
@@ -87,9 +87,11 @@ def generate_owl2bench_with_predicates(clean: bool = False):
     base_name = "owl2benchRlFixed"
     file_name = f"{base_name}_clean.owl" if clean else f"{base_name}.owl"
     converter.load_ontology(os.path.join(resources_path, file_name))
-    # Save into the package module so tests import the updated code
-    output_path = os.path.join(os.path.dirname(__file__), "owl2bench/owl2bench_with_predicates.py")
-    converter.save_to_file(output_path)
+    if save_to_file:
+        # Save into the package module so tests import the updated code
+        output_path = os.path.join(os.path.dirname(__file__), "owl2bench/owl2bench_with_predicates.py")
+        converter.save_to_file(output_path)
+    return
 
 
 def make_rdf_graph(instances_path: str):
