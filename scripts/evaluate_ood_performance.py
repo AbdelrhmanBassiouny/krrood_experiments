@@ -29,6 +29,7 @@ class Backend(enum.Enum):
 class QueryTiming:
     query_id: int
     backend_runtimes: Dict[Backend, List[float]]
+    results_count: int
 
     @property
     def label(self) -> str:
@@ -60,10 +61,13 @@ class TypstTableExporter:
     def __init__(self, timings: List[QueryTiming]):
         self.timings = timings
 
-    def _format_timing(self, mean: float, std: float) -> str:
+    def _format_timing(self, mean: float, std: float, is_best: bool = False) -> str:
         if np.isnan(mean):
             return "---"
-        return f"{mean * 1000:.2f} ± {std * 1000:.2f}"
+        formatted = f"{mean * 1000:.2f} ± {std * 1000:.2f}"
+        if is_best:
+            return f"* {formatted} *"
+        return formatted
 
     def export(self, output_path: str = "ood_performance.typ") -> None:
         """
@@ -71,23 +75,31 @@ class TypstTableExporter:
         """
         content = [
             "#table(",
-            "  columns: (auto, auto, auto, auto),",
+            "  columns: (auto, auto, auto, auto, auto),",
             "  inset: 10pt,",
             "  align: horizon,",
-            "  [*Query*], [*SQLAlchemy (ms)*], [*SPARQLWrapper (ms)*], [*EQL (ms)*],",
+            "  [*Query*], [*Results*], [*SQLAlchemy (ms)*], [*SPARQLWrapper (ms)*], [*EQL (ms)*],",
         ]
 
         for timing in self.timings:
-            sql_mean = timing.get_average_runtime(Backend.SQLAlchemy)
-            sql_std = timing.get_runtime_standard_deviation(Backend.SQLAlchemy)
-            sparql_mean = timing.get_average_runtime(Backend.SPARQLWrapper)
-            sparql_std = timing.get_runtime_standard_deviation(Backend.SPARQLWrapper)
-            eql_mean = timing.get_average_runtime(Backend.EQL)
-            eql_std = timing.get_runtime_standard_deviation(Backend.EQL)
+            means = {
+                backend: timing.get_average_runtime(backend) for backend in Backend
+            }
+            stds = {
+                backend: timing.get_runtime_standard_deviation(backend)
+                for backend in Backend
+            }
 
-            content.append(
-                f"  [{timing.label}], [{self._format_timing(sql_mean, sql_std)}], [{self._format_timing(sparql_mean, sparql_std)}], [{self._format_timing(eql_mean, eql_std)}],"
-            )
+            valid_means = [m for m in means.values() if not np.isnan(m)]
+            min_mean = min(valid_means) if valid_means else float("inf")
+
+            row_cells = [f"  [{timing.label}]", f"[{timing.results_count}]"]
+            for backend in Backend:
+                is_best = not np.isnan(means[backend]) and means[backend] == min_mean
+                formatted = self._format_timing(means[backend], stds[backend], is_best)
+                row_cells.append(f"[{formatted}]")
+
+            content.append(", ".join(row_cells) + ",")
 
         content.append(")")
 
@@ -175,6 +187,7 @@ for sparql_query in pbar:
         QueryTiming(
             query_id=sparql_query.number,
             backend_runtimes=backend_runtimes,
+            results_count=len(sql_results),
         )
     )
 
