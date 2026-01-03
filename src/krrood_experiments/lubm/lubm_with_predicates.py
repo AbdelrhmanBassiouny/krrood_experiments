@@ -5,6 +5,7 @@ Generated using custom converter
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field, fields, Field
 from functools import lru_cache
 
 from krrood.class_diagrams.utils import Role
