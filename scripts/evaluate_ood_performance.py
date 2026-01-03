@@ -101,6 +101,33 @@ class TypstTableExporter:
 
             content.append(", ".join(row_cells) + ",")
 
+        # Add geometric mean summary row
+        backend_geomeans = {}
+        for backend in Backend:
+            runtimes = [timing.get_average_runtime(backend) for timing in self.timings]
+            valid_runtimes = [r for r in runtimes if not np.isnan(r) and r > 0]
+            if valid_runtimes:
+                # Calculate geometric mean using log average: exp(mean(log(x)))
+                backend_geomeans[backend] = float(
+                    np.exp(np.mean(np.log(valid_runtimes)))
+                )
+            else:
+                backend_geomeans[backend] = float("nan")
+
+        valid_geomeans = [m for m in backend_geomeans.values() if not np.isnan(m)]
+        min_geomean = min(valid_geomeans) if valid_geomeans else float("inf")
+
+        summary_cells = ["  [*Geom. Mean*]", "[-]"]
+        for backend in Backend:
+            val = backend_geomeans[backend]
+            is_best = not np.isnan(val) and val == min_geomean
+            formatted = f"{val * 1000:.2f}" if not np.isnan(val) else "---"
+            if is_best:
+                formatted = f"* {formatted} *"
+            summary_cells.append(f"[{formatted}]")
+
+        content.append(", ".join(summary_cells) + ",")
+
         content.append(")")
 
         with open(output_path, "w", encoding="utf-8") as f:
@@ -109,7 +136,7 @@ class TypstTableExporter:
         print(f"Typst table saved to {output_path}")
 
 
-iterations_per_query = 1
+iterations_per_query = 10
 
 sparql = SPARQLWrapper.SPARQLWrapper("http://localhost:7200/repositories/KRROOD")
 sparql.setReturnFormat(SPARQLWrapper.JSON)
