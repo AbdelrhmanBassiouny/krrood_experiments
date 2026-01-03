@@ -2,8 +2,8 @@ import os
 from rdflib import Graph
 from owlrl import DeductiveClosure, OWLRL_Semantics
 
-from krrood.experiments.helpers import evaluate_sparql
-from krrood.experiments.lubm_sparql_queries import sparql_queries
+from krrood_experiments.helpers import evaluate_sparql
+from krrood_experiments.lubm.lubm_sparql_queries import sparql_queries
 
 if __name__ == "__main__":
     onto_file = os.path.abspath(os.path.join("..", "resources", "lubm_instances.owl"))

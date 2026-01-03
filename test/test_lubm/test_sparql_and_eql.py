@@ -3,10 +3,14 @@ from __future__ import annotations
 import time
 
 from krrood_experiments.helpers import (
-    load_instances_for_lubm_with_predicates, get_lubm_answers,
+    load_instances_for_lubm_with_predicates,
+    get_lubm_answers,
 )
-from krrood_experiments.lubm.lubm_eql_queries import evaluate_eql, get_eql_queries, \
-    process_value_for_lubm_answer_comparison
+from krrood_experiments.lubm.lubm_eql_queries import (
+    evaluate_eql,
+    get_eql_queries,
+    process_value_for_lubm_answer_comparison,
+)
 
 
 def test_eql_counts_match_sparql():
@@ -28,10 +32,13 @@ def test_eql_counts_match_sparql():
                 {k: process_value_for_lubm_answer_comparison(v) for k, v in res.items()}
             )
         for sol in uri_results:
-            assert sol in lubm_answers[i], f"{sol} not found in LUBM answers, for query {i}"
+            assert (
+                sol in lubm_answers[i]
+            ), f"{sol} not found in LUBM answers, for query {i}"
         for gt_sol in lubm_answers[i]:
             assert (
-                    gt_sol in uri_results
+                gt_sol in uri_results
             ), f"{gt_sol} not found in EQL answers, for query {i}"
-        assert len(lubm_answers[i]) == len(uri_results), f"Number of results mismatch for query {i}"
-    actual, _, _ = evaluate_eql(get_eql_queries())
+        assert len(lubm_answers[i]) == len(
+            uri_results
+        ), f"Number of results mismatch for query {i}"
