@@ -84,11 +84,12 @@ q15 = SQLAlchemyQuery(sparql_queries.q15, sqlalchemy_q15)
 sqlalchemy_q16 = select(OrganizationDAO).where(OrganizationDAO.head_id != None)
 q16 = SQLAlchemyQuery(sparql_queries.q16, sqlalchemy_q16)
 
+UndergraduateProgramAlias = aliased(UndergraduateProgramDAO, flat=True)
 sqlalchemy_q17 = (
     select(PersonDAO)
-    .join(PersonDAO.enrolled_in.of_type(UndergraduateProgramDAO))
+    .join(PersonDAO.enrolled_in.of_type(UndergraduateProgramAlias))
     .group_by(PersonDAO)
-    .having(func.count(UndergraduateProgramDAO.database_id) == 1)
+    .having(func.count(UndergraduateProgramAlias.database_id) == 1)
 )
 q17 = SQLAlchemyQuery(sparql_queries.q17, sqlalchemy_q17)
 
@@ -106,10 +107,12 @@ q19 = SQLAlchemyQuery(sparql_queries.q19, sqlalchemy_q19)
 sqlalchemy_q20 = select(persondao_has_same_hometown_as_association)
 q20 = SQLAlchemyQuery(sparql_queries.q20, sqlalchemy_q20)
 
+CourseAlias = aliased(CourseDAO, flat=True)
+EngineeringAlias = aliased(EngineeringDAO, flat=True)
 sqlalchemy_q21 = (
     select(PersonDAO)
-    .join(PersonDAO.takes_course)
-    .join(CourseDAO.topic.of_type(EngineeringDAO))
+    .join(PersonDAO.takes_course.of_type(CourseAlias))
+    .join(CourseAlias.topic.of_type(EngineeringAlias))
     .distinct()
 )
 q21 = SQLAlchemyQuery(sparql_queries.q21, sqlalchemy_q21)
@@ -117,11 +120,17 @@ q21 = SQLAlchemyQuery(sparql_queries.q21, sqlalchemy_q21)
 Student = aliased(PersonDAO, name="student")
 TeacherHead = aliased(PersonDAO, name="teacher_head")
 
+OrganizationAlias = aliased(OrganizationDAO, flat=True)
+PersonAlias = aliased(PersonDAO, flat=True)
+
 sqlalchemy_q22 = (
-    select(Student, CourseDAO)
-    .join(Student.takes_course)
-    .join(CourseDAO.teachers)
-    .join(OrganizationDAO, PersonDAO.database_id == OrganizationDAO.dean_id)
+    select(Student, CourseAlias)
+    .join(Student.takes_course.of_type(CourseAlias))
+    .join(CourseAlias.teachers.of_type(PersonAlias))
+    .join(
+        OrganizationAlias,
+        PersonAlias.database_id == OrganizationAlias.dean_id,
+    )
     .distinct()
 )
 
