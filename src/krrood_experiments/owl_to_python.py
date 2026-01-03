@@ -544,13 +544,11 @@ class InferenceEngine:
 
     def apply_predefined_overrides(
         self,
-        classes: Dict[str, ClassInfo],
         properties: Dict[str, PropertyInfo],
         predefined_data_types: Dict[str, Dict[str, str]],
     ):
         """
         Apply manual type overrides for specific class properties.
-        :param classes: Dictionary of ClassInfo.
         :param properties: Dictionary of PropertyInfo.
         :param predefined_data_types: Nested dictionary mapping class names to field names and their target types.
         """
@@ -747,7 +745,6 @@ class InferenceEngine:
                 )
                 if subsumption_type:
                     self._apply_implicit_subsumption(
-                        child_name,
                         child_info,
                         parent_name,
                         parent_info,
@@ -841,7 +838,6 @@ class InferenceEngine:
 
     def _apply_implicit_subsumption(
         self,
-        child_name: str,
         child_info: ClassInfo,
         parent_name: str,
         parent_info: ClassInfo,
@@ -1079,9 +1075,7 @@ class CodeGenerator:
             if p.type == PropertyType.DATA_PROPERTY and not p.declared_domains:
                 p.declared_domains = [base_cls_name]
 
-        self.engine.apply_predefined_overrides(
-            classes, properties, self.predefined_data_types
-        )
+        self.engine.apply_predefined_overrides(properties, self.predefined_data_types)
         ancestors_map = self.engine.compute_type_hints(classes, properties)
         return restrs, ancestors_map
 
@@ -1292,6 +1286,7 @@ class OwlToPythonConverter:
         self.metadata = MetadataExtractor(self.graph)
         self.class_ext = ClassExtractor(self.graph, self.metadata)
         self.prop_ext = PropertyExtractor(self.graph, self.metadata)
+        self.ontology_label = None
 
     def load_ontology(self, path: str):
         """
@@ -1305,13 +1300,15 @@ class OwlToPythonConverter:
         """
         Extract classes and properties from the loaded graph.
         """
-        self.ontology_label = next(
-            (
-                self.metadata.get_label(s)
-                for s in self.graph.subjects(RDF.type, OWL.Ontology)
-            ),
-            "Ontology",
-        )
+        for s in self.graph.subjects(RDF.type, OWL.Ontology):
+            self.ontology_label = self.metadata.get_label(s)
+            if not self.ontology_label:
+                self.ontology_label = NamingRegistry.uri_to_python_name(s)
+            break
+
+        if not self.ontology_label:
+            self.ontology_label = "Ontology"
+
         for cls_uri in self.graph.subjects(RDF.type, OWL.Class):
             info = self.class_ext.extract_info(cls_uri)
             self.classes[info.name] = info
@@ -1344,7 +1341,7 @@ class OwlToPythonConverter:
             self.graph,
             self.classes,
             self.properties,
-            getattr(self, "ontology_label", "Ontology"),
+            self.ontology_label,
             self.predefined_data_types,
         )
         return gen.generate(base_file_name)
@@ -1364,7 +1361,10 @@ class OwlToPythonConverter:
 
 # Usage
 if __name__ == "__main__":
-    from krrood_experiments.helpers import generate_lubm_with_predicates
+    from krrood_experiments.helpers import (
+        generate_lubm_with_predicates,
+        generate_owl2bench_with_predicates,
+    )
 
     generate_lubm_with_predicates(clean=True)
-    # generate_owl2bench_with_predicates(clean=False)
+    generate_owl2bench_with_predicates(clean=False)

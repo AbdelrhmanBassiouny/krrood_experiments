@@ -13,14 +13,14 @@ from krrood.entity_query_language.predicate import Symbol
 
 
 @dataclass(eq=False)
-class UnivBenchOntology(Symbol, ABC):
-    """Base class for Univ-bench Ontology"""
-    # name
-    name: Optional[str] = field(kw_only=True, default=None)
-    # office room No.
-    office_number: Optional[int] = field(kw_only=True, default=None)
-    # is researching
-    research_interest: Optional[str] = field(kw_only=True, default=None)
+class OWL2BenchOntology(Symbol, ABC):
+    """Base class for OWL2Bench"""
+    has_code: Optional[Any] = field(kw_only=True, default=None)
+    has_id: Optional[Any] = field(kw_only=True, default=None)
+    has_name: Optional[Any] = field(kw_only=True, default=None)
+    has_office_number: Optional[Any] = field(kw_only=True, default=None)
+    has_publication_date: Optional[Any] = field(kw_only=True, default=None)
+    has_research_interest: Optional[Any] = field(kw_only=True, default=None)
     # URI of the ontology element - The unique resource identifier (URI) of the ontology element.
     uri: Optional[str] = field(kw_only=True, default=None)
 
@@ -28,4 +28,4 @@ class UnivBenchOntology(Symbol, ABC):
         return hash(id(self))
 
 
-T = TypeVar('T', bound=UnivBenchOntology)
+T = TypeVar('T', bound=OWL2BenchOntology)
