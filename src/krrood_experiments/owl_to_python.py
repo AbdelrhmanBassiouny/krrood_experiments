@@ -94,6 +94,11 @@ class PropertyInfo:
     field_name: str = ""
     descriptor_name: str = ""
     equivalent_properties: List[str] = field(default_factory=list)
+    disjoint_properties: List[str] = field(default_factory=list)
+    is_symmetric: bool = False
+    is_reflexive: bool = False
+    is_asymmetric: bool = False
+    is_irreflexive: bool = False
     superproperties: List[str] = field(default_factory=list)
     all_superproperties: List[str] = field(default_factory=list)
     inverses: List[str] = field(default_factory=list)
@@ -273,7 +278,13 @@ class PropertyExtractor:
         ranges: List[str] = []
         superproperties: List[str] = []
         inverses: List[str] = []
+        is_transitive = False
         equivalent_properties: List[str] = []
+        disjoint_properties: List[str] = []
+        is_symmetric = False
+        is_asymmetric = False
+        is_reflexive = False
+        is_irreflexive = False
 
         for domain in self.graph.objects(property_uri, RDFS.domain):
             domains.append(NamingRegistry.uri_to_python_name(domain))
@@ -307,14 +318,31 @@ class PropertyExtractor:
                     NamingRegistry.uri_to_python_name(eq_prop_subj)
                 )
 
+        # Disjoint properties
+        for dis_prop in self.graph.objects(property_uri, OWL.disjointWith):
+            if isinstance(dis_prop, rdflib.URIRef):
+                disjoint_properties.append(NamingRegistry.uri_to_python_name(dis_prop))
+        for dis_prop_subj in self.graph.subjects(OWL.disjointWith, property_uri):
+            if isinstance(dis_prop_subj, rdflib.URIRef):
+                disjoint_properties.append(
+                    NamingRegistry.uri_to_python_name(dis_prop_subj)
+                )
+
         # Determine property type
         prop_type = PropertyType.OBJECT_PROPERTY
-        is_transitive = False
         for prop_type_uri in self.graph.objects(property_uri, RDF.type):
             if prop_type_uri == OWL.DatatypeProperty:
                 prop_type = PropertyType.DATA_PROPERTY
             if prop_type_uri == OWL.TransitiveProperty:
                 is_transitive = True
+            if prop_type_uri == OWL.SymmetricProperty:
+                is_symmetric = True
+            if prop_type_uri == OWL.AsymmetricProperty:
+                is_asymmetric = True
+            if prop_type_uri == OWL.ReflexiveProperty:
+                is_reflexive = True
+            if prop_type_uri == OWL.IrreflexiveProperty:
+                is_irreflexive = True
 
         # Choose a single inverse if any (stable order)
         inverse_of = None
@@ -329,6 +357,7 @@ class PropertyExtractor:
             ranges=ranges,
             range_uris=range_uris,
             equivalent_properties=equivalent_properties,
+            disjoint_properties=disjoint_properties,
             label=self.metadata_extractor.get_label(property_uri),
             comment=self.metadata_extractor.get_comment(property_uri),
             field_name=NamingRegistry.to_snake_case(prop_local),
@@ -337,6 +366,10 @@ class PropertyExtractor:
             inverses=sorted(set(inverses)),
             inverse_of=inverse_of,
             is_transitive=is_transitive,
+            is_symmetric=is_symmetric,
+            is_asymmetric=is_asymmetric,
+            is_reflexive=is_reflexive,
+            is_irreflexive=is_irreflexive,
             is_specialized=False,
         )
 
@@ -750,7 +783,17 @@ class InferenceEngine:
         if info.inverse_of:
             bases.append("HasInverseProperty")
         if info.equivalent_properties:
-            bases.append("HasEquivalentProperty")
+            bases.append("HasEquivalentProperties")
+        if info.disjoint_properties:
+            bases.append("HasDisjointProperties")
+        if info.is_symmetric:
+            bases.append("SymmetricProperty")
+        if info.is_asymmetric:
+            bases.append("ASymmetricProperty")
+        if info.is_reflexive:
+            bases.append("ReflexiveProperty")
+        if info.is_irreflexive:
+            bases.append("IrreflexiveProperty")
         info.base_descriptors = bases
 
     def _set_object_range_hint(self, info: PropertyInfo):
