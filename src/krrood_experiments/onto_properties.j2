@@ -6,10 +6,10 @@ Generated using custom converter
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing_extensions import Type
+from typing_extensions import Type, List
 
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
-from krrood.ontomatic.property_descriptor.mixins import HasInverseProperty, TransitiveProperty
+from krrood.ontomatic.property_descriptor.mixins import HasInverseProperty, TransitiveProperty, HasEquivalentProperty
 
 
 # Property descriptor classes (object properties)
@@ -21,7 +21,7 @@ class {{ prop.descriptor_name }}({{ ', '.join(prop.base_descriptors) }}):
     {% if prop.label or prop.comment %}
     """{{ prop.label if prop.label else '' }}{% if prop.label and prop.comment %}\n\n{% endif %}{{ prop.comment if prop.comment else '' }}"""
     {% else %}
-    ...
+    """{{ prop.descriptor_name }}"""
     {% endif %}
     {# Only emit a typed inverse if the target descriptor is already defined earlier #}
     {% if prop.inverse_of%}
@@ -29,6 +29,12 @@ class {{ prop.descriptor_name }}({{ ', '.join(prop.base_descriptors) }}):
     @classmethod
     def get_inverse(cls) -> Type[{{ inverse }}]:
         return {{ inverse }}
+    {% endif %}
+    {% if prop.equivalent_properties|length > 0 %}
+
+    @classmethod
+    def get_equivalent_properties(cls) -> List[Type[PropertyDescriptor]]:
+        return [{{ ', '.join(prop.equivalent_properties_descriptor_names) }}]
     {% endif %}
 
 

@@ -23,7 +23,6 @@ class OWL2BenchOntology(Symbol, ABC):
     has_research_interest: Optional[Any] = field(kw_only=True, default=None)
     # URI of the ontology element - The unique resource identifier (URI) of the ontology element.
     uri: Optional[str] = field(kw_only=True, default=None)
-    has_advisor: Set[Any] = field(default_factory=set)
     has_same_home_town_with: Set[Any] = field(default_factory=set)
     is_affiliate_of: Set[Any] = field(default_factory=set)
     knows: Set[Any] = field(default_factory=set)

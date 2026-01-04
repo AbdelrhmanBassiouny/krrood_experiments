@@ -15,6 +15,9 @@ from .{{ ontology_base_module_name }} import *
 # Generated classes
 {% for cls_name in classes_order %}
 {% set cls = classes[cls_name] %}
+{% if cls.name == ontology_base_class_name %}
+    {% continue %}
+{% endif %}
 @dataclass(eq=False)
 class {{ cls.name }}({% if cls.base_classes %}{{ ', '.join(cls.base_classes) }}{% else %}{{ ontology_base_class_name }}{% endif %}):
     {% if cls.label or cls.comment %}
