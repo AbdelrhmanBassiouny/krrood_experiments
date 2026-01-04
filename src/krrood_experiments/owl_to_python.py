@@ -272,24 +272,34 @@ class PropertyExtractor:
         inverses: List[str] = []
 
         for domain in self.graph.objects(property_uri, RDFS.domain):
+            if isinstance(domain, rdflib.term.BNode):
+                continue
             domains.append(NamingRegistry.uri_to_python_name(domain))
 
         range_uris: List[rdflib.term.Identifier] = []
         for range_val in self.graph.objects(property_uri, RDFS.range):
+            if isinstance(range_val, rdflib.term.BNode):
+                continue
             ranges.append(NamingRegistry.uri_to_python_name(range_val))
             range_uris.append(range_val)
 
         # Inheritance between properties
         for super_prop in self.graph.objects(property_uri, RDFS.subPropertyOf):
+            if isinstance(super_prop, rdflib.term.BNode):
+                continue
             if isinstance(super_prop, rdflib.URIRef):
                 superproperties.append(NamingRegistry.uri_to_python_name(super_prop))
 
         # Inverses
         for inv in self.graph.objects(property_uri, OWL.inverseOf):
+            if isinstance(inv, rdflib.term.BNode):
+                continue
             if isinstance(inv, rdflib.URIRef):
                 inverses.append(NamingRegistry.uri_to_python_name(inv))
         # Also collect when current property is the object of inverseOf
         for inv_subj in self.graph.subjects(OWL.inverseOf, property_uri):
+            if isinstance(inv_subj, rdflib.term.BNode):
+                continue
             if isinstance(inv_subj, rdflib.URIRef):
                 inverses.append(NamingRegistry.uri_to_python_name(inv_subj))
 
@@ -659,6 +669,8 @@ class InferenceEngine:
         Apply manual type overrides for specific class properties.
         """
         for cls_name, overrides in (self.onto.predefined_data_types or {}).items():
+            if cls_name == "Thing":
+                cls_name = self.onto.base_cls_name
             for field_snake, py_type in overrides.items():
                 target_prop_name = next(
                     (
@@ -1005,6 +1017,14 @@ class CodeGenerator:
         """
         Initialize the code generator.
         """
+        self._ensure_ontology_base_class_in_classes()
+
+        self._ensure_uri_in_ontology_properties()
+
+        self._replace_ontology_role_class_with_current_role_class_name()
+
+        self._update_base_classes()
+
         self.engine, self.renderer = InferenceEngine(self.onto), JinjaRenderer(
             os.path.dirname(__file__)
         )
@@ -1015,17 +1035,48 @@ class CodeGenerator:
         :param base_file_name: Base name for generated files.
         :return: Dictionary mapping filenames to their rendered content.
         """
-        self._ensure_base_class_in_classes()
-
-        self._update_base_classes()
 
         self._execute_inference_pipeline()
+
         self._determine_class_properties()
+
         classes_order, props_order = self._finalize_and_sort()
+
         return self._perform_rendering(
             base_file_name,
             classes_order,
             props_order,
+        )
+
+    def _replace_ontology_role_class_with_current_role_class_name(self):
+        """
+        Replace ontology role class name with current role class name.
+        """
+        for info in self.onto.classes.values():
+            if "Role" not in info.base_classes:
+                continue
+            info.base_classes.remove("Role")
+            info.base_classes.append(self.onto.role_cls_name)
+
+    def _ensure_uri_in_ontology_properties(self):
+        """
+        Ensures that the 'uri' property is present in the ontology properties.
+        If not present, adds it with appropriate configuration.
+        """
+        if "uri" in self.onto.properties:
+            return
+        self.onto.properties["uri"] = PropertyInfo(
+            "uri",
+            "",
+            PropertyType.DATA_PROPERTY,
+            domains=[self.onto.base_cls_name],
+            ranges=["str"],
+            range_uris=[XSD.anyURI],
+            label="URI of the ontology element",
+            comment="The unique resource identifier (URI) of the ontology element.",
+            field_name="uri",
+            descriptor_name="Uri",
+            declared_domains=[self.onto.base_cls_name],
         )
 
     def _update_base_classes(self):
@@ -1041,7 +1092,7 @@ class CodeGenerator:
             ):
                 info.base_classes.append("Symbol")
 
-    def _ensure_base_class_in_classes(self):
+    def _ensure_ontology_base_class_in_classes(self):
         if self.onto.base_cls_name in self.onto.classes:
             return
         self.onto.classes[self.onto.base_cls_name] = ClassInfo(
@@ -1058,34 +1109,21 @@ class CodeGenerator:
         """
         self.engine.compute_ancestors()
 
-        for info in self.onto.classes.values():
-            if "Role" in info.base_classes:
-                info.base_classes.remove("Role")
-                info.base_classes.append(self.onto.role_cls_name)
-
         self.engine.infer_properties()
 
-        if "uri" not in self.onto.properties:
-            self.onto.properties["uri"] = PropertyInfo(
-                "uri",
-                "",
-                PropertyType.DATA_PROPERTY,
-                domains=[self.onto.base_cls_name],
-                ranges=["str"],
-                range_uris=[XSD.anyURI],
-                label="URI of the ontology element",
-                comment="The unique resource identifier (URI) of the ontology element.",
-                field_name="uri",
-                descriptor_name="Uri",
-                declared_domains=[self.onto.base_cls_name],
-            )
+        self.engine.apply_predefined_overrides()
 
+        self.attach_domainless_properties_to_ontology_base_class()
+
+        self.engine.compute_type_hints()
+
+    def attach_domainless_properties_to_ontology_base_class(self):
+        """
+        Attach properties without declared domains to the ontology base class.
+        """
         for p in self.onto.properties.values():
             if p.type == PropertyType.DATA_PROPERTY and not p.declared_domains:
                 p.declared_domains = [self.onto.base_cls_name]
-
-        self.engine.apply_predefined_overrides()
-        self.engine.compute_type_hints()
 
     def _determine_class_properties(self):
         """
@@ -1313,6 +1351,8 @@ class OwlToPythonConverter:
             self.ontology_label = "Ontology"
 
         for cls_uri in self.graph.subjects(RDF.type, OWL.Class):
+            if isinstance(cls_uri, rdflib.term.BNode):
+                continue
             info = self.class_ext.extract_info(cls_uri)
             self.classes[info.name] = info
 
@@ -1322,6 +1362,8 @@ class OwlToPythonConverter:
             OWL.TransitiveProperty,
         ]:
             for p_uri in self.graph.subjects(RDF.type, p_type):
+                if isinstance(p_uri, rdflib.term.BNode):
+                    continue
                 info = self.prop_ext.extract_info(p_uri)
                 if info.name in self.properties:
                     existing = self.properties[info.name]
@@ -1368,6 +1410,7 @@ class OwlToPythonConverter:
 if __name__ == "__main__":
     from krrood_experiments.helpers import (
         generate_lubm_with_predicates,
+        generate_owl2bench_with_predicates,
     )
 
     generate_lubm_with_predicates(clean=True)
