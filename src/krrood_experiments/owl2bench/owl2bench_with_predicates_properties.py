@@ -42,7 +42,7 @@ class Evaluates(PropertyDescriptor, HasInverseProperty):
 @dataclass
 class HasAdvisor(PropertyDescriptor, HasEquivalentProperty):
     """HasAdvisor"""
-    
+
     @classmethod
     def get_equivalent_properties(cls) -> List[Type[PropertyDescriptor]]:
         return [IsAdvisedBy]
@@ -111,7 +111,7 @@ class HasPart(PropertyDescriptor, TransitiveProperty, HasInverseProperty, HasEqu
     @classmethod
     def get_inverse(cls) -> Type[IsPartOf]:
         return IsPartOf
-    
+
     @classmethod
     def get_equivalent_properties(cls) -> List[Type[PropertyDescriptor]]:
         return [HasSubOrganization]
@@ -128,11 +128,15 @@ class HasSameHomeTownWith(PropertyDescriptor, TransitiveProperty):
 
 
 @dataclass
-class HasSubOrganization(PropertyDescriptor, TransitiveProperty, HasInverseProperty):
+class HasSubOrganization(PropertyDescriptor, TransitiveProperty, HasInverseProperty, HasEquivalentProperty):
     """HasSubOrganization"""
     @classmethod
     def get_inverse(cls) -> Type[IsSubOrganizationOf]:
         return IsSubOrganizationOf
+
+    @classmethod
+    def get_equivalent_properties(cls) -> List[Type[PropertyDescriptor]]:
+        return [HasPart]
 
 
 @dataclass
@@ -141,8 +145,12 @@ class HasWork(PropertyDescriptor):
 
 
 @dataclass
-class IsAdvisedBy(PropertyDescriptor):
+class IsAdvisedBy(PropertyDescriptor, HasEquivalentProperty):
     """IsAdvisedBy"""
+
+    @classmethod
+    def get_equivalent_properties(cls) -> List[Type[PropertyDescriptor]]:
+        return [HasAdvisor]
 
 
 @dataclass
@@ -177,7 +185,7 @@ class IsPartOf(PropertyDescriptor, TransitiveProperty, HasInverseProperty, HasEq
     @classmethod
     def get_inverse(cls) -> Type[HasPart]:
         return HasPart
-    
+
     @classmethod
     def get_equivalent_properties(cls) -> List[Type[PropertyDescriptor]]:
         return [IsSubOrganizationOf]
@@ -192,11 +200,15 @@ class IsStudentOf(PropertyDescriptor, HasInverseProperty):
 
 
 @dataclass
-class IsSubOrganizationOf(PropertyDescriptor, TransitiveProperty, HasInverseProperty):
+class IsSubOrganizationOf(PropertyDescriptor, TransitiveProperty, HasInverseProperty, HasEquivalentProperty):
     """IsSubOrganizationOf"""
     @classmethod
     def get_inverse(cls) -> Type[HasSubOrganization]:
         return HasSubOrganization
+
+    @classmethod
+    def get_equivalent_properties(cls) -> List[Type[PropertyDescriptor]]:
+        return [IsPartOf]
 
 
 @dataclass
