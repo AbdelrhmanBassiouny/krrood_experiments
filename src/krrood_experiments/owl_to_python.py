@@ -301,6 +301,11 @@ class PropertyExtractor:
         for eq_prop in self.graph.objects(property_uri, OWL.equivalentProperty):
             if isinstance(eq_prop, rdflib.URIRef):
                 equivalent_properties.append(NamingRegistry.uri_to_python_name(eq_prop))
+        for eq_prop_subj in self.graph.subjects(OWL.equivalentProperty, property_uri):
+            if isinstance(eq_prop_subj, rdflib.URIRef):
+                equivalent_properties.append(
+                    NamingRegistry.uri_to_python_name(eq_prop_subj)
+                )
 
         # Determine property type
         prop_type = PropertyType.OBJECT_PROPERTY
