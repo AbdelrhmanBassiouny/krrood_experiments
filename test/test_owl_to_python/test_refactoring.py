@@ -10,6 +10,7 @@ from krrood_experiments.owl_to_python import (
     SubsumptionType,
     RoleTakerInfo,
     OntologyInfo,
+    PropertyMaps,
 )
 
 
@@ -101,8 +102,7 @@ def test_find_implicit_subtypes_basic():
     }
     onto = OntologyInfo(rdflib.Graph(), classes=classes, original_properties=properties)
     engine = InferenceEngine(onto)
-    ancestors_map = {"Thing": set()}
-    engine.find_implicit_subtypes(ancestors_map)
+    engine.find_implicit_subtypes()
     assert "Parent" in onto.classes["Child"].base_classes
     assert "Ontology" not in onto.classes["Child"].base_classes
     assert "p" not in onto.classes["Child"].declared_properties
@@ -132,8 +132,7 @@ def test_find_implicit_subtypes_role():
     }
     onto = OntologyInfo(rdflib.Graph(), classes=classes, original_properties=properties)
     engine = InferenceEngine(onto)
-    ancestors_map = {"Thing": set()}
-    engine.find_implicit_subtypes(ancestors_map)
+    engine.find_implicit_subtypes()
 
     assert onto.classes["Child"].role_taker.class_name == "Parent"
     assert "Role" in onto.classes["Child"].base_classes
@@ -166,14 +165,17 @@ def test_property_info_dataclass():
 
 def test_propagate_types():
     onto = OntologyInfo(rdflib.Graph())
-    engine = InferenceEngine(onto)
     dom_map = {"p1": {"D1"}, "p2": {"D2"}, "p1_inv": set()}
     rng_map = {"p1": {"R1"}, "p2": set(), "p1_inv": set()}
     rng_uri_map = {"p1": set(), "p2": set(), "p1_inv": set()}
     super_map = {"p1": ["p2"], "p2": [], "p1_inv": []}
     inverse_pairs = [("p1", "p1_inv"), ("p1_inv", "p1")]
-
-    engine._propagate_types(dom_map, rng_map, rng_uri_map, super_map, inverse_pairs)
+    property_maps = PropertyMaps(
+        dom_map, {}, rng_map, rng_uri_map, super_map, inverse_pairs
+    )
+    onto._property_maps = property_maps
+    engine = InferenceEngine(onto)
+    engine._propagate_types()
 
     assert "D1" in rng_map["p1_inv"]
     assert "R1" in dom_map["p1_inv"]
