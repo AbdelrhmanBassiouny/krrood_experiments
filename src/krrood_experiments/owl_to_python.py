@@ -4,13 +4,16 @@ It includes classes for extracting information from RDF graphs, performing infer
 and generating Python code using Jinja2 templates.
 """
 
+from __future__ import annotations
+
 import os
 import re
 from collections import defaultdict
-from copy import copy, deepcopy
+from copy import deepcopy
 from dataclasses import dataclass, field, asdict
 from enum import Enum
-from typing import Dict, List, Callable, Optional, Any, Set
+from functools import cached_property
+from typing import Dict, List, Callable, Optional, Any, Set, ClassVar
 
 import rdflib
 from jinja2 import Environment, FileSystemLoader
@@ -285,10 +288,12 @@ class PropertyExtractor:
         )
 
 
+@dataclass
 class InferenceEngine:
     """Engine for performing ontological inference and computing class/property relationships."""
 
-    XSD_TO_PYTHON_TYPES = {
+    onto: OntologyInfo
+    XSD_TO_PYTHON_TYPES: ClassVar[Dict[rdflib.term.URIRef, str]] = {
         XSD.string: "str",
         XSD.normalizedString: "str",
         XSD.token: "str",
@@ -316,13 +321,6 @@ class InferenceEngine:
         XSD.anyURI: "str",
     }
 
-    def __init__(self, graph: rdflib.Graph):
-        """
-        Initialize the inference engine.
-        :param graph: The rdflib graph.
-        """
-        self.graph = graph
-
     @staticmethod
     def topological_order(items: Dict[str, Any], dep_key: str) -> List[str]:
         """Return a topological order based on dependency names in dep_key; if cycles, append remaining alphabetically."""
@@ -348,14 +346,15 @@ class InferenceEngine:
                 deps.difference_update(ready)
         return ordered
 
-    def compute_ancestors(self, classes: Dict[str, ClassInfo]):
+    def compute_ancestors(self):
         """
         Compute full ancestor sets for each class (transitive closure).
-        :param classes: Dictionary mapping class names to ClassInfo.
         """
         # Compute full ancestor sets for each class (transitive closure)
-        name_to_bases = {name: set(info.base_classes) for name, info in classes.items()}
-        for info in classes.values():
+        name_to_bases = {
+            name: set(info.base_classes) for name, info in self.onto.classes.items()
+        }
+        for info in self.onto.classes.values():
             ancestors = set()
             stack = list(info.base_classes)
             while stack:
@@ -368,20 +367,14 @@ class InferenceEngine:
 
     def infer_properties(
         self,
-        properties: Dict[str, PropertyInfo],
-        classes: Dict[str, ClassInfo],
-        role_cls_name: str,
     ):
         """
         Main entry point for property inference.
         Propagates domains, ranges, and handles restrictions and inverses.
-        :param properties: Dictionary of PropertyInfo.
-        :param classes: Dictionary of ClassInfo.
-        :param role_cls_name: The name of the base Role class.
         :return: A dictionary of property restrictions found.
         """
         dom_map, rng_map, rng_uri_map, super_map, inverse_pairs = (
-            self._init_inference_maps(properties)
+            self._init_inference_maps()
         )
 
         property_restrictions: Dict[str, Dict[str, set]] = {}
@@ -389,20 +382,20 @@ class InferenceEngine:
         def _handle_restriction(for_class: str, node):
             if not node:
                 return
-            on_prop = self.graph.value(node, OWL.onProperty)
+            on_prop = self.onto.graph.value(node, OWL.onProperty)
             if not on_prop:
                 return
             prop_name = NamingRegistry.uri_to_python_name(on_prop)
-            if prop_name in properties:
+            if prop_name in self.onto.properties:
                 dom_map[prop_name].add(for_class)
-            some = self.graph.value(node, OWL.someValuesFrom) or self.graph.value(
-                node, OWL.allValuesFrom
-            )
+            some = self.onto.graph.value(
+                node, OWL.someValuesFrom
+            ) or self.onto.graph.value(node, OWL.allValuesFrom)
             if some:
                 try:
                     rng_name = NamingRegistry.uri_to_python_name(some)
                     if prop_name == "roleFor":
-                        cls_info = classes.get(for_class)
+                        cls_info = self.onto.classes.get(for_class)
                         if cls_info:
                             cls_info.role_taker = RoleTakerInfo(
                                 rng_name, NamingRegistry.to_snake_case(rng_name)
@@ -413,45 +406,44 @@ class InferenceEngine:
                     property_restrictions.setdefault(for_class, {}).setdefault(
                         prop_name, set()
                     ).add(rng_name)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"[owl_to_python] Error processing restriction: {e}")
 
         declared_dom_map = {
-            name: set(info.domains) for name, info in properties.items()
+            name: set(info.domains) for name, info in self.onto.properties.items()
         }
-        RestrictionWalker.walk(self.graph, declared_dom_map, _handle_restriction)
+        RestrictionWalker.walk(self.onto.graph, declared_dom_map, _handle_restriction)
 
-        for info in classes.values():
+        for info in self.onto.classes.values():
             if "Role" in info.base_classes:
                 info.base_classes.remove("Role")
-                info.base_classes.append(role_cls_name)
+                info.base_classes.append(self.onto.role_cls_name)
 
         self._propagate_types(dom_map, rng_map, rng_uri_map, super_map, inverse_pairs)
-        self._finalize_properties(
-            properties, dom_map, rng_map, rng_uri_map, declared_dom_map
-        )
-
+        self._finalize_properties(dom_map, rng_map, rng_uri_map, declared_dom_map)
         return property_restrictions
 
-    def _init_inference_maps(self, properties: Dict[str, PropertyInfo]):
+    def _init_inference_maps(self):
         """
         Initialize maps used for property type propagation.
-        :param properties: Dictionary of PropertyInfo.
         :return: Tuple of maps (domain, range, range_uri, superproperty, inverses).
         """
-        dom_map = {n: set(p.domains) for n, p in properties.items()}
-        rng_map = {n: set(p.ranges) for n, p in properties.items()}
-        rng_uri_map = {n: set(p.range_uris) for n, p in properties.items()}
-        super_map = {n: list(p.superproperties) for n, p in properties.items()}
+        dom_map = {n: set(p.domains) for n, p in self.onto.properties.items()}
+        rng_map = {n: set(p.ranges) for n, p in self.onto.properties.items()}
+        rng_uri_map = {n: set(p.range_uris) for n, p in self.onto.properties.items()}
+        super_map = {
+            n: list(p.superproperties) for n, p in self.onto.properties.items()
+        }
         inverse_pairs = [
             (n, inv)
-            for n, p in properties.items()
+            for n, p in self.onto.properties.items()
             for inv in p.inverses
-            if inv in properties
+            if inv in self.onto.properties
         ]
         return dom_map, rng_map, rng_uri_map, super_map, inverse_pairs
 
-    def _propagate_types(self, dom_map, rng_map, rng_uri_map, super_map, inverse_pairs):
+    @staticmethod
+    def _propagate_types(dom_map, rng_map, rng_uri_map, super_map, inverse_pairs):
         """
         Perform iterative propagation of domains and ranges along property hierarchy and inverses.
         """
@@ -485,13 +477,11 @@ class InferenceEngine:
                 ):
                     changed = True
 
-    def _finalize_properties(
-        self, properties, dom_map, rng_map, rng_uri_map, declared_dom_map
-    ):
+    def _finalize_properties(self, dom_map, rng_map, rng_uri_map, declared_dom_map):
         """
         Update PropertyInfo objects with inferred domain and range information.
         """
-        for name, info in properties.items():
+        for name, info in self.onto.properties.items():
             info.domains = sorted(dom_map[name])
             info.ranges = sorted(rng_map[name])
             info.range_uris = list(rng_uri_map[name])
@@ -499,9 +489,7 @@ class InferenceEngine:
 
     def create_specialized_properties(
         self,
-        properties: Dict[str, PropertyInfo],
         property_restrictions: Dict[str, Dict[str, set]],
-        original_properties: Dict[str, PropertyInfo],
     ):
         """
         Create specialized versions of properties based on class-level restrictions.
@@ -510,16 +498,21 @@ class InferenceEngine:
         specialized_props: Dict[str, PropertyInfo] = {}
         for cls_name, props in property_restrictions.items():
             for prop_name, rng_names in props.items():
-                base = properties.get(prop_name)
+                base = self.onto.properties.get(prop_name)
                 if not base or base.type != PropertyType.OBJECT_PROPERTY:
                     continue
-                if rng_names.issubset(set(original_properties[prop_name].ranges)):
+                if rng_names.issubset(
+                    set(self.onto.original_properties[prop_name].ranges)
+                ):
                     continue
                 if cls_name in base.declared_domains:
                     base.declared_domains.remove(cls_name)
                 for rng_name in sorted(rng_names):
                     spec_key = f"{prop_name}{{{rng_name}}}"
-                    if spec_key in properties or spec_key in specialized_props:
+                    if (
+                        spec_key in self.onto.properties
+                        or spec_key in specialized_props
+                    ):
                         continue
                     specialized_props[spec_key] = PropertyInfo(
                         name=prop_name,
@@ -540,22 +533,22 @@ class InferenceEngine:
                         declared_domains=[cls_name],
                         is_specialized=True,
                     )
-        properties.update(specialized_props)
+        self.onto.properties.update(specialized_props)
 
     def apply_predefined_overrides(
         self,
-        properties: Dict[str, PropertyInfo],
-        predefined_data_types: Dict[str, Dict[str, str]],
     ):
         """
         Apply manual type overrides for specific class properties.
-        :param properties: Dictionary of PropertyInfo.
-        :param predefined_data_types: Nested dictionary mapping class names to field names and their target types.
         """
-        for cls_name, overrides in (predefined_data_types or {}).items():
+        for cls_name, overrides in (self.onto.predefined_data_types or {}).items():
             for field_snake, py_type in overrides.items():
                 target_prop_name = next(
-                    (n for n, p in properties.items() if p.field_name == field_snake),
+                    (
+                        n
+                        for n, p in self.onto.properties.items()
+                        if p.field_name == field_snake
+                    ),
                     None,
                 )
                 if not target_prop_name:
@@ -563,7 +556,7 @@ class InferenceEngine:
                         f"[owl_to_python] Override not applied: property '{field_snake}' not found"
                     )
                     continue
-                p = properties[target_prop_name]
+                p = self.onto.properties[target_prop_name]
                 p.type = PropertyType.DATA_PROPERTY
                 p.data_type_hint_inner = py_type
                 p._predefined_data_type = True
@@ -576,39 +569,32 @@ class InferenceEngine:
                     f"[owl_to_python] Applied override: {cls_name}.{field_snake} -> {py_type}"
                 )
 
-    def compute_type_hints(
-        self, classes: Dict[str, ClassInfo], properties: Dict[str, PropertyInfo]
-    ) -> Dict[str, Set[str]]:
+    def compute_type_hints(self) -> Dict[str, Set[str]]:
         """
         Compute Python type hints for all properties.
         Handles both object properties (referencing classes) and data properties (XSD types).
-        :param classes: Dictionary of ClassInfo.
-        :param properties: Dictionary of PropertyInfo.
         :return: Ancestor map for classes.
         """
         ancestors_map = {
-            name: set(info.all_base_classes) for name, info in classes.items()
+            name: set(info.all_base_classes) for name, info in self.onto.classes.items()
         }
-        for info in properties.values():
-            self._set_base_descriptors(info, properties)
+        for info in self.onto.properties.values():
+            self._set_base_descriptors(info)
             if info.type == PropertyType.OBJECT_PROPERTY:
                 self._set_object_range_hint(info, ancestors_map)
             elif not (info._predefined_data_type and info.data_type_hint_inner):
                 self._set_data_type_hint(info)
         return ancestors_map
 
-    def _set_base_descriptors(
-        self, info: PropertyInfo, properties: Dict[str, PropertyInfo]
-    ):
+    def _set_base_descriptors(self, info: PropertyInfo):
         """
         Determine the base descriptor classes for a property.
         :param info: The PropertyInfo to update.
-        :param properties: Dictionary of all properties.
         """
         bases = [
-            properties[sp].descriptor_name
+            self.onto.properties[sp].descriptor_name
             for sp in info.superproperties
-            if sp in properties
+            if sp in self.onto.properties
         ] or ["PropertyDescriptor"]
         if info.is_transitive:
             bases.append("TransitiveProperty")
@@ -616,9 +602,8 @@ class InferenceEngine:
             bases.append("HasInverseProperty")
         info.base_descriptors = bases
 
-    def _set_object_range_hint(
-        self, info: PropertyInfo, ancestors_map: Dict[str, Set[str]]
-    ):
+    @staticmethod
+    def _set_object_range_hint(info: PropertyInfo, ancestors_map: Dict[str, Set[str]]):
         """
         Compute and set the object_range_hint for an ObjectProperty.
         :param info: The PropertyInfo to update.
@@ -675,7 +660,8 @@ class InferenceEngine:
             else unique_types[0]
         )
 
-    def _map_range_names_to_python_types(self, range_names: List[str]) -> List[str]:
+    @staticmethod
+    def _map_range_names_to_python_types(range_names: List[str]) -> List[str]:
         """Map OWL range names (as strings) to Python types."""
         py_types = []
         textual = [r.lower() for r in range_names]
@@ -711,31 +697,20 @@ class InferenceEngine:
                 py_types.append("bool")
         return py_types
 
-    def find_implicit_subtypes(
-        self,
-        classes: Dict[str, ClassInfo],
-        properties: Dict[str, PropertyInfo],
-        ancestors_map: Dict,
-        ontology_base_class_name: str,
-        role_cls_name: str,
-    ):
+    def find_implicit_subtypes(self, ancestors_map: Dict):
         """
         Identify implicit subtype or role relationships between classes based on property commonality.
-        :param classes: Dictionary of ClassInfo.
-        :param properties: Dictionary of PropertyInfo.
         :param ancestors_map: Map of class ancestors.
-        :param ontology_base_class_name: Name of the root ontology class.
-        :param role_cls_name: Name of the Role class.
         """
-        for parent_name, parent_info in classes.items():
-            for child_name, child_info in classes.items():
+        for parent_name, parent_info in self.onto.classes.items():
+            for child_name, child_info in self.onto.classes.items():
                 if not self._is_subsumption_candidate(
                     parent_name, parent_info, child_name, child_info
                 ):
                     continue
 
                 matched_props = self._get_matched_properties(
-                    parent_info, child_info, properties, ancestors_map
+                    parent_info, child_info, ancestors_map
                 )
                 if not matched_props:
                     continue
@@ -749,12 +724,10 @@ class InferenceEngine:
                         parent_name,
                         parent_info,
                         subsumption_type,
-                        ontology_base_class_name,
-                        role_cls_name,
                     )
 
+    @staticmethod
     def _is_subsumption_candidate(
-        self,
         parent_name: str,
         parent_info: ClassInfo,
         child_name: str,
@@ -773,7 +746,6 @@ class InferenceEngine:
         self,
         parent_info: ClassInfo,
         child_info: ClassInfo,
-        properties: Dict[str, PropertyInfo],
         ancestors_map: Dict[str, Set[str]],
     ) -> Set[str]:
         """
@@ -792,9 +764,9 @@ class InferenceEngine:
         for parent_p_name in parent_props:
             parent_base_name = parent_p_name.split("{")[0]
             for child_p_name in child_props:
-                child_p_info, parent_p_info = properties.get(
+                child_p_info, parent_p_info = self.onto.properties.get(
                     child_p_name
-                ), properties.get(parent_p_name)
+                ), self.onto.properties.get(parent_p_name)
                 if not child_p_info or not parent_p_info:
                     continue
                 if (
@@ -817,8 +789,9 @@ class InferenceEngine:
 
         return matched_prop_names
 
+    @staticmethod
     def _determine_subsumption_type(
-        self, matched_props: Set[str], parent_info: ClassInfo, child_info: ClassInfo
+        matched_props: Set[str], parent_info: ClassInfo, child_info: ClassInfo
     ) -> Optional[SubsumptionType]:
         """Determine if the relationship is a SUBTYPE or a ROLE."""
         parent_props_filtered = {
@@ -842,32 +815,33 @@ class InferenceEngine:
         parent_name: str,
         parent_info: ClassInfo,
         subsumption_type: SubsumptionType,
-        ontology_base_class_name: str,
-        role_cls_name: str,
     ):
         """Apply the determined subsumption to the child class."""
-        if ontology_base_class_name in child_info.base_classes:
-            child_info.base_classes.remove(ontology_base_class_name)
+        if self.onto.base_cls_name in child_info.base_classes:
+            child_info.base_classes.remove(self.onto.base_cls_name)
 
         if subsumption_type == SubsumptionType.ROLE:
-            self._apply_role_subsumption(child_info, parent_name, role_cls_name)
+            self._apply_role_subsumption(child_info, parent_name)
         else:
             self._apply_subtype_subsumption(child_info, parent_name, parent_info)
 
-    def _apply_role_subsumption(
-        self, child_info: ClassInfo, parent_name: str, role_cls_name: str
-    ):
+    def _apply_role_subsumption(self, child_info: ClassInfo, parent_name: str):
         """Add a role taker relationship to the class."""
         child_info.role_taker = RoleTakerInfo(
             parent_name, NamingRegistry.to_snake_case(parent_name)
         )
-        if role_cls_name not in child_info.all_base_classes:
-            child_info.base_classes = [role_cls_name] + child_info.base_classes
-            child_info.all_base_classes = [role_cls_name] + child_info.all_base_classes
+        if self.onto.role_cls_name not in child_info.all_base_classes:
+            child_info.base_classes = [
+                self.onto.role_cls_name
+            ] + child_info.base_classes
+            child_info.all_base_classes = [
+                self.onto.role_cls_name
+            ] + child_info.all_base_classes
         child_info.all_base_classes_including_role_takers.append(parent_name)
 
+    @staticmethod
     def _apply_subtype_subsumption(
-        self, child_info: ClassInfo, parent_name: str, parent_info: ClassInfo
+        child_info: ClassInfo, parent_name: str, parent_info: ClassInfo
     ):
         """Make the class a subtype of another class."""
         child_info.base_classes = []
@@ -955,33 +929,49 @@ class RestrictionWalker:
                     node = graph.value(node, RDF.rest)
 
 
+@dataclass
+class OntologyInfo:
+    """Information about the ontology."""
+
+    graph: rdflib.Graph
+    classes: Dict[str, ClassInfo] = field(default_factory=dict)
+    original_properties: Dict[str, PropertyInfo] = field(default_factory=dict)
+    predefined_data_types: Optional[Dict[str, Dict[str, str]]] = None
+    ontology_label: str = "Ontology"
+    role_cls_name: str = "Role"
+    _properties: Optional[Dict[str, PropertyInfo]] = None
+
+    @property
+    def properties(self):
+        if not self._properties:
+            self._properties = {
+                n: deepcopy(info) for n, info in self.original_properties.items()
+            }
+        return self._properties
+
+    @cached_property
+    def base_cls_name(self):
+        base_cls_name = NamingRegistry.to_pascal_case(
+            re.sub(r"\W+", " ", self.ontology_label).strip()
+        )
+        if not base_cls_name.endswith("Ontology"):
+            base_cls_name += "Ontology"
+        return base_cls_name
+
+
+@dataclass
 class CodeGenerator:
     """Orchestrates the generation of Python code from extracted ontology information."""
 
-    def __init__(
-        self,
-        graph: rdflib.Graph,
-        classes: Dict[str, ClassInfo],
-        properties: Dict[str, PropertyInfo],
-        ontology_label: str,
-        predefined_data_types: Dict,
-    ):
+    onto: OntologyInfo
+    engine: InferenceEngine = field(init=False)
+    renderer: JinjaRenderer = field(init=False)
+
+    def __post_init__(self):
         """
         Initialize the code generator.
-        :param graph: The rdflib graph.
-        :param classes: Extracted classes.
-        :param properties: Extracted properties.
-        :param ontology_label: Label for the ontology.
-        :param predefined_data_types: Manual type overrides.
         """
-        (
-            self.graph,
-            self.classes,
-            self.properties,
-            self.ontology_label,
-            self.predefined_data_types,
-        ) = (graph, classes, properties, ontology_label, predefined_data_types)
-        self.engine, self.renderer = InferenceEngine(graph), JinjaRenderer(
+        self.engine, self.renderer = InferenceEngine(self.onto), JinjaRenderer(
             os.path.dirname(__file__)
         )
 
@@ -991,102 +981,82 @@ class CodeGenerator:
         :param base_file_name: Base name for generated files.
         :return: Dictionary mapping filenames to their rendered content.
         """
-        role_cls_name = "Role"
-        classes, properties, orig_props, base_cls_name = self._prepare_initial_state(
-            role_cls_name
-        )
-        restrs, ancestors_map = self._execute_inference_pipeline(
-            classes, properties, orig_props, role_cls_name, base_cls_name
-        )
-        self._determine_class_properties(classes, properties)
-        classes_order, props_order = self._finalize_and_sort(
-            classes, properties, ancestors_map, base_cls_name, role_cls_name
-        )
+        self._ensure_base_class_in_classes()
+
+        self._update_base_classes()
+
+        restrs, ancestors_map = self._execute_inference_pipeline()
+        self._determine_class_properties()
+        classes_order, props_order = self._finalize_and_sort(ancestors_map)
         return self._perform_rendering(
             base_file_name,
-            classes,
-            properties,
-            base_cls_name,
-            role_cls_name,
             classes_order,
             props_order,
         )
 
-    def _prepare_initial_state(self, role_cls_name: str):
-        """
-        Prepare initial ClassInfo and PropertyInfo copies and setup base classes.
-        """
-        classes = {n: deepcopy(info) for n, info in self.classes.items()}
-        properties = {n: deepcopy(info) for n, info in self.properties.items()}
-        orig_props = {n: deepcopy(info) for n, info in self.properties.items()}
-
-        base_cls_name = NamingRegistry.to_pascal_case(
-            re.sub(r"\W+", " ", self.ontology_label).strip()
-        )
-        if not base_cls_name.endswith("Ontology"):
-            base_cls_name += "Ontology"
-
-        if base_cls_name not in classes:
-            classes[base_cls_name] = ClassInfo(
-                base_cls_name,
-                "",
-                ["Symbol", "ABC"],
-                ["Symbol", "ABC"],
-                label=f"Base class for {self.ontology_label}",
-            )
-
-        for n, info in classes.items():
-            if n == base_cls_name:
+    def _update_base_classes(self):
+        for n, info in self.onto.classes.items():
+            if n == self.onto.base_cls_name:
                 continue
             info.base_classes = [b for b in info.superclasses if b != "Symbol"] or [
-                base_cls_name
+                self.onto.base_cls_name
             ]
-            if len(info.base_classes) == 1 and info.base_classes[0] == role_cls_name:
+            if (
+                len(info.base_classes) == 1
+                and info.base_classes[0] == self.onto.role_cls_name
+            ):
                 info.base_classes.append("Symbol")
 
-        return classes, properties, orig_props, base_cls_name
+    def _ensure_base_class_in_classes(self):
+        if self.onto.base_cls_name in self.onto.classes:
+            return
+        self.onto.classes[self.onto.base_cls_name] = ClassInfo(
+            self.onto.base_cls_name,
+            "",
+            ["Symbol", "ABC"],
+            ["Symbol", "ABC"],
+            label=f"Base class for {self.onto.ontology_label}",
+        )
 
-    def _execute_inference_pipeline(
-        self, classes, properties, orig_props, role_cls_name, base_cls_name
-    ):
+    def _execute_inference_pipeline(self):
         """
         Run the inference engine to propagate types and specialized properties.
         """
-        self.engine.compute_ancestors(classes)
-        restrs = self.engine.infer_properties(properties, classes, role_cls_name)
-        self.engine.create_specialized_properties(properties, restrs, orig_props)
+        self.engine.compute_ancestors()
+        properties_restrictions = self.engine.infer_properties()
+        self.engine.create_specialized_properties(properties_restrictions)
 
-        if "uri" not in properties:
-            properties["uri"] = PropertyInfo(
+        if "uri" not in self.onto.properties:
+            self.onto.properties["uri"] = PropertyInfo(
                 "uri",
                 "",
                 PropertyType.DATA_PROPERTY,
-                domains=[base_cls_name],
+                domains=[self.onto.base_cls_name],
                 ranges=["str"],
                 range_uris=[XSD.anyURI],
                 label="URI of the ontology element",
                 comment="The unique resource identifier (URI) of the ontology element.",
                 field_name="uri",
                 descriptor_name="Uri",
-                declared_domains=[base_cls_name],
+                declared_domains=[self.onto.base_cls_name],
             )
 
-        for p in properties.values():
+        for p in self.onto.properties.values():
             if p.type == PropertyType.DATA_PROPERTY and not p.declared_domains:
-                p.declared_domains = [base_cls_name]
+                p.declared_domains = [self.onto.base_cls_name]
 
-        self.engine.apply_predefined_overrides(properties, self.predefined_data_types)
-        ancestors_map = self.engine.compute_type_hints(classes, properties)
-        return restrs, ancestors_map
+        self.engine.apply_predefined_overrides()
+        ancestors_map = self.engine.compute_type_hints()
+        return properties_restrictions, ancestors_map
 
-    def _determine_class_properties(self, classes, properties):
+    def _determine_class_properties(self):
         """
         Decide which properties belong to which class based on inheritance and overrides.
         """
-        for cls_name, info in classes.items():
+        for cls_name, info in self.onto.classes.items():
             ancestors = set(info.all_base_classes)
             declared: List[str] = []
-            for pn, p in properties.items():
+            for pn, p in self.onto.properties.items():
                 if pn == "roleFor":
                     continue
                 if cls_name not in (set(p.declared_domains) | set(p.domains)):
@@ -1107,30 +1077,26 @@ class CodeGenerator:
                 declared.append(pn)
             info.declared_properties = sorted(set(declared))
 
-    def _finalize_and_sort(
-        self, classes, properties, ancestors_map, base_cls_name, role_cls_name
-    ):
+    def _finalize_and_sort(self, ancestors_map):
         """
         Compute transitive closures and determine final topological order for classes and properties.
         """
-        for p in properties.values():
+        for p in self.onto.properties.values():
             p.all_superproperties = self._compute_closure(
-                p.superproperties, properties, "superproperties"
+                p.superproperties, self.onto.properties, "superproperties"
             )
 
-        for info in classes.values():
+        for info in self.onto.classes.values():
             initial = set(info.all_base_classes)
             if info.role_taker:
                 initial.add(info.role_taker.class_name)
             info.all_base_classes_including_role_takers = self._compute_closure(
-                list(initial), classes, "all_base_classes", "role_taker"
+                list(initial), self.onto.classes, "all_base_classes", "role_taker"
             )
 
-        self.engine.find_implicit_subtypes(
-            classes, properties, ancestors_map, base_cls_name, role_cls_name
-        )
+        self.engine.find_implicit_subtypes(ancestors_map)
 
-        for info in classes.values():
+        for info in self.onto.classes.values():
             info.base_classes_for_topological_sort = info.base_classes[:]
             if info.role_taker:
                 info.base_classes_for_topological_sort.append(
@@ -1138,9 +1104,11 @@ class CodeGenerator:
                 )
 
         classes_order = self.engine.topological_order(
-            classes, "base_classes_for_topological_sort"
+            self.onto.classes, "base_classes_for_topological_sort"
         )
-        prop_classes = {k: v for k, v in properties.items() if not v.is_specialized}
+        prop_classes = {
+            k: v for k, v in self.onto.properties.items() if not v.is_specialized
+        }
         props_order = self.engine.topological_order(prop_classes, "superproperties")
 
         idx_map = {n: i for i, n in enumerate(props_order)}
@@ -1155,39 +1123,35 @@ class CodeGenerator:
     def _perform_rendering(
         self,
         base_file_name,
-        classes,
-        properties,
-        base_cls_name,
-        role_cls_name,
         classes_order,
         props_order,
     ):
         """
         Render all templates and produce the final Python files and stubs.
         """
-        stubs_classes = deepcopy(classes)
-        for cls_name, info in classes.items():
-            if role_cls_name in info.base_classes:
-                info.base_classes.remove(role_cls_name)
+        stubs_classes = deepcopy(self.onto.classes)
+        for cls_name, info in self.onto.classes.items():
+            if self.onto.role_cls_name in info.base_classes:
+                info.base_classes.remove(self.onto.role_cls_name)
                 info.base_classes.insert(
-                    0, f"{role_cls_name}[{info.role_taker.class_name}]"
+                    0, f"{self.onto.role_cls_name}[{info.role_taker.class_name}]"
                 )
-                stubs_classes[cls_name].base_classes.remove(role_cls_name)
+                stubs_classes[cls_name].base_classes.remove(self.onto.role_cls_name)
             else:
                 info.add_role_taker = stubs_classes[cls_name].add_role_taker = False
 
-        if "Role" in classes:
-            del classes["Role"]
+        if "Role" in self.onto.classes:
+            del self.onto.classes["Role"]
 
         # topological_order might still have 'Role' name if it was in the items keys
         # We need to filter the order as well
         classes_order = [c for c in classes_order if c != "Role"]
 
-        render_classes = {k: asdict(v) for k, v in classes.items()}
+        render_classes = {k: asdict(v) for k, v in self.onto.classes.items()}
         for c in render_classes.values():
             if c["role_taker"] is None:
                 c["role_taker"] = {}
-        render_props = {k: asdict(v) for k, v in properties.items()}
+        render_props = {k: asdict(v) for k, v in self.onto.properties.items()}
         render_stubs = {k: asdict(v) for k, v in stubs_classes.items()}
         for c in render_stubs.values():
             if c["role_taker"] is None:
@@ -1202,7 +1166,7 @@ class CodeGenerator:
             ),
             f"{b_mod}.py": self.renderer.render(
                 "onto_base.j2",
-                cls=render_classes[base_cls_name],
+                cls=render_classes[self.onto.base_cls_name],
                 properties=render_props,
             ),
             f"{base_file_name}.py": self.renderer.render(
@@ -1213,7 +1177,7 @@ class CodeGenerator:
                 properties=render_props,
                 classes_order=classes_order,
                 properties_order=props_order,
-                ontology_base_class_name=base_cls_name,
+                ontology_base_class_name=self.onto.base_cls_name,
             ),
             f"{base_file_name}.pyi": self.renderer.render(
                 "onto_stubs.j2",
@@ -1229,12 +1193,12 @@ class CodeGenerator:
                 classes=render_stubs,
                 properties=render_props,
                 classes_order=classes_order,
-                ontology_base_class_name=base_cls_name,
+                ontology_base_class_name=self.onto.base_cls_name,
             ),
         }
 
+    @staticmethod
     def _compute_closure(
-        self,
         initial: List[str],
         items: Dict[str, Any],
         key: str,
@@ -1287,6 +1251,7 @@ class OwlToPythonConverter:
         self.class_ext = ClassExtractor(self.graph, self.metadata)
         self.prop_ext = PropertyExtractor(self.graph, self.metadata)
         self.ontology_label = None
+        self.ontology_info: Optional[OntologyInfo] = None
 
     def load_ontology(self, path: str):
         """
@@ -1294,9 +1259,9 @@ class OwlToPythonConverter:
         :param path: Path to the .owl file.
         """
         self.graph.parse(path)
-        self._extract()
+        self._extract_ontology_info()
 
-    def _extract(self):
+    def _extract_ontology_info(self):
         """
         Extract classes and properties from the loaded graph.
         """
@@ -1331,19 +1296,21 @@ class OwlToPythonConverter:
                 else:
                     self.properties[info.name] = info
 
+        self.ontology_info = OntologyInfo(
+            self.graph,
+            self.classes,
+            self.properties,
+            self.predefined_data_types,
+            self.ontology_label,
+        )
+
     def generate_python_code_external(self, base_file_name: str) -> Dict[str, str]:
         """
         Generate Python code without saving to disk.
         :param base_file_name: Base name for the generated files.
         :return: Dictionary of filename to content.
         """
-        gen = CodeGenerator(
-            self.graph,
-            self.classes,
-            self.properties,
-            self.ontology_label,
-            self.predefined_data_types,
-        )
+        gen = CodeGenerator(self.ontology_info)
         return gen.generate(base_file_name)
 
     def save_to_file(self, output_path: str):
@@ -1363,8 +1330,7 @@ class OwlToPythonConverter:
 if __name__ == "__main__":
     from krrood_experiments.helpers import (
         generate_lubm_with_predicates,
-        generate_owl2bench_with_predicates,
     )
 
     generate_lubm_with_predicates(clean=True)
-    generate_owl2bench_with_predicates(clean=False)
+    # generate_owl2bench_with_predicates(clean=False)

@@ -53,12 +53,12 @@ class Man(OWL2BenchOntology):
 
 
 @dataclass(eq=False)
-class N10763831af1e4cc9985abab3e4fae053(OWL2BenchOntology):
-    has_student: Set[N53dac1625171426c86a1d1fa6d3069d8] = field(default_factory=set)
+class N8b065678bcac4e6997312cd4a0c61a31(OWL2BenchOntology):
+    has_student: Set[N9448684846d648e59e87ffacc6f0e4f1] = field(default_factory=set)
 
 
 @dataclass(eq=False)
-class N7ea1f97bb1e2406b8ca827825c299d6b(OWL2BenchOntology):
+class Nd5d6e11b9c6d4b6aa3508f75b53e71c5(OWL2BenchOntology):
     takes_course: Set[Course] = field(default_factory=set)
 
 
@@ -91,7 +91,7 @@ class Person(OWL2BenchOntology):
     is_post_doc_of: Set[Organization] = field(default_factory=set)
     is_professor_of: Set[Organization] = field(default_factory=set)
     is_research_assistant_of: Set[Organization] = field(default_factory=set)
-    is_student_of: Set[Union[N10763831af1e4cc9985abab3e4fae053, Organization]] = field(default_factory=set)
+    is_student_of: Set[Union[N8b065678bcac4e6997312cd4a0c61a31, Organization]] = field(default_factory=set)
     is_visiting_professor_of: Set[Organization] = field(default_factory=set)
     likes: Set[Interest] = field(default_factory=set)
     loves: Set[Interest] = field(default_factory=set)
@@ -198,10 +198,15 @@ class Music(Interest):
 
 
 @dataclass(eq=False)
-class N53dac1625171426c86a1d1fa6d3069d8(Role[Person]):
+class N4ee0f43b1b3e46a2ba6adffa6c37ea1a(Person):
+    ...
+
+
+@dataclass(eq=False)
+class N9448684846d648e59e87ffacc6f0e4f1(Role[Person]):
     # Role taker
     person: Person
-    is_student_of: Set[Union[N10763831af1e4cc9985abab3e4fae053, Organization]] = field(default_factory=set)
+    is_student_of: Set[Union[N8b065678bcac4e6997312cd4a0c61a31, Organization]] = field(default_factory=set)
 
     @classmethod
     @lru_cache(maxsize=None)
@@ -210,12 +215,7 @@ class N53dac1625171426c86a1d1fa6d3069d8(Role[Person]):
 
 
 @dataclass(eq=False)
-class N7927c6860d3e4fb0a91826488947d210(Person):
-    ...
-
-
-@dataclass(eq=False)
-class Organization(N10763831af1e4cc9985abab3e4fae053):
+class Organization(N8b065678bcac4e6997312cd4a0c61a31):
     has_assistant_professor: Set[Person] = field(default_factory=set)
     has_associate_professor: Set[Person] = field(default_factory=set)
     has_college: Set[Organization] = field(default_factory=set)
@@ -234,7 +234,7 @@ class Organization(N10763831af1e4cc9985abab3e4fae053):
     has_professor: Set[Person] = field(default_factory=set)
     has_research_assistant: Set[Person] = field(default_factory=set)
     has_research_group: Set[Organization] = field(default_factory=set)
-    has_student: Set[Union[N53dac1625171426c86a1d1fa6d3069d8, Person]] = field(default_factory=set)
+    has_student: Set[Union[N9448684846d648e59e87ffacc6f0e4f1, Person]] = field(default_factory=set)
     has_student_evaluation_committee: Set[EvaluationCommittee] = field(default_factory=set)
     has_sub_organization: Set[Organization] = field(default_factory=set)
     has_thesis_evaluation_committee: Set[EvaluationCommittee] = field(default_factory=set)
@@ -305,9 +305,9 @@ class SportsLover(Person):
 
 
 @dataclass(eq=False)
-class Student(N7ea1f97bb1e2406b8ca827825c299d6b):
+class Student(Nd5d6e11b9c6d4b6aa3508f75b53e71c5):
     enroll_for: Set[Program] = field(default_factory=set)
-    enroll_in: Set[Union[N10763831af1e4cc9985abab3e4fae053, Organization]] = field(default_factory=set)
+    enroll_in: Set[Union[N8b065678bcac4e6997312cd4a0c61a31, Organization]] = field(default_factory=set)
 
 
 @dataclass(eq=False)
@@ -590,27 +590,27 @@ class MusicsClass(FineArts):
 
 
 @dataclass(eq=False)
-class N25096dd1699149e588984be6b1a9ee35(SportsFan):
-    is_crazy_about: Set[Sports] = field(default_factory=set)
-
-
-@dataclass(eq=False)
-class N3aa0c5eb0a31406a805c4ff39532d4d7(Student):
-    ...
-
-
-@dataclass(eq=False)
-class N71851d2048f1441897e1c8d9753e3750(SportsLover):
+class N5766aa0898e546d49a6a135e15e7963a(SportsLover):
     loves: Set[Sports] = field(default_factory=set)
 
 
 @dataclass(eq=False)
-class Na433b5081edc4d348e152fcff68309d8(Employee):
+class N65e47d2d27764284a95099ac54f3f98b(SportsFan):
+    is_crazy_about: Set[Sports] = field(default_factory=set)
+
+
+@dataclass(eq=False)
+class N7c41b0c99e4047eaaabf64cb6d815bcb(Student):
     ...
 
 
 @dataclass(eq=False)
-class Neb395900c4774e698e1e1b46fe50ce2b(PeopleWithHobby):
+class Ne320a5f1a74d47adbf62fb2206656f0a(PeopleWithHobby):
+    ...
+
+
+@dataclass(eq=False)
+class Nf3905b9af8fc454d821b437a7abf1019(Employee):
     ...
 
 
@@ -781,43 +781,43 @@ class Lecturer(Faculty):
 
 
 @dataclass(eq=False)
-class N017e517a1473402aabfe5868eb2a8d36(UGStudent):
-    enroll_for: Set[UGProgram] = field(default_factory=set)
-
-
-@dataclass(eq=False)
-class N774d328b413647b1b664b56fe44c0a89(ScienceStudent):
-    has_major: Set[Science] = field(default_factory=set)
-
-
-@dataclass(eq=False)
-class N8b5b54d1f5f049cd8f16240924eeb2c9(TeachingAssistant):
-    ...
-
-
-@dataclass(eq=False)
-class N8d037fe85ad3454590255b3a18e18014(N71851d2048f1441897e1c8d9753e3750):
-    loves: Set[BasketBall] = field(default_factory=set)
-
-
-@dataclass(eq=False)
-class N9fe8e01623da480d8495cc470581e384(N71851d2048f1441897e1c8d9753e3750):
+class N0859b0ac05a84fe2aafc42cbaf2df349(N5766aa0898e546d49a6a135e15e7963a):
     is_crazy_about: Set[BasketBall] = field(default_factory=set)
 
 
 @dataclass(eq=False)
-class Nc68e14dabed14b33a1a951ca100e726f(PGStudent):
+class N182074389cf84515a8a268eff9e96846(N5766aa0898e546d49a6a135e15e7963a):
+    loves: Set[BasketBall] = field(default_factory=set)
+
+
+@dataclass(eq=False)
+class N3c084fe93ec74289840d99342ec9afcc(PGStudent):
     enroll_for: Set[PGProgram] = field(default_factory=set)
 
 
 @dataclass(eq=False)
-class Nc96f5e5db3bf42e8b0a2f0b0880228a0(Faculty):
+class N604e352407184205bbbca0cafe6b6fba(ScienceStudent):
+    has_major: Set[Science] = field(default_factory=set)
+
+
+@dataclass(eq=False)
+class N971b605254b145c7a7bc57bf6579123e(Faculty):
     ...
 
 
 @dataclass(eq=False)
-class Ne904c93aa9744fdfae4e7445cbe9b601(PhDStudent):
+class Nc6c8d9c2cc1a482687284e9e2fde43d5(PhDStudent):
     enroll_for: Set[PhDProgram] = field(default_factory=set)
+
+
+@dataclass(eq=False)
+class Ne435b08bbbdf4e67a84dccb5d18760f5(TeachingAssistant):
+    ...
+
+
+@dataclass(eq=False)
+class Nea008486cbdc43449255e82426378c67(UGStudent):
+    enroll_for: Set[UGProgram] = field(default_factory=set)
 
 
 @dataclass(eq=False)
@@ -886,8 +886,8 @@ class Director(FullProfessor):
 Course.is_taught_by = IsTaughtBy(Course, 'is_taught_by')
 EvaluationCommittee.evaluates = Evaluates(EvaluationCommittee, 'evaluates')
 EvaluationCommittee.has_committee_members = HasCommitteeMembers(EvaluationCommittee, 'has_committee_members')
-N10763831af1e4cc9985abab3e4fae053.has_student = HasStudent(N10763831af1e4cc9985abab3e4fae053, 'has_student')
-N7ea1f97bb1e2406b8ca827825c299d6b.takes_course = TakesCourse(N7ea1f97bb1e2406b8ca827825c299d6b, 'takes_course')
+N8b065678bcac4e6997312cd4a0c61a31.has_student = HasStudent(N8b065678bcac4e6997312cd4a0c61a31, 'has_student')
+Nd5d6e11b9c6d4b6aa3508f75b53e71c5.takes_course = TakesCourse(Nd5d6e11b9c6d4b6aa3508f75b53e71c5, 'takes_course')
 Person.dislikes = Dislikes(Person, 'dislikes')
 Person.evaluated_by = EvaluatedBy(Person, 'evaluated_by')
 Person.has_collaboration_with = HasCollaborationWith(Person, 'has_collaboration_with')
@@ -917,7 +917,7 @@ Person.works_for = WorksFor(Person, 'works_for')
 Publication.has_author = HasAuthor(Publication, 'has_author')
 Publication.publication_research = PublicationResearch(Publication, 'publication_research')
 Employee.has_work = HasWork(Employee, 'has_work')
-N53dac1625171426c86a1d1fa6d3069d8.is_student_of = IsStudentOf(N53dac1625171426c86a1d1fa6d3069d8, 'is_student_of')
+N9448684846d648e59e87ffacc6f0e4f1.is_student_of = IsStudentOf(N9448684846d648e59e87ffacc6f0e4f1, 'is_student_of')
 Organization.has_assistant_professor = HasAssistantProfessor(Organization, 'has_assistant_professor')
 Organization.has_associate_professor = HasAssociateProfessor(Organization, 'has_associate_professor')
 Organization.has_college = HasCollege(Organization, 'has_college')
@@ -961,14 +961,14 @@ Department.has_system_staff = HasSystemStaff(Department, 'has_system_staff')
 Department.has_ug_program = HasUGProgram(Department, 'has_ug_program')
 Department.offer_course = OfferCourse(Department, 'offer_course')
 Faculty.teaches_course = TeachesCourse(Faculty, 'teaches_course')
-N25096dd1699149e588984be6b1a9ee35.is_crazy_about = IsCrazyAbout(N25096dd1699149e588984be6b1a9ee35, 'is_crazy_about')
-N71851d2048f1441897e1c8d9753e3750.loves = Loves(N71851d2048f1441897e1c8d9753e3750, 'loves')
+N5766aa0898e546d49a6a135e15e7963a.loves = Loves(N5766aa0898e546d49a6a135e15e7963a, 'loves')
+N65e47d2d27764284a95099ac54f3f98b.is_crazy_about = IsCrazyAbout(N65e47d2d27764284a95099ac54f3f98b, 'is_crazy_about')
 ResearchGroup.has_research_project = HasResearchProject(ResearchGroup, 'has_research_project')
 TeachingAssistant.is_teaching_assistant_of = IsTeachingAssistantOf(TeachingAssistant, 'is_teaching_assistant_of')
 University.has_alumnus = HasAlumnus(University, 'has_alumnus')
-N017e517a1473402aabfe5868eb2a8d36.enroll_for = EnrollFor(N017e517a1473402aabfe5868eb2a8d36, 'enroll_for')
-N774d328b413647b1b664b56fe44c0a89.has_major = HasMajor(N774d328b413647b1b664b56fe44c0a89, 'has_major')
-N8d037fe85ad3454590255b3a18e18014.loves = Loves(N8d037fe85ad3454590255b3a18e18014, 'loves')
-N9fe8e01623da480d8495cc470581e384.is_crazy_about = IsCrazyAbout(N9fe8e01623da480d8495cc470581e384, 'is_crazy_about')
-Nc68e14dabed14b33a1a951ca100e726f.enroll_for = EnrollFor(Nc68e14dabed14b33a1a951ca100e726f, 'enroll_for')
-Ne904c93aa9744fdfae4e7445cbe9b601.enroll_for = EnrollFor(Ne904c93aa9744fdfae4e7445cbe9b601, 'enroll_for')
+N0859b0ac05a84fe2aafc42cbaf2df349.is_crazy_about = IsCrazyAbout(N0859b0ac05a84fe2aafc42cbaf2df349, 'is_crazy_about')
+N182074389cf84515a8a268eff9e96846.loves = Loves(N182074389cf84515a8a268eff9e96846, 'loves')
+N3c084fe93ec74289840d99342ec9afcc.enroll_for = EnrollFor(N3c084fe93ec74289840d99342ec9afcc, 'enroll_for')
+N604e352407184205bbbca0cafe6b6fba.has_major = HasMajor(N604e352407184205bbbca0cafe6b6fba, 'has_major')
+Nc6c8d9c2cc1a482687284e9e2fde43d5.enroll_for = EnrollFor(Nc6c8d9c2cc1a482687284e9e2fde43d5, 'enroll_for')
+Nea008486cbdc43449255e82426378c67.enroll_for = EnrollFor(Nea008486cbdc43449255e82426378c67, 'enroll_for')
