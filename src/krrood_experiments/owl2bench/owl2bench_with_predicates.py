@@ -42,21 +42,15 @@ class Man(OWL2BenchOntology):
 @dataclass(eq=False)
 class Organization(OWL2BenchOntology):
     has_dean: Set[Person] = field(default_factory=set)
-    has_employee: Set[Person] = field(default_factory=set)
+    has_employee: Set[Employee] = field(default_factory=set)
     has_employee_evaluation_committee: Set[EmployeeEvaluationCommittee] = field(default_factory=set)
     has_evaluation_committee: Set[EvaluationCommittee] = field(default_factory=set)
-    has_faculty: Set[Faculty] = field(default_factory=set)
-    has_lecturer: Set[Faculty] = field(default_factory=set)
     has_member: Set[Person] = field(default_factory=set)
     has_part: Set[Organization] = field(default_factory=set)
-    has_post_doc: Set[Faculty] = field(default_factory=set)
-    has_professor: Set[Faculty] = field(default_factory=set)
-    has_research_assistant: Set[Employee] = field(default_factory=set)
     has_student: Set[Student] = field(default_factory=set)
     has_student_evaluation_committee: Set[StudentEvaluationCommittee] = field(default_factory=set)
     has_sub_organization: Set[Organization] = field(default_factory=set)
     has_thesis_evaluation_committee: Set[ThesisEvaluationCommittee] = field(default_factory=set)
-    has_visiting_professor: Set[Faculty] = field(default_factory=set)
     is_affiliated_organization_of: Set[Organization] = field(default_factory=set)
     is_part_of: Set[Organization] = field(default_factory=set)
     is_sub_organization_of: Set[Organization] = field(default_factory=set)
@@ -86,7 +80,6 @@ class Person(OWL2BenchOntology):
     is_member_of: Set[Organization] = field(default_factory=set)
     likes: Set[Interest] = field(default_factory=set)
     loves: Set[Interest] = field(default_factory=set)
-    works_for: Set[Organization] = field(default_factory=set)
 
 
 @dataclass(eq=False)
@@ -149,15 +142,20 @@ class Department(Organization):
     has_assistant_professor: Set[AssistantProfessor] = field(default_factory=set)
     has_associate_professor: Set[AssociateProfessor] = field(default_factory=set)
     has_clerical_staff: Set[ClericalStaff] = field(default_factory=set)
+    has_faculty: Set[Faculty] = field(default_factory=set)
     has_full_professor: Set[FullProfessor] = field(default_factory=set)
     has_head: Set[FullProfessor] = field(default_factory=set)
+    has_lecturer: Set[Lecturer] = field(default_factory=set)
     has_other_staff: Set[OtherStaff] = field(default_factory=set)
     has_pg_program: Set[PGProgram] = field(default_factory=set)
     has_ph_d_program: Set[PhDProgram] = field(default_factory=set)
+    has_post_doc: Set[PostDoc] = field(default_factory=set)
+    has_professor: Set[Professor] = field(default_factory=set)
     has_program: Set[Program] = field(default_factory=set)
     has_supporting_staff: Set[SupportingStaff] = field(default_factory=set)
     has_system_staff: Set[SystemStaff] = field(default_factory=set)
     has_ug_program: Set[UGProgram] = field(default_factory=set)
+    has_visiting_professor: Set[VisitingProfessor] = field(default_factory=set)
     is_department_of: Set[College] = field(default_factory=set)
     offer_course: Set[Course] = field(default_factory=set)
 
@@ -168,13 +166,20 @@ class ElectiveCourse(Course):
 
 
 @dataclass(eq=False)
-class Employee(Person):
+class Employee(Role[Person], Symbol):
+    # Role taker
+    person: Person
     has_work: Set[Work] = field(default_factory=set)
     is_clerical_staff_of: Set[Organization] = field(default_factory=set)
     is_other_staff_of: Set[Organization] = field(default_factory=set)
-    is_research_assistant_of: Set[Organization] = field(default_factory=set)
     is_supporting_staff_of: Set[Organization] = field(default_factory=set)
     is_system_staff_of: Set[Organization] = field(default_factory=set)
+    works_for: Set[Organization] = field(default_factory=set)
+
+    @classmethod
+    @lru_cache(maxsize=None)
+    def role_taker_field(cls) -> Field:
+        return next(iter(f for f in fields(cls) if f.name == "person"))
 
 
 @dataclass(eq=False)
@@ -256,6 +261,7 @@ class Reading(Interest):
 
 @dataclass(eq=False)
 class ResearchGroup(Organization):
+    has_research_assistant: Set[ResearchAssistant] = field(default_factory=set)
     has_research_project: Set[ResearchProject] = field(default_factory=set)
     is_research_group_of: Set[University] = field(default_factory=set)
 
@@ -466,10 +472,6 @@ class English(HumanitiesAndSocial):
 @dataclass(eq=False)
 class Faculty(Employee):
     is_faculty_of: Set[Organization] = field(default_factory=set)
-    is_lecturer_of: Set[Organization] = field(default_factory=set)
-    is_post_doc_of: Set[Organization] = field(default_factory=set)
-    is_professor_of: Set[Organization] = field(default_factory=set)
-    is_visiting_professor_of: Set[Organization] = field(default_factory=set)
     teaches_course: Set[Course] = field(default_factory=set)
 
 
@@ -640,7 +642,7 @@ class Religions(HumanitiesAndSocial):
 
 @dataclass(eq=False)
 class ResearchAssistant(Employee):
-    ...
+    is_research_assistant_of: Set[ResearchGroup] = field(default_factory=set)
 
 
 @dataclass(eq=False)
@@ -721,7 +723,7 @@ class ClericalStaff(SupportingStaff):
 
 @dataclass(eq=False)
 class Lecturer(Faculty):
-    ...
+    is_lecturer_of: Set[Department] = field(default_factory=set)
 
 
 @dataclass(eq=False)
@@ -731,11 +733,12 @@ class OtherStaff(SupportingStaff):
 
 @dataclass(eq=False)
 class PostDoc(Faculty):
-    ...
+    is_post_doc_of: Set[Department] = field(default_factory=set)
 
 
 @dataclass(eq=False)
 class Professor(Faculty):
+    is_professor_of: Set[Department] = field(default_factory=set)
     tenured: Optional[bool] = field(kw_only=True, default=None)
 
 
@@ -762,7 +765,7 @@ class FullProfessor(Professor):
 
 @dataclass(eq=False)
 class VisitingProfessor(Professor):
-    ...
+    is_visiting_professor_of: Set[Department] = field(default_factory=set)
 
 
 @dataclass(eq=False)
@@ -793,18 +796,12 @@ Organization.has_dean = HasDean(Organization, 'has_dean')
 Organization.has_employee = HasEmployee(Organization, 'has_employee')
 Organization.has_employee_evaluation_committee = HasEmployeeEvaluationCommittee(Organization, 'has_employee_evaluation_committee')
 Organization.has_evaluation_committee = HasEvaluationCommittee(Organization, 'has_evaluation_committee')
-Organization.has_faculty = HasFaculty(Organization, 'has_faculty')
-Organization.has_lecturer = HasLecturer(Organization, 'has_lecturer')
 Organization.has_member = HasMember(Organization, 'has_member')
 Organization.has_part = HasPart(Organization, 'has_part')
-Organization.has_post_doc = HasPostDoc(Organization, 'has_post_doc')
-Organization.has_professor = HasProfessor(Organization, 'has_professor')
-Organization.has_research_assistant = HasResearchAssistant(Organization, 'has_research_assistant')
 Organization.has_student = HasStudent(Organization, 'has_student')
 Organization.has_student_evaluation_committee = HasStudentEvaluationCommittee(Organization, 'has_student_evaluation_committee')
 Organization.has_sub_organization = HasSubOrganization(Organization, 'has_sub_organization')
 Organization.has_thesis_evaluation_committee = HasThesisEvaluationCommittee(Organization, 'has_thesis_evaluation_committee')
-Organization.has_visiting_professor = HasVisitingProfessor(Organization, 'has_visiting_professor')
 Organization.is_affiliated_organization_of = IsAffiliatedOrganizationOf(Organization, 'is_affiliated_organization_of')
 Organization.is_part_of = IsPartOf(Organization, 'is_part_of')
 Organization.is_sub_organization_of = IsSubOrganizationOf(Organization, 'is_sub_organization_of')
@@ -824,7 +821,6 @@ Person.is_dean_of = IsDeanOf(Person, 'is_dean_of')
 Person.is_member_of = IsMemberOf(Person, 'is_member_of')
 Person.likes = Likes(Person, 'likes')
 Person.loves = Loves(Person, 'loves')
-Person.works_for = WorksFor(Person, 'works_for')
 Publication.has_author = HasAuthor(Publication, 'has_author')
 Publication.publication_research = PublicationResearch(Publication, 'publication_research')
 College.has_college_discipline = HasCollegeDiscipline(College, 'has_college_discipline')
@@ -834,23 +830,29 @@ College.is_women_college_of = IsWomenCollegeOf(College, 'is_women_college_of')
 Department.has_assistant_professor = HasAssistantProfessor(Department, 'has_assistant_professor')
 Department.has_associate_professor = HasAssociateProfessor(Department, 'has_associate_professor')
 Department.has_clerical_staff = HasClericalStaff(Department, 'has_clerical_staff')
+Department.has_faculty = HasFaculty(Department, 'has_faculty')
 Department.has_full_professor = HasFullProfessor(Department, 'has_full_professor')
 Department.has_head = HasHead(Department, 'has_head')
+Department.has_lecturer = HasLecturer(Department, 'has_lecturer')
 Department.has_other_staff = HasOtherStaff(Department, 'has_other_staff')
 Department.has_pg_program = HasPGProgram(Department, 'has_pg_program')
 Department.has_ph_d_program = HasPhDProgram(Department, 'has_ph_d_program')
+Department.has_post_doc = HasPostDoc(Department, 'has_post_doc')
+Department.has_professor = HasProfessor(Department, 'has_professor')
 Department.has_program = HasProgram(Department, 'has_program')
 Department.has_supporting_staff = HasSupportingStaff(Department, 'has_supporting_staff')
 Department.has_system_staff = HasSystemStaff(Department, 'has_system_staff')
 Department.has_ug_program = HasUGProgram(Department, 'has_ug_program')
+Department.has_visiting_professor = HasVisitingProfessor(Department, 'has_visiting_professor')
 Department.is_department_of = IsDepartmentOf(Department, 'is_department_of')
 Department.offer_course = OfferCourse(Department, 'offer_course')
 Employee.has_work = HasWork(Employee, 'has_work')
 Employee.is_clerical_staff_of = IsClericalStaffOf(Employee, 'is_clerical_staff_of')
 Employee.is_other_staff_of = IsOtherStaffOf(Employee, 'is_other_staff_of')
-Employee.is_research_assistant_of = IsResearchAssistantOf(Employee, 'is_research_assistant_of')
 Employee.is_supporting_staff_of = IsSupportingStaffOf(Employee, 'is_supporting_staff_of')
 Employee.is_system_staff_of = IsSystemStaffOf(Employee, 'is_system_staff_of')
+Employee.works_for = WorksFor(Employee, 'works_for')
+ResearchGroup.has_research_assistant = HasResearchAssistant(ResearchGroup, 'has_research_assistant')
 ResearchGroup.has_research_project = HasResearchProject(ResearchGroup, 'has_research_project')
 ResearchGroup.is_research_group_of = IsResearchGroupOf(ResearchGroup, 'is_research_group_of')
 Student.enroll_for = EnrollFor(Student, 'enroll_for')
@@ -862,13 +864,14 @@ University.has_college = HasCollege(University, 'has_college')
 University.has_research_group = HasResearchGroup(University, 'has_research_group')
 University.has_women_college = HasWomenCollege(University, 'has_women_college')
 Faculty.is_faculty_of = IsFacultyOf(Faculty, 'is_faculty_of')
-Faculty.is_lecturer_of = IsLecturerOf(Faculty, 'is_lecturer_of')
-Faculty.is_post_doc_of = IsPostDocOf(Faculty, 'is_post_doc_of')
-Faculty.is_professor_of = IsProfessorOf(Faculty, 'is_professor_of')
-Faculty.is_visiting_professor_of = IsVisitingProfessorOf(Faculty, 'is_visiting_professor_of')
 Faculty.teaches_course = TeachesCourse(Faculty, 'teaches_course')
+ResearchAssistant.is_research_assistant_of = IsResearchAssistantOf(ResearchAssistant, 'is_research_assistant_of')
 TeachingAssistant.is_teaching_assistant_of = IsTeachingAssistantOf(TeachingAssistant, 'is_teaching_assistant_of')
+Lecturer.is_lecturer_of = IsLecturerOf(Lecturer, 'is_lecturer_of')
+PostDoc.is_post_doc_of = IsPostDocOf(PostDoc, 'is_post_doc_of')
+Professor.is_professor_of = IsProfessorOf(Professor, 'is_professor_of')
 AssistantProfessor.is_assistant_professor_of = IsAssistantProfessorOf(AssistantProfessor, 'is_assistant_professor_of')
 AssociateProfessor.is_associate_professor_of = IsAssociateProfessorOf(AssociateProfessor, 'is_associate_professor_of')
 FullProfessor.is_full_professor_of = IsFullProfessorOf(FullProfessor, 'is_full_professor_of')
 FullProfessor.is_head_of = IsHeadOf(FullProfessor, 'is_head_of')
+VisitingProfessor.is_visiting_professor_of = IsVisitingProfessorOf(VisitingProfessor, 'is_visiting_professor_of')

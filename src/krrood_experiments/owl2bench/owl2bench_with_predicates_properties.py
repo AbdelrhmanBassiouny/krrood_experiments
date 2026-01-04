@@ -284,8 +284,26 @@ class OrgPublication(PropertyDescriptor):
 
 
 @dataclass
+class PlaysRole(PropertyDescriptor, HasInverseProperty):
+    """plays a role of"""
+
+    @classmethod
+    def get_inverse(cls) -> Type[RoleFor]:
+        return RoleFor
+
+
+@dataclass
 class PublicationResearch(PropertyDescriptor):
     """PublicationResearch"""
+
+
+@dataclass
+class RoleFor(PropertyDescriptor, HasInverseProperty):
+    """is a role for"""
+
+    @classmethod
+    def get_inverse(cls) -> Type[PlaysRole]:
+        return PlaysRole
 
 
 @dataclass
