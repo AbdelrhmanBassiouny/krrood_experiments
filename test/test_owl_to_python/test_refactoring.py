@@ -164,21 +164,28 @@ def test_property_info_dataclass():
 
 
 def test_propagate_types():
-    onto = OntologyInfo(rdflib.Graph())
-    dom_map = {"p1": {"D1"}, "p2": {"D2"}, "p1_inv": set()}
-    rng_map = {"p1": {"R1"}, "p2": set(), "p1_inv": set()}
-    rng_uri_map = {"p1": set(), "p2": set(), "p1_inv": set()}
-    super_map = {"p1": ["p2"], "p2": [], "p1_inv": []}
-    inverse_pairs = [("p1", "p1_inv"), ("p1_inv", "p1")]
-    property_maps = PropertyMaps(
-        dom_map, {}, rng_map, rng_uri_map, super_map, inverse_pairs
-    )
-    onto._property_maps = property_maps
+    properties = {
+        "p1": PropertyInfo(
+            name="p1",
+            uri="",
+            type=PropertyType.OBJECT_PROPERTY,
+            domains=["D1"],
+            ranges=["R1"],
+            superproperties=["p2"],
+            inverses=["p1_inv"],
+        ),
+        "p2": PropertyInfo(
+            name="p2", uri="", type=PropertyType.OBJECT_PROPERTY, domains=["D2"]
+        ),
+        "p1_inv": PropertyInfo(
+            name="p1_inv", uri="", type=PropertyType.OBJECT_PROPERTY
+        ),
+    }
+    onto = OntologyInfo(rdflib.Graph(), original_properties=properties)
     engine = InferenceEngine(onto)
     engine._propagate_types()
-
-    assert "D1" in rng_map["p1_inv"]
-    assert "R1" in dom_map["p1_inv"]
+    assert "D1" in engine.property_maps.rng_map["p1_inv"]
+    assert "R1" in engine.property_maps.dom_map["p1_inv"]
 
 
 def test_compute_closure():
