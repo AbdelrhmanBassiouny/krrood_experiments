@@ -113,6 +113,7 @@ class PropertyInfo:
     object_range_hint: Optional[str] = None
     base_descriptors: List[str] = field(default_factory=list)
     equivalent_properties_descriptor_names: List[str] = field(default_factory=list)
+    disjoint_properties_descriptor_names: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -319,10 +320,12 @@ class PropertyExtractor:
                 )
 
         # Disjoint properties
-        for dis_prop in self.graph.objects(property_uri, OWL.disjointWith):
+        for dis_prop in self.graph.objects(property_uri, OWL.propertyDisjointWith):
             if isinstance(dis_prop, rdflib.URIRef):
                 disjoint_properties.append(NamingRegistry.uri_to_python_name(dis_prop))
-        for dis_prop_subj in self.graph.subjects(OWL.disjointWith, property_uri):
+        for dis_prop_subj in self.graph.subjects(
+            OWL.propertyDisjointWith, property_uri
+        ):
             if isinstance(dis_prop_subj, rdflib.URIRef):
                 disjoint_properties.append(
                     NamingRegistry.uri_to_python_name(dis_prop_subj)
@@ -1317,6 +1320,10 @@ class CodeGenerator:
             for eq_prop_name in p_info.equivalent_properties:
                 p_info.equivalent_properties_descriptor_names.append(
                     self.onto.properties[eq_prop_name].descriptor_name
+                )
+            for dj_prop_name in p_info.disjoint_properties:
+                p_info.disjoint_properties_descriptor_names.append(
+                    self.onto.properties[dj_prop_name].descriptor_name
                 )
 
         render_props = {k: asdict(v) for k, v in self.onto.properties.items()}

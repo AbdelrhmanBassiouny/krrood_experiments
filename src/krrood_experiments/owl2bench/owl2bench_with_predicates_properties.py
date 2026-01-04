@@ -10,21 +10,25 @@ from typing_extensions import Type, List
 
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
 from krrood.ontomatic.property_descriptor.mixins import (
-    HasInverseProperty,
-    TransitiveProperty,
-    HasEquivalentProperties,
-    HasDisjointProperties,
-    SymmetricProperty,
-    ASymmetricProperty,
-    ReflexiveProperty,
-    IrreflexiveProperty,
+HasInverseProperty,
+TransitiveProperty,
+HasEquivalentProperties,
+HasDisjointProperties,
+SymmetricProperty,
+ASymmetricProperty,
+ReflexiveProperty,
+IrreflexiveProperty
 )
 
 
 # Property descriptor classes (object properties)
 @dataclass
-class Dislikes(PropertyDescriptor):
+class Dislikes(PropertyDescriptor, HasDisjointProperties):
     """Dislikes"""
+
+    @classmethod
+    def get_disjoint_properties(cls) -> List[Type[PropertyDescriptor]]:
+        return [Likes]
 
 
 @dataclass
@@ -79,8 +83,12 @@ class HasCollaborationWith(PropertyDescriptor, SymmetricProperty, IrreflexivePro
 
 
 @dataclass
-class HasCollegeDiscipline(PropertyDescriptor):
+class HasCollegeDiscipline(PropertyDescriptor, HasDisjointProperties):
     """HasCollegeDiscipline"""
+
+    @classmethod
+    def get_disjoint_properties(cls) -> List[Type[PropertyDescriptor]]:
+        return [HasMajor]
 
 
 @dataclass
@@ -107,8 +115,12 @@ class HasEvaluationCommittee(PropertyDescriptor):
 
 
 @dataclass
-class HasMajor(PropertyDescriptor):
+class HasMajor(PropertyDescriptor, HasDisjointProperties):
     """HasMajor"""
+
+    @classmethod
+    def get_disjoint_properties(cls) -> List[Type[PropertyDescriptor]]:
+        return [HasCollegeDiscipline]
 
 
 @dataclass
@@ -121,9 +133,7 @@ class HasMember(PropertyDescriptor, HasInverseProperty):
 
 
 @dataclass
-class HasPart(
-    PropertyDescriptor, TransitiveProperty, HasInverseProperty, HasEquivalentProperties
-):
+class HasPart(PropertyDescriptor, TransitiveProperty, HasInverseProperty, HasEquivalentProperties):
     """HasPart"""
 
     @classmethod
@@ -146,9 +156,7 @@ class HasSameHomeTownWith(PropertyDescriptor, TransitiveProperty, SymmetricPrope
 
 
 @dataclass
-class HasSubOrganization(
-    PropertyDescriptor, TransitiveProperty, HasInverseProperty, HasEquivalentProperties
-):
+class HasSubOrganization(PropertyDescriptor, TransitiveProperty, HasInverseProperty, HasEquivalentProperties):
     """HasSubOrganization"""
 
     @classmethod
@@ -180,9 +188,7 @@ class IsAffiliateOf(PropertyDescriptor):
 
 
 @dataclass
-class IsAffiliatedOrganizationOf(
-    PropertyDescriptor, ASymmetricProperty, IrreflexiveProperty
-):
+class IsAffiliatedOrganizationOf(PropertyDescriptor, ASymmetricProperty, IrreflexiveProperty):
     """IsAffiliatedOrganizationOf"""
 
 
@@ -205,9 +211,7 @@ class IsMemberOf(PropertyDescriptor, HasInverseProperty):
 
 
 @dataclass
-class IsPartOf(
-    PropertyDescriptor, TransitiveProperty, HasInverseProperty, HasEquivalentProperties
-):
+class IsPartOf(PropertyDescriptor, TransitiveProperty, HasInverseProperty, HasEquivalentProperties):
     """IsPartOf"""
 
     @classmethod
@@ -229,9 +233,7 @@ class IsStudentOf(PropertyDescriptor, HasInverseProperty):
 
 
 @dataclass
-class IsSubOrganizationOf(
-    PropertyDescriptor, TransitiveProperty, HasInverseProperty, HasEquivalentProperties
-):
+class IsSubOrganizationOf(PropertyDescriptor, TransitiveProperty, HasInverseProperty, HasEquivalentProperties):
     """IsSubOrganizationOf"""
 
     @classmethod
@@ -263,8 +265,12 @@ class Knows(PropertyDescriptor):
 
 
 @dataclass
-class Likes(PropertyDescriptor, IrreflexiveProperty):
+class Likes(PropertyDescriptor, HasDisjointProperties, IrreflexiveProperty):
     """Likes"""
+
+    @classmethod
+    def get_disjoint_properties(cls) -> List[Type[PropertyDescriptor]]:
+        return [Dislikes]
 
 
 @dataclass
@@ -675,3 +681,5 @@ class HasHead(HasFullProfessor, HasInverseProperty):
     @classmethod
     def get_inverse(cls) -> Type[IsHeadOf]:
         return IsHeadOf
+
+

@@ -34,6 +34,7 @@ class {{ prop.descriptor_name }}({{ ', '.join(prop.base_descriptors) }}):
     {% endif %}
     {# Only emit a typed inverse if the target descriptor is already defined earlier #}
     {% if prop.inverse_of%}
+
     {% set inverse = properties[prop.inverse_of].descriptor_name %}
     @classmethod
     def get_inverse(cls) -> Type[{{ inverse }}]:
@@ -44,6 +45,12 @@ class {{ prop.descriptor_name }}({{ ', '.join(prop.base_descriptors) }}):
     @classmethod
     def get_equivalent_properties(cls) -> List[Type[PropertyDescriptor]]:
         return [{{ ', '.join(prop.equivalent_properties_descriptor_names) }}]
+    {% endif %}
+    {% if prop.disjoint_properties|length > 0 %}
+
+    @classmethod
+    def get_disjoint_properties(cls) -> List[Type[PropertyDescriptor]]:
+        return [{{ ', '.join(prop.disjoint_properties_descriptor_names) }}]
     {% endif %}
 
 
