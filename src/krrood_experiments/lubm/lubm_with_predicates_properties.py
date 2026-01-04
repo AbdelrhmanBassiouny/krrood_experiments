@@ -10,14 +10,14 @@ from typing_extensions import Type, List
 
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
 from krrood.ontomatic.property_descriptor.mixins import (
-    HasInverseProperty,
-    TransitiveProperty,
-    HasEquivalentProperties,
-    HasDisjointProperties,
-    SymmetricProperty,
-    ASymmetricProperty,
-    ReflexiveProperty,
-    IrreflexiveProperty,
+HasInverseProperty,
+TransitiveProperty,
+HasEquivalentProperties,
+HasDisjointProperties,
+SymmetricProperty,
+ASymmetricProperty,
+ReflexiveProperty,
+IrreflexiveProperty
 )
 
 
@@ -164,3 +164,5 @@ class WorksFor(MemberOf):
 @dataclass
 class HeadOf(WorksFor):
     """is the head of"""
+
+
