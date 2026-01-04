@@ -9,7 +9,16 @@ from dataclasses import dataclass
 from typing_extensions import Type, List
 
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
-from krrood.ontomatic.property_descriptor.mixins import HasInverseProperty, TransitiveProperty, HasEquivalentProperty
+from krrood.ontomatic.property_descriptor.mixins import (
+    HasInverseProperty,
+    TransitiveProperty,
+    HasEquivalentProperties,
+    HasDisjointProperties,
+    SymmetricProperty,
+    ASymmetricProperty,
+    ReflexiveProperty,
+    IrreflexiveProperty,
+)
 
 
 # Property descriptor classes (object properties)
@@ -31,6 +40,7 @@ class AffiliatedOrganizationOf(PropertyDescriptor):
 @dataclass
 class DegreeFrom(PropertyDescriptor, HasInverseProperty):
     """has a degree from"""
+
     @classmethod
     def get_inverse(cls) -> Type[HasAlumnus]:
         return HasAlumnus
@@ -39,6 +49,7 @@ class DegreeFrom(PropertyDescriptor, HasInverseProperty):
 @dataclass
 class HasAlumnus(PropertyDescriptor, HasInverseProperty):
     """has as an alumnus"""
+
     @classmethod
     def get_inverse(cls) -> Type[DegreeFrom]:
         return DegreeFrom
@@ -52,6 +63,7 @@ class ListedCourse(PropertyDescriptor):
 @dataclass
 class Member(PropertyDescriptor, HasInverseProperty):
     """has as a member"""
+
     @classmethod
     def get_inverse(cls) -> Type[MemberOf]:
         return MemberOf
@@ -60,6 +72,7 @@ class Member(PropertyDescriptor, HasInverseProperty):
 @dataclass
 class MemberOf(PropertyDescriptor, HasInverseProperty):
     """member of"""
+
     @classmethod
     def get_inverse(cls) -> Type[Member]:
         return Member
@@ -73,6 +86,7 @@ class OrgPublication(PropertyDescriptor):
 @dataclass
 class PlaysRole(PropertyDescriptor, HasInverseProperty):
     """plays a role of"""
+
     @classmethod
     def get_inverse(cls) -> Type[RoleFor]:
         return RoleFor
@@ -96,6 +110,7 @@ class ResearchProject(PropertyDescriptor):
 @dataclass
 class RoleFor(PropertyDescriptor, HasInverseProperty):
     """is a role for"""
+
     @classmethod
     def get_inverse(cls) -> Type[PlaysRole]:
         return PlaysRole
@@ -149,5 +164,3 @@ class WorksFor(MemberOf):
 @dataclass
 class HeadOf(WorksFor):
     """is the head of"""
-
-
