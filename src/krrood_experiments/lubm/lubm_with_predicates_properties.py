@@ -6,10 +6,10 @@ Generated using custom converter
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing_extensions import Type
+from typing_extensions import Type, List
 
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
-from krrood.ontomatic.property_descriptor.mixins import HasInverseProperty, TransitiveProperty
+from krrood.ontomatic.property_descriptor.mixins import HasInverseProperty, TransitiveProperty, HasEquivalentProperty
 
 
 # Property descriptor classes (object properties)

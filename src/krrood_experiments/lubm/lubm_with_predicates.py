@@ -14,19 +14,6 @@ from .lubm_with_predicates_base import *
 
 # Generated classes
 @dataclass(eq=False)
-class UnivBenchOntology(Symbol, ABC):
-    """Base class for Univ-bench Ontology"""
-    # name
-    name: Optional[str] = field(kw_only=True, default=None)
-    # office room No.
-    office_number: Optional[int] = field(kw_only=True, default=None)
-    # is researching
-    research_interest: Optional[str] = field(kw_only=True, default=None)
-    # URI of the ontology element - The unique resource identifier (URI) of the ontology element.
-    uri: Optional[str] = field(kw_only=True, default=None)
-
-
-@dataclass(eq=False)
 class Organization(UnivBenchOntology):
     """organization"""
     # is affiliated with
