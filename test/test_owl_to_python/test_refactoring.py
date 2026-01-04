@@ -9,6 +9,7 @@ from krrood_experiments.owl_to_python import (
     PropertyType,
     SubsumptionType,
     RoleTakerInfo,
+    OntologyInfo,
 )
 
 
@@ -23,15 +24,16 @@ def test_topological_order_dataclasses():
 
 
 def test_ancestor_computation():
-    engine = InferenceEngine(rdflib.Graph())
     classes = {
         "Child": ClassInfo(name="Child", uri="", base_classes=["Parent"]),
         "Parent": ClassInfo(name="Parent", uri="", base_classes=["GrandParent"]),
         "GrandParent": ClassInfo(name="GrandParent", uri="", base_classes=[]),
     }
-    engine.compute_ancestors(classes)
-    assert classes["Child"].all_base_classes == ["GrandParent", "Parent"]
-    assert classes["Parent"].all_base_classes == ["GrandParent"]
+    onto = OntologyInfo(rdflib.Graph(), classes=classes)
+    engine = InferenceEngine(onto)
+    engine.compute_ancestors()
+    assert onto.classes["Child"].all_base_classes == ["GrandParent", "Parent"]
+    assert onto.classes["Parent"].all_base_classes == ["GrandParent"]
 
 
 def test_naming_registry():
@@ -50,7 +52,6 @@ def test_property_type_enum():
 
 
 def test_compute_type_hints_object_property_simplification():
-    engine = InferenceEngine(rdflib.Graph())
     # A is subtype of B, so A is more specific. Simplified ranges should only keep B.
     classes = {
         "A": ClassInfo(name="A", uri="", all_base_classes=["B"]),
@@ -61,12 +62,13 @@ def test_compute_type_hints_object_property_simplification():
             name="p", uri="", type=PropertyType.OBJECT_PROPERTY, ranges=["A", "B"]
         )
     }
-    engine.compute_type_hints(classes, properties)
-    assert properties["p"].object_range_hint == "B"
+    onto = OntologyInfo(rdflib.Graph(), classes=classes, original_properties=properties)
+    engine = InferenceEngine(onto)
+    engine.compute_type_hints()
+    assert onto.properties["p"].object_range_hint == "B"
 
 
 def test_compute_type_hints_data_property_xsd():
-    engine = InferenceEngine(rdflib.Graph())
     properties = {
         "age": PropertyInfo(
             name="age",
@@ -75,12 +77,13 @@ def test_compute_type_hints_data_property_xsd():
             range_uris=[XSD.integer],
         )
     }
-    engine.compute_type_hints({}, properties)
-    assert properties["age"].data_type_hint_inner == "int"
+    onto = OntologyInfo(rdflib.Graph(), original_properties=properties)
+    engine = InferenceEngine(onto)
+    engine.compute_type_hints()
+    assert onto.properties["age"].data_type_hint_inner == "int"
 
 
 def test_find_implicit_subtypes_basic():
-    engine = InferenceEngine(rdflib.Graph())
     # Parent and Child have same properties, Child should become subtype of Parent
     classes = {
         "Parent": ClassInfo(name="Parent", uri="", declared_properties=["p"]),
@@ -96,18 +99,16 @@ def test_find_implicit_subtypes_basic():
             object_range_hint="Thing",
         )
     }
+    onto = OntologyInfo(rdflib.Graph(), classes=classes, original_properties=properties)
+    engine = InferenceEngine(onto)
     ancestors_map = {"Thing": set()}
-    engine.find_implicit_subtypes(
-        classes, properties, ancestors_map, "Ontology", "Role"
-    )
-
-    assert "Parent" in classes["Child"].base_classes
-    assert "Ontology" not in classes["Child"].base_classes
-    assert "p" not in classes["Child"].declared_properties
+    engine.find_implicit_subtypes(ancestors_map)
+    assert "Parent" in onto.classes["Child"].base_classes
+    assert "Ontology" not in onto.classes["Child"].base_classes
+    assert "p" not in onto.classes["Child"].declared_properties
 
 
 def test_find_implicit_subtypes_role():
-    engine = InferenceEngine(rdflib.Graph())
     # Child has subset of Parent properties, Child should become a Role of Parent
     classes = {
         "Parent": ClassInfo(name="Parent", uri="", declared_properties=["p1", "p2"]),
@@ -129,13 +130,13 @@ def test_find_implicit_subtypes_role():
             object_range_hint="Thing",
         ),
     }
+    onto = OntologyInfo(rdflib.Graph(), classes=classes, original_properties=properties)
+    engine = InferenceEngine(onto)
     ancestors_map = {"Thing": set()}
-    engine.find_implicit_subtypes(
-        classes, properties, ancestors_map, "Ontology", "Role"
-    )
+    engine.find_implicit_subtypes(ancestors_map)
 
-    assert classes["Child"].role_taker.class_name == "Parent"
-    assert "Role" in classes["Child"].base_classes
+    assert onto.classes["Child"].role_taker.class_name == "Parent"
+    assert "Role" in onto.classes["Child"].base_classes
 
 
 def test_class_info_dataclass():
@@ -164,7 +165,8 @@ def test_property_info_dataclass():
 
 
 def test_propagate_types():
-    engine = InferenceEngine(rdflib.Graph())
+    onto = OntologyInfo(rdflib.Graph())
+    engine = InferenceEngine(onto)
     dom_map = {"p1": {"D1"}, "p2": {"D2"}, "p1_inv": set()}
     rng_map = {"p1": {"R1"}, "p2": set(), "p1_inv": set()}
     rng_uri_map = {"p1": set(), "p2": set(), "p1_inv": set()}
@@ -180,7 +182,8 @@ def test_propagate_types():
 def test_compute_closure():
     from krrood_experiments.owl_to_python import CodeGenerator
 
-    cg = CodeGenerator(rdflib.Graph(), {}, {}, "Ontology", {})
+    onto = OntologyInfo(rdflib.Graph())
+    cg = CodeGenerator(onto)
     items = {"A": {"supers": ["B"]}, "B": {"supers": ["C"]}, "C": {"supers": []}}
     closure = cg._compute_closure(["A"], items, "supers")
     assert closure == ["A", "B", "C"]

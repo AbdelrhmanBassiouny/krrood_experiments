@@ -4,6 +4,7 @@ import krrood_experiments.owl2bench.eql_queries as eql_queries
 import SPARQLWrapper
 
 
+@pytest.mark.skip(reason="Requires local GraphDB instance with OWL2Bench data loaded")
 @pytest.mark.parametrize(
     "eql_query_obj",
     [
