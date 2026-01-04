@@ -25,13 +25,7 @@ class OWL2BenchOntology(Symbol, ABC):
     uri: Optional[str] = field(kw_only=True, default=None)
     has_advisor: Set[Any] = field(default_factory=set)
     has_same_home_town_with: Set[Any] = field(default_factory=set)
-    has_women_college: Set[Organization] = field(default_factory=set)
     is_affiliate_of: Set[Any] = field(default_factory=set)
-    is_clerical_staff_of: Set[Organization] = field(default_factory=set)
-    is_other_staff_of: Set[Organization] = field(default_factory=set)
-    is_supporting_staff_of: Set[Organization] = field(default_factory=set)
-    is_system_staff_of: Set[Organization] = field(default_factory=set)
-    is_women_college_of: Set[Organization] = field(default_factory=set)
     knows: Set[Any] = field(default_factory=set)
 
     def __hash__(self):
