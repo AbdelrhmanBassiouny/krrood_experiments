@@ -15,7 +15,7 @@ from krrood.ontomatic.property_descriptor.attribute_introspector import (
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
 from krrood.ormatic.utils import classes_of_module
 from krrood.utils import inheritance_path_length
-from rdflib import RDF, URIRef, Literal
+from rdflib import RDF, URIRef, Literal, OWL
 
 
 class OwlInstancesRegistry:
@@ -259,6 +259,17 @@ class OwlLoader:
                 continue
             py_cls = self.metadata.get_python_class(o_class)
             if py_cls is None:
+                continue
+            if o_class in [
+                OWL.SymmetricProperty,
+                OWL.DatatypeProperty,
+                OWL.ObjectProperty,
+                OWL.IrreflexiveProperty,
+                OWL.AsymmetricProperty,
+                OWL.TransitiveProperty,
+                OWL.InverseFunctionalProperty,
+                OWL.Class,
+            ]:
                 continue
             existing_roles = self.registry.resolve(s)
             kwargs = self._get_common_role_taker_kwargs(existing_roles, py_cls)
