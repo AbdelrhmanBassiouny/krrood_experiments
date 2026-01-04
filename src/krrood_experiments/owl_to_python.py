@@ -632,12 +632,14 @@ class InferenceEngine:
                         len(self.property_maps.rng_uri_map[name]),
                         len(self.property_maps.dom_map[name]),
                     )
-                    self.property_maps.rng_map[name].update(
-                        self.property_maps.rng_map[sp]
-                    )
-                    self.property_maps.rng_uri_map[name].update(
-                        self.property_maps.rng_uri_map[sp]
-                    )
+                    if not before_range_len:
+                        self.property_maps.rng_map[name].update(
+                            self.property_maps.rng_map[sp]
+                        )
+                    if not before_range_uri_len:
+                        self.property_maps.rng_uri_map[name].update(
+                            self.property_maps.rng_uri_map[sp]
+                        )
                     if not before_domain_len:
                         self.property_maps.dom_map[name].update(
                             self.property_maps.dom_map[sp]
