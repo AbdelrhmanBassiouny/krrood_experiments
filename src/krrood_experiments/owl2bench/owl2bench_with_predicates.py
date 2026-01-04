@@ -255,6 +255,12 @@ class Reading(Interest):
 
 
 @dataclass(eq=False)
+class ResearchGroup(Organization):
+    has_research_project: Set[ResearchProject] = field(default_factory=set)
+    is_research_group_of: Set[University] = field(default_factory=set)
+
+
+@dataclass(eq=False)
 class ResearchProject(Work):
     ...
 
@@ -638,19 +644,6 @@ class ResearchAssistant(Employee):
 
 
 @dataclass(eq=False)
-class ResearchGroup(Role[Employee], Organization):
-    # Role taker
-    employee: Employee
-    has_research_project: Set[ResearchProject] = field(default_factory=set)
-    is_research_group_of: Set[University] = field(default_factory=set)
-
-    @classmethod
-    @lru_cache(maxsize=None)
-    def role_taker_field(cls) -> Field:
-        return next(iter(f for f in fields(cls) if f.name == "employee"))
-
-
-@dataclass(eq=False)
 class RiskManagement(Management):
     ...
 
@@ -858,6 +851,8 @@ Employee.is_other_staff_of = IsOtherStaffOf(Employee, 'is_other_staff_of')
 Employee.is_research_assistant_of = IsResearchAssistantOf(Employee, 'is_research_assistant_of')
 Employee.is_supporting_staff_of = IsSupportingStaffOf(Employee, 'is_supporting_staff_of')
 Employee.is_system_staff_of = IsSystemStaffOf(Employee, 'is_system_staff_of')
+ResearchGroup.has_research_project = HasResearchProject(ResearchGroup, 'has_research_project')
+ResearchGroup.is_research_group_of = IsResearchGroupOf(ResearchGroup, 'is_research_group_of')
 Student.enroll_for = EnrollFor(Student, 'enroll_for')
 Student.enroll_in = EnrollIn(Student, 'enroll_in')
 Student.is_student_of = IsStudentOf(Student, 'is_student_of')
@@ -872,8 +867,6 @@ Faculty.is_post_doc_of = IsPostDocOf(Faculty, 'is_post_doc_of')
 Faculty.is_professor_of = IsProfessorOf(Faculty, 'is_professor_of')
 Faculty.is_visiting_professor_of = IsVisitingProfessorOf(Faculty, 'is_visiting_professor_of')
 Faculty.teaches_course = TeachesCourse(Faculty, 'teaches_course')
-ResearchGroup.has_research_project = HasResearchProject(ResearchGroup, 'has_research_project')
-ResearchGroup.is_research_group_of = IsResearchGroupOf(ResearchGroup, 'is_research_group_of')
 TeachingAssistant.is_teaching_assistant_of = IsTeachingAssistantOf(TeachingAssistant, 'is_teaching_assistant_of')
 AssistantProfessor.is_assistant_professor_of = IsAssistantProfessorOf(AssistantProfessor, 'is_assistant_professor_of')
 AssociateProfessor.is_associate_professor_of = IsAssociateProfessorOf(AssociateProfessor, 'is_associate_professor_of')

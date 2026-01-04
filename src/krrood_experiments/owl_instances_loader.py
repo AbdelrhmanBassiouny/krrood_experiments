@@ -488,16 +488,20 @@ class OwlLoader:
             self._ensure_instance(obj_node) if isinstance(obj_node, URIRef) else None
         )
         obj = obj_roles[0] if obj_roles else None
-
+        matched_obj = None
         if field_name and hasattr(subj, field_name):
             class_diagram = self.symbol_graph.class_diagram
-            subj_wrapped_field = (
-                assoc.field
-                for assoc in class_diagram.associations
-                if assoc.field.public_name == field_name
-            ).__next__()
-            req_obj_type = subj_wrapped_field.type_endpoint
-            matched_obj = self._get_matching_role(obj_roles, req_obj_type)
+            try:
+                subj_wrapped_field = (
+                    assoc.field
+                    for assoc in class_diagram.associations
+                    if assoc.field.public_name == field_name
+                ).__next__()
+
+                req_obj_type = subj_wrapped_field.type_endpoint
+                matched_obj = self._get_matching_role(obj_roles, req_obj_type)
+            except StopIteration:
+                pass
 
             obj = matched_obj or obj
 
