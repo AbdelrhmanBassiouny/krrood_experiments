@@ -107,6 +107,44 @@ class PropertyInfo:
     base_descriptors: List[str] = field(default_factory=list)
 
 
+@dataclass
+class OntologyInfo:
+    """Information about the ontology."""
+
+    graph: rdflib.Graph
+    classes: Dict[str, ClassInfo] = field(default_factory=dict)
+    original_properties: Dict[str, PropertyInfo] = field(default_factory=dict)
+    predefined_data_types: Optional[Dict[str, Dict[str, str]]] = None
+    ontology_label: str = "Ontology"
+    role_cls_name: str = "Role"
+    _properties: Optional[Dict[str, PropertyInfo]] = None
+    property_restrictions: Dict[str, Dict[str, set]] = field(default_factory=dict)
+
+    @property
+    def properties(self):
+        if not self._properties:
+            self._properties = {
+                n: deepcopy(info) for n, info in self.original_properties.items()
+            }
+        return self._properties
+
+    @cached_property
+    def base_cls_name(self):
+        base_cls_name = NamingRegistry.to_pascal_case(
+            re.sub(r"\W+", " ", self.ontology_label).strip()
+        )
+        if not base_cls_name.endswith("Ontology"):
+            base_cls_name += "Ontology"
+        return base_cls_name
+
+    @cached_property
+    def class_ancestors(self) -> Dict[str, Set[str]]:
+        """
+        The class ancestors map as a dictionary mapping class names to their ancestors.
+        """
+        return {name: set(info.all_base_classes) for name, info in self.classes.items()}
+
+
 class NamingRegistry:
     """Registry for converting OWL URIs and names to Python-compatible identifiers."""
 
@@ -358,6 +396,7 @@ class InferenceEngine:
     """Engine for performing ontological inference and computing class/property relationships."""
 
     onto: OntologyInfo
+    property_maps: PropertyMaps = field(init=False)
     XSD_TO_PYTHON_TYPES: ClassVar[Dict[rdflib.term.URIRef, str]] = {
         XSD.string: "str",
         XSD.normalizedString: "str",
@@ -385,6 +424,9 @@ class InferenceEngine:
         XSD.time: "str",
         XSD.anyURI: "str",
     }
+
+    def __post_init__(self):
+        self.property_maps = PropertyMaps.from_properties(self.onto.properties)
 
     @staticmethod
     def topological_order(items: Dict[str, Any], dep_key: str) -> List[str]:
@@ -440,7 +482,7 @@ class InferenceEngine:
         self._infer_properties_data_from_restrictions()
         self._propagate_types()
         self._finalize_properties()
-        self.create_specialized_properties()
+        self._create_specialized_properties()
 
     def _infer_properties_data_from_restrictions(self):
         """
@@ -455,7 +497,7 @@ class InferenceEngine:
                 # If restriction mentions a property, count this class as declared domain for that property
                 on_prop = self.onto.graph.value(restr, OWL.onProperty)
                 if on_prop:
-                    self.onto.property_maps.declared_dom_map[
+                    self.property_maps.declared_dom_map[
                         NamingRegistry.uri_to_python_name(on_prop)
                     ].add(cls_name)
 
@@ -469,7 +511,7 @@ class InferenceEngine:
                         self.onto.graph.value(first, OWL.onProperty) if first else None
                     )
                     if on_prop:
-                        self.onto.property_maps.declared_dom_map[
+                        self.property_maps.declared_dom_map[
                             NamingRegistry.uri_to_python_name(on_prop)
                         ].add(cls_name)
                     node = self.onto.graph.value(node, RDF.rest)
@@ -488,7 +530,7 @@ class InferenceEngine:
             return
         prop_name = NamingRegistry.uri_to_python_name(on_prop)
         if prop_name in self.onto.properties:
-            self.onto.property_maps.dom_map[prop_name].add(for_class)
+            self.property_maps.dom_map[prop_name].add(for_class)
         some = self.onto.graph.value(node, OWL.someValuesFrom) or self.onto.graph.value(
             node, OWL.allValuesFrom
         )
@@ -502,8 +544,8 @@ class InferenceEngine:
                             rng_name, NamingRegistry.to_snake_case(rng_name)
                         )
                     return
-                self.onto.property_maps.rng_map[prop_name].add(rng_name)
-                self.onto.property_maps.rng_uri_map[prop_name].add(some)
+                self.property_maps.rng_map[prop_name].add(rng_name)
+                self.property_maps.rng_uri_map[prop_name].add(some)
                 self.onto.property_restrictions.setdefault(for_class, {}).setdefault(
                     prop_name, set()
                 ).add(rng_name)
@@ -517,49 +559,41 @@ class InferenceEngine:
         changed = True
         while changed:
             changed = False
-            for name, supers in self.onto.property_maps.super_map.items():
+            for name, supers in self.property_maps.super_map.items():
                 for sp in supers:
-                    if sp not in self.onto.property_maps.dom_map:
+                    if sp not in self.property_maps.dom_map:
                         continue
                     before_r, before_ru = (
-                        len(self.onto.property_maps.rng_map[name]),
-                        len(self.onto.property_maps.rng_uri_map[name]),
+                        len(self.property_maps.rng_map[name]),
+                        len(self.property_maps.rng_uri_map[name]),
                     )
-                    self.onto.property_maps.rng_map[name].update(
-                        self.onto.property_maps.rng_map[sp]
+                    self.property_maps.rng_map[name].update(
+                        self.property_maps.rng_map[sp]
                     )
-                    self.onto.property_maps.rng_uri_map[name].update(
-                        self.onto.property_maps.rng_uri_map[sp]
+                    self.property_maps.rng_uri_map[name].update(
+                        self.property_maps.rng_uri_map[sp]
                     )
                     if (
-                        len(self.onto.property_maps.rng_map[name]) != before_r
-                        or len(self.onto.property_maps.rng_uri_map[name]) != before_ru
+                        len(self.property_maps.rng_map[name]) != before_r
+                        or len(self.property_maps.rng_uri_map[name]) != before_ru
                     ):
                         changed = True
-            for a, b in self.onto.property_maps.inverse_pairs:
-                before_da, before_ra = len(self.onto.property_maps.dom_map[a]), len(
-                    self.onto.property_maps.rng_map[a]
+            for a, b in self.property_maps.inverse_pairs:
+                before_da, before_ra = len(self.property_maps.dom_map[a]), len(
+                    self.property_maps.rng_map[a]
                 )
-                before_db, before_rb = len(self.onto.property_maps.dom_map[b]), len(
-                    self.onto.property_maps.rng_map[b]
+                before_db, before_rb = len(self.property_maps.dom_map[b]), len(
+                    self.property_maps.rng_map[b]
                 )
-                self.onto.property_maps.dom_map[a].update(
-                    self.onto.property_maps.rng_map[b]
-                )
-                self.onto.property_maps.rng_map[a].update(
-                    self.onto.property_maps.dom_map[b]
-                )
-                self.onto.property_maps.dom_map[b].update(
-                    self.onto.property_maps.rng_map[a]
-                )
-                self.onto.property_maps.rng_map[b].update(
-                    self.onto.property_maps.dom_map[a]
-                )
+                self.property_maps.dom_map[a].update(self.property_maps.rng_map[b])
+                self.property_maps.rng_map[a].update(self.property_maps.dom_map[b])
+                self.property_maps.dom_map[b].update(self.property_maps.rng_map[a])
+                self.property_maps.rng_map[b].update(self.property_maps.dom_map[a])
                 if (
-                    len(self.onto.property_maps.dom_map[a]) != before_da
-                    or len(self.onto.property_maps.rng_map[a]) != before_ra
-                    or len(self.onto.property_maps.dom_map[b]) != before_db
-                    or len(self.onto.property_maps.rng_map[b]) != before_rb
+                    len(self.property_maps.dom_map[a]) != before_da
+                    or len(self.property_maps.rng_map[a]) != before_ra
+                    or len(self.property_maps.dom_map[b]) != before_db
+                    or len(self.property_maps.rng_map[b]) != before_rb
                 ):
                     changed = True
 
@@ -568,14 +602,12 @@ class InferenceEngine:
         Update PropertyInfo objects with inferred domain and range information.
         """
         for name, info in self.onto.properties.items():
-            info.domains = sorted(self.onto.property_maps.dom_map[name])
-            info.ranges = sorted(self.onto.property_maps.rng_map[name])
-            info.range_uris = list(self.onto.property_maps.rng_uri_map[name])
-            info.declared_domains = sorted(
-                self.onto.property_maps.declared_dom_map[name]
-            )
+            info.domains = sorted(self.property_maps.dom_map[name])
+            info.ranges = sorted(self.property_maps.rng_map[name])
+            info.range_uris = list(self.property_maps.rng_uri_map[name])
+            info.declared_domains = sorted(self.property_maps.declared_dom_map[name])
 
-    def create_specialized_properties(self):
+    def _create_specialized_properties(self):
         """
         Create specialized versions of properties based on class-level restrictions.
         Used for narrowing property ranges in specific subclasses.
@@ -959,51 +991,6 @@ class JinjaRenderer:
         """
         template = self.env.get_template(template_name)
         return template.render(**context)
-
-
-@dataclass
-class OntologyInfo:
-    """Information about the ontology."""
-
-    graph: rdflib.Graph
-    classes: Dict[str, ClassInfo] = field(default_factory=dict)
-    original_properties: Dict[str, PropertyInfo] = field(default_factory=dict)
-    predefined_data_types: Optional[Dict[str, Dict[str, str]]] = None
-    ontology_label: str = "Ontology"
-    role_cls_name: str = "Role"
-    _properties: Optional[Dict[str, PropertyInfo]] = None
-    property_restrictions: Dict[str, Dict[str, set]] = field(default_factory=dict)
-    _property_maps: Optional[PropertyMaps] = None
-
-    @property
-    def property_maps(self) -> PropertyMaps:
-        if self._property_maps is None:
-            self._property_maps = PropertyMaps.from_properties(self.properties)
-        return self._property_maps
-
-    @property
-    def properties(self):
-        if not self._properties:
-            self._properties = {
-                n: deepcopy(info) for n, info in self.original_properties.items()
-            }
-        return self._properties
-
-    @cached_property
-    def base_cls_name(self):
-        base_cls_name = NamingRegistry.to_pascal_case(
-            re.sub(r"\W+", " ", self.ontology_label).strip()
-        )
-        if not base_cls_name.endswith("Ontology"):
-            base_cls_name += "Ontology"
-        return base_cls_name
-
-    @cached_property
-    def class_ancestors(self) -> Dict[str, Set[str]]:
-        """
-        The class ancestors map as a dictionary mapping class names to their ancestors.
-        """
-        return {name: set(info.all_base_classes) for name, info in self.classes.items()}
 
 
 @dataclass
