@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import os
 import re
-from copy import deepcopy
+from copy import deepcopy, copy
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 from functools import cached_property
@@ -922,8 +922,8 @@ class InferenceEngine:
                         subsumption_type,
                     )
 
-    @staticmethod
     def _is_subsumption_candidate(
+        self,
         parent_name: str,
         parent_info: ClassInfo,
         child_name: str,
@@ -935,6 +935,15 @@ class InferenceEngine:
         if parent_name in child_info.all_base_classes_including_role_takers:
             return False
         if child_name in parent_info.all_base_classes_including_role_takers:
+            return False
+        base_classes = [
+            bc
+            for bc in child_info.base_classes
+            if bc != self.onto.base_cls_name
+            and bc != "Symbol"
+            and bc != self.onto.role_cls_name
+        ]
+        if len(base_classes) >= 1:
             return False
         return True
 

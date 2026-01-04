@@ -201,18 +201,14 @@ class ElectiveCourse(Course):
 
 
 @dataclass(eq=False)
-class EmployeeMixinProtocol(Person):
-    has_work: Set[Work]
-    is_clerical_staff_of: Set[Organization]
-    is_other_staff_of: Set[Organization]
-    is_research_assistant_of: Set[Organization]
-    is_supporting_staff_of: Set[Organization]
-    is_system_staff_of: Set[Organization]
+class Employee(Person):
+    has_work: Set[Work] = field(default_factory=set)
+    is_clerical_staff_of: Set[Organization] = field(default_factory=set)
+    is_other_staff_of: Set[Organization] = field(default_factory=set)
+    is_research_assistant_of: Set[Organization] = field(default_factory=set)
+    is_supporting_staff_of: Set[Organization] = field(default_factory=set)
+    is_system_staff_of: Set[Organization] = field(default_factory=set)
 
-
-@dataclass(eq=False)
-class Employee(EmployeeMixinProtocol):
-    ...
 
 
 @dataclass(eq=False)
@@ -304,6 +300,13 @@ class PhDProgram(Program):
 @dataclass(eq=False)
 class Reading(Interest):
     ...
+
+
+
+@dataclass(eq=False)
+class ResearchGroup(Organization):
+    has_research_project: Set[ResearchProject] = field(default_factory=set)
+    is_research_group_of: Set[University] = field(default_factory=set)
 
 
 
@@ -761,13 +764,6 @@ class Religions(HumanitiesAndSocial):
 @dataclass(eq=False)
 class ResearchAssistant(Employee):
     ...
-
-
-
-@dataclass(eq=False)
-class ResearchGroup(EmployeeMixinProtocol, Organization):
-    has_research_project: Set[ResearchProject] = field(default_factory=set)
-    is_research_group_of: Set[University] = field(default_factory=set)
 
 
 
