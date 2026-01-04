@@ -272,34 +272,24 @@ class PropertyExtractor:
         inverses: List[str] = []
 
         for domain in self.graph.objects(property_uri, RDFS.domain):
-            if isinstance(domain, rdflib.term.BNode):
-                continue
             domains.append(NamingRegistry.uri_to_python_name(domain))
 
         range_uris: List[rdflib.term.Identifier] = []
         for range_val in self.graph.objects(property_uri, RDFS.range):
-            if isinstance(range_val, rdflib.term.BNode):
-                continue
             ranges.append(NamingRegistry.uri_to_python_name(range_val))
             range_uris.append(range_val)
 
         # Inheritance between properties
         for super_prop in self.graph.objects(property_uri, RDFS.subPropertyOf):
-            if isinstance(super_prop, rdflib.term.BNode):
-                continue
             if isinstance(super_prop, rdflib.URIRef):
                 superproperties.append(NamingRegistry.uri_to_python_name(super_prop))
 
         # Inverses
         for inv in self.graph.objects(property_uri, OWL.inverseOf):
-            if isinstance(inv, rdflib.term.BNode):
-                continue
             if isinstance(inv, rdflib.URIRef):
                 inverses.append(NamingRegistry.uri_to_python_name(inv))
         # Also collect when current property is the object of inverseOf
         for inv_subj in self.graph.subjects(OWL.inverseOf, property_uri):
-            if isinstance(inv_subj, rdflib.term.BNode):
-                continue
             if isinstance(inv_subj, rdflib.URIRef):
                 inverses.append(NamingRegistry.uri_to_python_name(inv_subj))
 
@@ -575,9 +565,10 @@ class InferenceEngine:
                 for sp in supers:
                     if sp not in self.property_maps.dom_map:
                         continue
-                    before_r, before_ru = (
+                    before_range_len, before_range_uri_len, before_domain_len = (
                         len(self.property_maps.rng_map[name]),
                         len(self.property_maps.rng_uri_map[name]),
+                        len(self.property_maps.dom_map[name]),
                     )
                     self.property_maps.rng_map[name].update(
                         self.property_maps.rng_map[sp]
@@ -585,9 +576,15 @@ class InferenceEngine:
                     self.property_maps.rng_uri_map[name].update(
                         self.property_maps.rng_uri_map[sp]
                     )
+                    if not before_domain_len:
+                        self.property_maps.dom_map[name].update(
+                            self.property_maps.dom_map[sp]
+                        )
                     if (
-                        len(self.property_maps.rng_map[name]) != before_r
-                        or len(self.property_maps.rng_uri_map[name]) != before_ru
+                        len(self.property_maps.rng_map[name]) != before_range_len
+                        or len(self.property_maps.rng_uri_map[name])
+                        != before_range_uri_len
+                        or len(self.property_maps.dom_map[name]) != before_domain_len
                     ):
                         changed = True
             for a, b in self.property_maps.inverse_pairs:

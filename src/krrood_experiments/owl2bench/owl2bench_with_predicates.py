@@ -26,13 +26,7 @@ class OWL2BenchOntology(Symbol, ABC):
     uri: Optional[str] = field(kw_only=True, default=None)
     has_advisor: Set[Any] = field(default_factory=set)
     has_same_home_town_with: Set[Any] = field(default_factory=set)
-    has_women_college: Set[Organization] = field(default_factory=set)
     is_affiliate_of: Set[Any] = field(default_factory=set)
-    is_clerical_staff_of: Set[Organization] = field(default_factory=set)
-    is_other_staff_of: Set[Organization] = field(default_factory=set)
-    is_supporting_staff_of: Set[Organization] = field(default_factory=set)
-    is_system_staff_of: Set[Organization] = field(default_factory=set)
-    is_women_college_of: Set[Organization] = field(default_factory=set)
     knows: Set[Any] = field(default_factory=set)
 
 
@@ -177,6 +171,7 @@ class Book(Publication):
 @dataclass(eq=False)
 class College(Organization):
     has_college_discipline: Set[CollegeDiscipline] = field(default_factory=set)
+    is_women_college_of: Set[Organization] = field(default_factory=set)
 
 
 @dataclass(eq=False)
@@ -200,6 +195,10 @@ class ElectiveCourse(Course):
 @dataclass(eq=False)
 class Employee(Person):
     has_work: Set[Work] = field(default_factory=set)
+    is_clerical_staff_of: Set[Organization] = field(default_factory=set)
+    is_other_staff_of: Set[Organization] = field(default_factory=set)
+    is_supporting_staff_of: Set[Organization] = field(default_factory=set)
+    is_system_staff_of: Set[Organization] = field(default_factory=set)
 
 
 @dataclass(eq=False)
@@ -356,6 +355,7 @@ class UGProgram(Program):
 @dataclass(eq=False)
 class University(Organization):
     has_alumnus: Set[Person] = field(default_factory=set)
+    has_women_college: Set[Organization] = field(default_factory=set)
 
 
 @dataclass(eq=False)
@@ -804,13 +804,7 @@ class Director(FullProfessor):
 # Descriptor assignments
 OWL2BenchOntology.has_advisor = HasAdvisor(OWL2BenchOntology, 'has_advisor')
 OWL2BenchOntology.has_same_home_town_with = HasSameHomeTownWith(OWL2BenchOntology, 'has_same_home_town_with')
-OWL2BenchOntology.has_women_college = HasWomenCollege(OWL2BenchOntology, 'has_women_college')
 OWL2BenchOntology.is_affiliate_of = IsAffiliateOf(OWL2BenchOntology, 'is_affiliate_of')
-OWL2BenchOntology.is_clerical_staff_of = IsClericalStaffOf(OWL2BenchOntology, 'is_clerical_staff_of')
-OWL2BenchOntology.is_other_staff_of = IsOtherStaffOf(OWL2BenchOntology, 'is_other_staff_of')
-OWL2BenchOntology.is_supporting_staff_of = IsSupportingStaffOf(OWL2BenchOntology, 'is_supporting_staff_of')
-OWL2BenchOntology.is_system_staff_of = IsSystemStaffOf(OWL2BenchOntology, 'is_system_staff_of')
-OWL2BenchOntology.is_women_college_of = IsWomenCollegeOf(OWL2BenchOntology, 'is_women_college_of')
 OWL2BenchOntology.knows = Knows(OWL2BenchOntology, 'knows')
 Course.is_taught_by = IsTaughtBy(Course, 'is_taught_by')
 EvaluationCommittee.evaluates = Evaluates(EvaluationCommittee, 'evaluates')
@@ -874,6 +868,7 @@ Person.works_for = WorksFor(Person, 'works_for')
 Publication.has_author = HasAuthor(Publication, 'has_author')
 Publication.publication_research = PublicationResearch(Publication, 'publication_research')
 College.has_college_discipline = HasCollegeDiscipline(College, 'has_college_discipline')
+College.is_women_college_of = IsWomenCollegeOf(College, 'is_women_college_of')
 Department.has_clerical_staff = HasClericalStaff(Department, 'has_clerical_staff')
 Department.has_other_staff = HasOtherStaff(Department, 'has_other_staff')
 Department.has_pg_program = HasPGProgram(Department, 'has_pg_program')
@@ -884,10 +879,15 @@ Department.has_system_staff = HasSystemStaff(Department, 'has_system_staff')
 Department.has_ug_program = HasUGProgram(Department, 'has_ug_program')
 Department.offer_course = OfferCourse(Department, 'offer_course')
 Employee.has_work = HasWork(Employee, 'has_work')
+Employee.is_clerical_staff_of = IsClericalStaffOf(Employee, 'is_clerical_staff_of')
+Employee.is_other_staff_of = IsOtherStaffOf(Employee, 'is_other_staff_of')
+Employee.is_supporting_staff_of = IsSupportingStaffOf(Employee, 'is_supporting_staff_of')
+Employee.is_system_staff_of = IsSystemStaffOf(Employee, 'is_system_staff_of')
 ResearchGroup.has_research_project = HasResearchProject(ResearchGroup, 'has_research_project')
 Student.enroll_for = EnrollFor(Student, 'enroll_for')
 Student.enroll_in = EnrollIn(Student, 'enroll_in')
 Student.takes_course = TakesCourse(Student, 'takes_course')
 University.has_alumnus = HasAlumnus(University, 'has_alumnus')
+University.has_women_college = HasWomenCollege(University, 'has_women_college')
 Faculty.teaches_course = TeachesCourse(Faculty, 'teaches_course')
 TeachingAssistant.is_teaching_assistant_of = IsTeachingAssistantOf(TeachingAssistant, 'is_teaching_assistant_of')
