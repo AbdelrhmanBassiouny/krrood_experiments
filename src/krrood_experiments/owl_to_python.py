@@ -500,6 +500,8 @@ class InferenceEngine:
         """
         # Walk class restrictions
         for cls_uri in self.onto.graph.subjects(RDF.type, OWL.Class):
+            if isinstance(cls_uri, rdflib.BNode):
+                continue
             cls_name = NamingRegistry.uri_to_python_name(cls_uri)
             # direct subclass restrictions
             for restr in self.onto.graph.objects(cls_uri, RDFS.subClassOf):
@@ -1040,6 +1042,8 @@ class CodeGenerator:
 
         self._determine_class_properties()
 
+        self.attach_domainless_properties_to_ontology_base_class()
+
         classes_order, props_order = self._finalize_and_sort()
 
         return self._perform_rendering(
@@ -1047,6 +1051,18 @@ class CodeGenerator:
             classes_order,
             props_order,
         )
+
+    def attach_domainless_properties_to_ontology_base_class(self):
+        """
+        Attach properties without declared domains to the ontology base class.
+        """
+        for p in self.onto.properties.values():
+            if p.field_name == "plays_role" or p.declared_domains or p.domains:
+                continue
+            p.declared_domains = [self.onto.base_cls_name]
+            base_class_info = self.onto.classes[self.onto.base_cls_name]
+            if p.name not in base_class_info.declared_properties:
+                base_class_info.declared_properties.append(p.name)
 
     def _replace_ontology_role_class_with_current_role_class_name(self):
         """
@@ -1113,11 +1129,11 @@ class CodeGenerator:
 
         self.engine.apply_predefined_overrides()
 
-        self.attach_domainless_properties_to_ontology_base_class()
+        self.attach_domainless_data_properties_to_ontology_base_class()
 
         self.engine.compute_type_hints()
 
-    def attach_domainless_properties_to_ontology_base_class(self):
+    def attach_domainless_data_properties_to_ontology_base_class(self):
         """
         Attach properties without declared domains to the ontology base class.
         """
@@ -1413,5 +1429,5 @@ if __name__ == "__main__":
         generate_owl2bench_with_predicates,
     )
 
-    generate_lubm_with_predicates(clean=True)
-    # generate_owl2bench_with_predicates(clean=False)
+    # generate_lubm_with_predicates(clean=True)
+    generate_owl2bench_with_predicates(clean=False)
