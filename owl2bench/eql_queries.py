@@ -217,7 +217,7 @@ q19 = EQLQuery(sparql_queries.q19, eql19)
 def eql20(world: World):
     p1 = variable(Person, world.persons)
     p2 = variable_from(p1.has_same_hometown_as)
-    return an(set_of(p1, p2).where(contains(p1.has_same_hometown_as, p2)))
+    return an(set_of(p1, p2))
 
 
 q20 = EQLQuery(sparql_queries.q20, eql20)
@@ -234,9 +234,9 @@ q21 = EQLQuery(sparql_queries.q21, eql21)
 
 def eql22(world: World):
     p = variable(Person, world.persons)
-    org = variable(Organization, world.organizations)
+    dean = variable(Organization, world.organizations).dean
     sc = variable_from(p.takes_course)
-    return a(set_of(p, sc).where(org.dean, contains(sc.teachers, org.dean)))
+    return a(set_of(p, sc).where(dean != None, contains(sc.teachers, dean)))
 
 
 q22 = EQLQuery(sparql_queries.q22, eql22)

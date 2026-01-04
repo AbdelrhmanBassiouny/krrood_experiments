@@ -136,23 +136,23 @@ class TypstTableExporter:
         print(f"Typst table saved to {output_path}")
 
 
-iterations_per_query = 10
+iterations_per_query = 1
 
 sparql = SPARQLWrapper.SPARQLWrapper("http://localhost:7200/repositories/KRROOD")
 sparql.setReturnFormat(SPARQLWrapper.JSON)
 loader = WorldLoader(sparql)
 loader.parse()
 
-engine = create_engine(os.environ["KRROOD_EXPERIMENTS_DATABASE_URI"])
-drop_database(engine)
-Base.metadata.create_all(engine)
-
-session = sessionmaker(engine)()
-
-dao: WorldDAO = to_dao(loader.world)
-
-session.add(dao)
-session.commit()
+# engine = create_engine(os.environ["KRROOD_EXPERIMENTS_DATABASE_URI"])
+# drop_database(engine)
+# Base.metadata.create_all(engine)
+#
+# session = sessionmaker(engine)()
+#
+# dao: WorldDAO = to_dao(loader.world)
+#
+# session.add(dao)
+# session.commit()
 
 query_timings: List[QueryTiming] = []
 
@@ -160,9 +160,9 @@ sparql_queries = [
     q for q in owl2bench.sparql_queries.all_queries if OWLProfile.RL in q.profile
 ]
 
-pbar = tqdm.tqdm(sparql_queries)
-for sparql_query in pbar:
-    pbar.set_description(f"Evaluating query {sparql_query.number}")
+# pbar = tqdm.tqdm(sparql_queries)
+for sparql_query in sparql_queries:
+    # pbar.set_description(f"Evaluating query {sparql_query.number}")
 
     # Find the corresponding sqlalchemy query
     sqlalchemy_query = [
@@ -183,9 +183,9 @@ for sparql_query in pbar:
     for _ in range(iterations_per_query):
 
         # Execute SQLAlchemy query
-        start = time.time()
-        sql_results = session.execute(sqlalchemy_query.statement).all()
-        current_sqlalchemy_runtimes.append(time.time() - start)
+        # start = time.time()
+        # sql_results = session.execute(sqlalchemy_query.statement).all()
+        # current_sqlalchemy_runtimes.append(time.time() - start)
 
         # Execute SPARQL query
         sparql.setQuery(sparql_query.raw_sparql_string)
@@ -197,27 +197,29 @@ for sparql_query in pbar:
         start = time.time()
         eql_results = list(eql_query.query(loader.world).evaluate())
         current_eql_runtimes.append(time.time() - start)
-
         assert (
-            len(sql_results)
-            == len(sparql_results["results"]["bindings"])
+            # len(sql_results)
+            # ==
+            len(sparql_results["results"]["bindings"])
             == len(eql_results)
         )
+    print(f"Query {sparql_query.number}:")
+    print(f"EQL time: {current_eql_runtimes[-1]}")
+    print(f"SPARQL time: {current_sparqlwrapper_runtimes[-1]}")
+    # backend_runtimes = {
+    #     Backend.SPARQLWrapper: current_sparqlwrapper_runtimes,
+    #     # Backend.SQLAlchemy: current_sqlalchemy_runtimes,
+    #     Backend.EQL: current_eql_runtimes,
+    # }
+    #
+    # query_timings.append(
+    #     QueryTiming(
+    #         query_id=sparql_query.number,
+    #         backend_runtimes=backend_runtimes,
+    #         results_count=len(eql_results),
+    #     )
+    # )
 
-    backend_runtimes = {
-        Backend.SPARQLWrapper: current_sparqlwrapper_runtimes,
-        Backend.SQLAlchemy: current_sqlalchemy_runtimes,
-        Backend.EQL: current_eql_runtimes,
-    }
 
-    query_timings.append(
-        QueryTiming(
-            query_id=sparql_query.number,
-            backend_runtimes=backend_runtimes,
-            results_count=len(sql_results),
-        )
-    )
-
-
-exporter = TypstTableExporter(query_timings)
-exporter.export()
+# exporter = TypstTableExporter(query_timings)
+# exporter.export()
