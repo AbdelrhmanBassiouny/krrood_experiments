@@ -14,23 +14,6 @@ from .owl2bench_with_predicates_base import *
 
 # Generated classes
 @dataclass(eq=False)
-class OWL2BenchOntology(Symbol, ABC):
-    """Base class for OWL2Bench"""
-    has_code: Optional[Any] = field(kw_only=True, default=None)
-    has_id: Optional[Any] = field(kw_only=True, default=None)
-    has_name: Optional[Any] = field(kw_only=True, default=None)
-    has_office_number: Optional[Any] = field(kw_only=True, default=None)
-    has_publication_date: Optional[Any] = field(kw_only=True, default=None)
-    has_research_interest: Optional[Any] = field(kw_only=True, default=None)
-    # URI of the ontology element - The unique resource identifier (URI) of the ontology element.
-    uri: Optional[str] = field(kw_only=True, default=None)
-    has_advisor: Set[Any] = field(default_factory=set)
-    has_same_home_town_with: Set[Any] = field(default_factory=set)
-    is_affiliate_of: Set[Any] = field(default_factory=set)
-    knows: Set[Any] = field(default_factory=set)
-
-
-@dataclass(eq=False)
 class CollegeDiscipline(OWL2BenchOntology):
     ...
 
@@ -94,6 +77,7 @@ class Organization(OWL2BenchOntology):
 class Person(OWL2BenchOntology):
     dislikes: Set[Interest] = field(default_factory=set)
     evaluated_by: Set[EvaluationCommittee] = field(default_factory=set)
+    has_advisor: Set[Professor] = field(default_factory=set)
     has_age: Optional[Any] = field(kw_only=True, default=None)
     has_collaboration_with: Set[Person] = field(default_factory=set)
     has_degree_from: Set[University] = field(default_factory=set)
@@ -802,7 +786,6 @@ class Director(FullProfessor):
 
 
 # Descriptor assignments
-OWL2BenchOntology.has_advisor = HasAdvisor(OWL2BenchOntology, 'has_advisor')
 OWL2BenchOntology.has_same_home_town_with = HasSameHomeTownWith(OWL2BenchOntology, 'has_same_home_town_with')
 OWL2BenchOntology.is_affiliate_of = IsAffiliateOf(OWL2BenchOntology, 'is_affiliate_of')
 OWL2BenchOntology.knows = Knows(OWL2BenchOntology, 'knows')
@@ -841,6 +824,7 @@ Organization.is_sub_organization_of = IsSubOrganizationOf(Organization, 'is_sub_
 Organization.org_publication = OrgPublication(Organization, 'org_publication')
 Person.dislikes = Dislikes(Person, 'dislikes')
 Person.evaluated_by = EvaluatedBy(Person, 'evaluated_by')
+Person.has_advisor = HasAdvisor(Person, 'has_advisor')
 Person.has_collaboration_with = HasCollaborationWith(Person, 'has_collaboration_with')
 Person.has_degree_from = HasDegreeFrom(Person, 'has_degree_from')
 Person.has_doctoral_degree_from = HasDoctoralDegreeFrom(Person, 'has_doctoral_degree_from')

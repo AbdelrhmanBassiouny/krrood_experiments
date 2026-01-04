@@ -16,6 +16,7 @@ from typing import Dict, List, Optional, Any, Set, ClassVar
 
 import rdflib
 from jinja2 import Environment, FileSystemLoader
+from jinja2.ext import loopcontrols
 from krrood import logger
 from rdflib.namespace import RDF, RDFS, OWL, XSD
 from sqlalchemy.util import OrderedSet
@@ -92,6 +93,7 @@ class PropertyInfo:
     comment: Optional[str] = None
     field_name: str = ""
     descriptor_name: str = ""
+    equivalent_properties: List[str] = field(default_factory=list)
     superproperties: List[str] = field(default_factory=list)
     all_superproperties: List[str] = field(default_factory=list)
     inverses: List[str] = field(default_factory=list)
@@ -105,6 +107,7 @@ class PropertyInfo:
     data_type_hint_inner: Optional[str] = None
     object_range_hint: Optional[str] = None
     base_descriptors: List[str] = field(default_factory=list)
+    equivalent_properties_descriptor_names: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -270,6 +273,7 @@ class PropertyExtractor:
         ranges: List[str] = []
         superproperties: List[str] = []
         inverses: List[str] = []
+        equivalent_properties: List[str] = []
 
         for domain in self.graph.objects(property_uri, RDFS.domain):
             domains.append(NamingRegistry.uri_to_python_name(domain))
@@ -293,6 +297,11 @@ class PropertyExtractor:
             if isinstance(inv_subj, rdflib.URIRef):
                 inverses.append(NamingRegistry.uri_to_python_name(inv_subj))
 
+        # Equivalent properties
+        for eq_prop in self.graph.objects(property_uri, OWL.equivalentProperty):
+            if isinstance(eq_prop, rdflib.URIRef):
+                equivalent_properties.append(NamingRegistry.uri_to_python_name(eq_prop))
+
         # Determine property type
         prop_type = PropertyType.OBJECT_PROPERTY
         is_transitive = False
@@ -314,6 +323,7 @@ class PropertyExtractor:
             domains=domains,
             ranges=ranges,
             range_uris=range_uris,
+            equivalent_properties=equivalent_properties,
             label=self.metadata_extractor.get_label(property_uri),
             comment=self.metadata_extractor.get_comment(property_uri),
             field_name=NamingRegistry.to_snake_case(prop_local),
@@ -356,6 +366,10 @@ class PropertyMaps:
     """
     List of tuples representing inverse property pairs (property_name, inverse_property_name).
     """
+    equivalent_map: Dict[str, List[str]] = field(default_factory=dict)
+    """
+    Map of property names to lists of equivalent property names.
+    """
     properties: Dict[str, PropertyInfo] = field(default_factory=dict)
     """
     Map of property names to PropertyInfo objects.
@@ -380,6 +394,9 @@ class PropertyMaps:
             for inv in p.inverses
             if inv in properties
         ]
+        equivalent_map = {
+            n: list(p.equivalent_properties) for n, p in properties.items()
+        }
         return cls(
             dom_map,
             declared_dom_map,
@@ -387,6 +404,7 @@ class PropertyMaps:
             rng_uri_map,
             super_map,
             inverse_pairs,
+            equivalent_map,
             properties,
         )
 
@@ -562,7 +580,10 @@ class InferenceEngine:
         while changed:
             changed = False
             for name, supers in self.property_maps.super_map.items():
-                for sp in supers:
+                supers_and_equivalents = set(supers).union(
+                    self.property_maps.equivalent_map[name]
+                )
+                for sp in supers_and_equivalents:
                     if sp not in self.property_maps.dom_map:
                         continue
                     before_range_len, before_range_uri_len, before_domain_len = (
@@ -723,6 +744,8 @@ class InferenceEngine:
             bases.append("TransitiveProperty")
         if info.inverse_of:
             bases.append("HasInverseProperty")
+        if info.equivalent_properties:
+            bases.append("HasEquivalentProperty")
         info.base_descriptors = bases
 
     def _set_object_range_hint(self, info: PropertyInfo):
@@ -991,6 +1014,7 @@ class JinjaRenderer:
             autoescape=False,
             trim_blocks=True,
             lstrip_blocks=True,
+            extensions=[loopcontrols],
         )
 
     def render(self, template_name: str, **context) -> str:
@@ -1240,6 +1264,13 @@ class CodeGenerator:
         for c in render_classes.values():
             if c["role_taker"] is None:
                 c["role_taker"] = {}
+
+        for p_name, p_info in self.onto.properties.items():
+            for eq_prop_name in p_info.equivalent_properties:
+                p_info.equivalent_properties_descriptor_names.append(
+                    self.onto.properties[eq_prop_name].descriptor_name
+                )
+
         render_props = {k: asdict(v) for k, v in self.onto.properties.items()}
         render_stubs = {k: asdict(v) for k, v in stubs_classes.items()}
         for c in render_stubs.values():
