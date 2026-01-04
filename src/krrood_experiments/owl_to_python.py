@@ -12,7 +12,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 from functools import cached_property
-from typing import Dict, List, Callable, Optional, Any, Set, ClassVar
+from typing import Dict, List, Optional, Any, Set, ClassVar
 
 import rdflib
 from jinja2 import Environment, FileSystemLoader
@@ -324,14 +324,6 @@ class PropertyMaps:
     """
 
     @classmethod
-    def from_ontology_info(cls, onto_info: OntologyInfo):
-        prop_maps = cls.from_properties(onto_info.properties)
-        prop_maps.update_declared_domains_from_graph_restrictions(
-            onto_info.graph, onto_info.restrictions_handler
-        )
-        return prop_maps
-
-    @classmethod
     def from_properties(cls, properties: Dict[str, PropertyInfo]) -> PropertyMaps:
         """
         Create a PropertyMaps object from a dictionary of PropertyInfo objects.
@@ -359,47 +351,6 @@ class PropertyMaps:
             inverse_pairs,
             properties,
         )
-
-    def update_declared_domains_from_graph_restrictions(
-        self,
-        graph: rdflib.Graph,
-        restrictions_handler: Optional[
-            Callable[[str, rdflib.term.URIRef], None]
-        ] = None,
-    ):
-        """
-        Walk through all classes and their restrictions in the graph and update declared_dom_map accordingly.
-
-        :param graph: The rdflib graph.
-        :param restrictions_handler: Optional callback for each restriction found.
-        """
-        # Walk class restrictions
-        for cls_uri in graph.subjects(RDF.type, OWL.Class):
-            cls_name = NamingRegistry.uri_to_python_name(cls_uri)
-            # direct subclass restrictions
-            for restr in graph.objects(cls_uri, RDFS.subClassOf):
-                if restrictions_handler:
-                    restrictions_handler(cls_name, restr)
-                # If restriction mentions a property, count this class as declared domain for that property
-                on_prop = graph.value(restr, OWL.onProperty)
-                if on_prop:
-                    self.declared_dom_map[
-                        NamingRegistry.uri_to_python_name(on_prop)
-                    ].add(cls_name)
-
-            # restrictions inside intersectionOf
-            for coll in graph.objects(cls_uri, OWL.intersectionOf):
-                node = coll
-                while node and node != RDF.nil:
-                    first = graph.value(node, RDF.first)
-                    if restrictions_handler:
-                        restrictions_handler(cls_name, first)
-                    on_prop = graph.value(first, OWL.onProperty) if first else None
-                    if on_prop:
-                        self.declared_dom_map[
-                            NamingRegistry.uri_to_python_name(on_prop)
-                        ].add(cls_name)
-                    node = graph.value(node, RDF.rest)
 
 
 @dataclass
@@ -485,17 +436,79 @@ class InferenceEngine:
         """
         Main entry point for property inference.
         Propagates domains, ranges, and handles restrictions and inverses.
-        :return: A dictionary of property restrictions found.
         """
-
-        for info in self.onto.classes.values():
-            if "Role" in info.base_classes:
-                info.base_classes.remove("Role")
-                info.base_classes.append(self.onto.role_cls_name)
-
+        self._infer_properties_data_from_restrictions()
         self._propagate_types()
         self._finalize_properties()
         self.create_specialized_properties()
+
+    def _infer_properties_data_from_restrictions(self):
+        """
+        Walk through all classes and their restrictions in the graph and update declared_dom_map accordingly.
+        """
+        # Walk class restrictions
+        for cls_uri in self.onto.graph.subjects(RDF.type, OWL.Class):
+            cls_name = NamingRegistry.uri_to_python_name(cls_uri)
+            # direct subclass restrictions
+            for restr in self.onto.graph.objects(cls_uri, RDFS.subClassOf):
+                self._restrictions_handler(cls_name, restr)
+                # If restriction mentions a property, count this class as declared domain for that property
+                on_prop = self.onto.graph.value(restr, OWL.onProperty)
+                if on_prop:
+                    self.onto.property_maps.declared_dom_map[
+                        NamingRegistry.uri_to_python_name(on_prop)
+                    ].add(cls_name)
+
+            # restrictions inside intersectionOf
+            for coll in self.onto.graph.objects(cls_uri, OWL.intersectionOf):
+                node = coll
+                while node and node != RDF.nil:
+                    first = self.onto.graph.value(node, RDF.first)
+                    self._restrictions_handler(cls_name, first)
+                    on_prop = (
+                        self.onto.graph.value(first, OWL.onProperty) if first else None
+                    )
+                    if on_prop:
+                        self.onto.property_maps.declared_dom_map[
+                            NamingRegistry.uri_to_python_name(on_prop)
+                        ].add(cls_name)
+                    node = self.onto.graph.value(node, RDF.rest)
+
+    def _restrictions_handler(self, for_class: str, node: rdflib.term.Node):
+        """
+        Handle restrictions for a given class and node in the ontology graph.
+
+        :param for_class: The class name.
+        :param node: The restriction node.
+        """
+        if not node:
+            return
+        on_prop = self.onto.graph.value(node, OWL.onProperty)
+        if not on_prop:
+            return
+        prop_name = NamingRegistry.uri_to_python_name(on_prop)
+        if prop_name in self.onto.properties:
+            self.onto.property_maps.dom_map[prop_name].add(for_class)
+        some = self.onto.graph.value(node, OWL.someValuesFrom) or self.onto.graph.value(
+            node, OWL.allValuesFrom
+        )
+        if some:
+            try:
+                rng_name = NamingRegistry.uri_to_python_name(some)
+                if prop_name == "roleFor":
+                    cls_info = self.onto.classes.get(for_class)
+                    if cls_info:
+                        cls_info.role_taker = RoleTakerInfo(
+                            rng_name, NamingRegistry.to_snake_case(rng_name)
+                        )
+                    return
+                self.onto.property_maps.rng_map[prop_name].add(rng_name)
+                self.onto.property_maps.rng_uri_map[prop_name].add(some)
+                self.onto.property_restrictions.setdefault(for_class, {}).setdefault(
+                    prop_name, set()
+                ).add(rng_name)
+            except Exception as e:
+                logger.warning(f"[owl_to_python] Error processing restriction: {e}")
 
     def _propagate_types(self):
         """
@@ -966,9 +979,6 @@ class OntologyInfo:
     def property_maps(self) -> PropertyMaps:
         if self._property_maps is None:
             self._property_maps = PropertyMaps.from_properties(self.properties)
-            self._property_maps.update_declared_domains_from_graph_restrictions(
-                self.graph, self.restrictions_handler
-            )
         return self._property_maps
 
     @property
@@ -994,36 +1004,6 @@ class OntologyInfo:
         The class ancestors map as a dictionary mapping class names to their ancestors.
         """
         return {name: set(info.all_base_classes) for name, info in self.classes.items()}
-
-    def restrictions_handler(self, for_class: str, node):
-        if not node:
-            return
-        on_prop = self.graph.value(node, OWL.onProperty)
-        if not on_prop:
-            return
-        prop_name = NamingRegistry.uri_to_python_name(on_prop)
-        if prop_name in self.properties:
-            self._property_maps.dom_map[prop_name].add(for_class)
-        some = self.graph.value(node, OWL.someValuesFrom) or self.graph.value(
-            node, OWL.allValuesFrom
-        )
-        if some:
-            try:
-                rng_name = NamingRegistry.uri_to_python_name(some)
-                if prop_name == "roleFor":
-                    cls_info = self.classes.get(for_class)
-                    if cls_info:
-                        cls_info.role_taker = RoleTakerInfo(
-                            rng_name, NamingRegistry.to_snake_case(rng_name)
-                        )
-                    return
-                self._property_maps.rng_map[prop_name].add(rng_name)
-                self._property_maps.rng_uri_map[prop_name].add(some)
-                self.property_restrictions.setdefault(for_class, {}).setdefault(
-                    prop_name, set()
-                ).add(rng_name)
-            except Exception as e:
-                logger.warning(f"[owl_to_python] Error processing restriction: {e}")
 
 
 @dataclass
@@ -1090,6 +1070,12 @@ class CodeGenerator:
         Run the inference engine to propagate types and specialized properties.
         """
         self.engine.compute_ancestors()
+
+        for info in self.onto.classes.values():
+            if "Role" in info.base_classes:
+                info.base_classes.remove("Role")
+                info.base_classes.append(self.onto.role_cls_name)
+
         self.engine.infer_properties()
 
         if "uri" not in self.onto.properties:
