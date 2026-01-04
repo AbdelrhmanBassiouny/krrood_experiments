@@ -620,6 +620,28 @@ class InferenceEngine:
         changed = True
         while changed:
             changed = False
+            for a, b in self.property_maps.inverse_pairs:
+                before_da, before_ra = len(self.property_maps.dom_map[a]), len(
+                    self.property_maps.rng_map[a]
+                )
+                before_db, before_rb = len(self.property_maps.dom_map[b]), len(
+                    self.property_maps.rng_map[b]
+                )
+                if not before_da:
+                    self.property_maps.dom_map[a].update(self.property_maps.rng_map[b])
+                if not before_ra:
+                    self.property_maps.rng_map[a].update(self.property_maps.dom_map[b])
+                if not before_db:
+                    self.property_maps.dom_map[b].update(self.property_maps.rng_map[a])
+                if not before_rb:
+                    self.property_maps.rng_map[b].update(self.property_maps.dom_map[a])
+                if (
+                    len(self.property_maps.dom_map[a]) != before_da
+                    or len(self.property_maps.rng_map[a]) != before_ra
+                    or len(self.property_maps.dom_map[b]) != before_db
+                    or len(self.property_maps.rng_map[b]) != before_rb
+                ):
+                    changed = True
             for name, supers in self.property_maps.super_map.items():
                 supers_and_equivalents = set(supers).union(
                     self.property_maps.equivalent_map[name]
@@ -651,24 +673,6 @@ class InferenceEngine:
                         or len(self.property_maps.dom_map[name]) != before_domain_len
                     ):
                         changed = True
-            for a, b in self.property_maps.inverse_pairs:
-                before_da, before_ra = len(self.property_maps.dom_map[a]), len(
-                    self.property_maps.rng_map[a]
-                )
-                before_db, before_rb = len(self.property_maps.dom_map[b]), len(
-                    self.property_maps.rng_map[b]
-                )
-                self.property_maps.dom_map[a].update(self.property_maps.rng_map[b])
-                self.property_maps.rng_map[a].update(self.property_maps.dom_map[b])
-                self.property_maps.dom_map[b].update(self.property_maps.rng_map[a])
-                self.property_maps.rng_map[b].update(self.property_maps.dom_map[a])
-                if (
-                    len(self.property_maps.dom_map[a]) != before_da
-                    or len(self.property_maps.rng_map[a]) != before_ra
-                    or len(self.property_maps.dom_map[b]) != before_db
-                    or len(self.property_maps.rng_map[b]) != before_rb
-                ):
-                    changed = True
 
     def _finalize_properties(self):
         """
@@ -1524,4 +1528,4 @@ if __name__ == "__main__":
     )
 
     generate_lubm_with_predicates(clean=True)
-    generate_owl2bench_with_predicates(clean=False)
+    generate_owl2bench_with_predicates(clean=True)
