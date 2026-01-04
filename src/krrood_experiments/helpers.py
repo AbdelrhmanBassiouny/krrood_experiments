@@ -169,7 +169,6 @@ def load_instances_for_owl2bench_with_predicates() -> OwlInstancesRegistry:
         "refactored_ontologies",
     )
     files = [f.name for f in folder_path.iterdir() if f.is_file()]
-    files.sort(key=lambda x: int(x.split("_")[1].split(".")[0]))
     registry = OwlLoader.load_multi_file_instances(
         [os.path.join(folder_path, file) for file in files],
         classes_module=owl2bench_with_predicates,
