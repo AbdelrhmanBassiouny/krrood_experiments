@@ -146,14 +146,12 @@ class Article(Publication):
 
 
 @dataclass(eq=False)
-class BasketBallFan(Person):
-    ...
+class BasketBallFan(PersonMixinProtocol, Symbol):
 
 
 
 @dataclass(eq=False)
-class BasketBallLover(Person):
-    ...
+class BasketBallLover(PersonMixinProtocol, Symbol):
 
 
 
@@ -357,24 +355,26 @@ class Sports(Interest):
 
 
 @dataclass(eq=False)
-class SportsFan(Person):
-    ...
+class SportsFan(PersonMixinProtocol, Symbol):
 
 
 
 @dataclass(eq=False)
-class SportsLover(Person):
-    ...
+class SportsLover(PersonMixinProtocol, Symbol):
 
 
 
 @dataclass(eq=False)
-class Student(Person):
-    enroll_for: Set[Program] = field(default_factory=set)
-    enroll_in: Set[Department] = field(default_factory=set)
-    is_student_of: Set[Organization] = field(default_factory=set)
-    takes_course: Set[Course] = field(default_factory=set)
+class StudentMixinProtocol(PersonMixinProtocol, Symbol):
+    enroll_for: Set[Program]
+    enroll_in: Set[Department]
+    is_student_of: Set[Organization]
+    takes_course: Set[Course]
 
+
+@dataclass(eq=False)
+class Student(StudentMixinProtocol):
+    ...
 
 
 @dataclass(eq=False)
@@ -384,8 +384,7 @@ class StudentEvaluationCommittee(EvaluationCommittee):
 
 
 @dataclass(eq=False)
-class T20CricketFan(Person):
-    ...
+class T20CricketFan(PersonMixinProtocol, Symbol):
 
 
 
@@ -562,10 +561,14 @@ class English(HumanitiesAndSocial):
 
 
 @dataclass(eq=False)
-class Faculty(Employee):
-    is_faculty_of: Set[Organization] = field(default_factory=set)
-    teaches_course: Set[Course] = field(default_factory=set)
+class FacultyMixinProtocol(Employee):
+    is_faculty_of: Set[Organization]
+    teaches_course: Set[Course]
 
+
+@dataclass(eq=False)
+class Faculty(FacultyMixinProtocol):
+    ...
 
 
 @dataclass(eq=False)
@@ -863,7 +866,7 @@ class Swimming(Sports):
 
 
 @dataclass(eq=False)
-class TeachingAssistant(Student):
+class TeachingAssistant(StudentMixinProtocol, Symbol):
     is_teaching_assistant_of: Set[Course] = field(default_factory=set)
 
 
@@ -924,7 +927,7 @@ class EmployeeANDteachesCourseSOMECourse(Faculty):
 
 
 @dataclass(eq=False)
-class Lecturer(Faculty):
+class Lecturer(FacultyMixinProtocol, Symbol):
     is_lecturer_of: Set[Department] = field(default_factory=set)
 
 
@@ -942,10 +945,14 @@ class PostDoc(Faculty):
 
 
 @dataclass(eq=False)
-class Professor(Faculty):
-    is_professor_of: Set[Department] = field(default_factory=set)
-    tenured: Optional[bool] = field(kw_only=True, default=None)
+class ProfessorMixinProtocol(Faculty):
+    is_professor_of: Set[Department]
+    tenured: Optional[bool]
 
+
+@dataclass(eq=False)
+class Professor(ProfessorMixinProtocol):
+    ...
 
 
 @dataclass(eq=False)
@@ -997,33 +1004,34 @@ class AssociateProfessor(Professor):
 
 
 @dataclass(eq=False)
-class FullProfessor(Professor):
-    is_full_professor_of: Set[Department] = field(default_factory=set)
-    is_head_of: Set[Department] = field(default_factory=set)
-
+class FullProfessorMixinProtocol(Professor):
+    is_full_professor_of: Set[Department]
+    is_head_of: Set[Department]
 
 
 @dataclass(eq=False)
-class VisitingProfessor(Professor):
+class FullProfessor(FullProfessorMixinProtocol):
+    ...
+
+
+@dataclass(eq=False)
+class VisitingProfessor(ProfessorMixinProtocol, Symbol):
     is_visiting_professor_of: Set[Department] = field(default_factory=set)
 
 
 
 @dataclass(eq=False)
-class Chair(FullProfessor):
-    ...
+class Chair(FullProfessorMixinProtocol, Symbol):
 
 
 
 @dataclass(eq=False)
-class Dean(FullProfessor):
-    ...
+class Dean(FullProfessorMixinProtocol, Symbol):
 
 
 
 @dataclass(eq=False)
-class Director(FullProfessor):
-    ...
+class Director(FullProfessorMixinProtocol, Symbol):
 
 
 
