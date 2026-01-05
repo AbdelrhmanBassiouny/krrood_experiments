@@ -60,7 +60,7 @@ class Organization(OWL2BenchOntology):
     has_evaluation_committee: Set[EvaluationCommittee] = field(default_factory=set)
     has_member: Set[Person] = field(default_factory=set)
     has_part: Set[Organization] = field(default_factory=set)
-    has_student: Set[Union[Student, Woman]] = field(default_factory=set)
+    has_student: Set[Student] = field(default_factory=set)
     has_student_evaluation_committee: Set[StudentEvaluationCommittee] = field(default_factory=set)
     has_sub_organization: Set[Organization] = field(default_factory=set)
     has_thesis_evaluation_committee: Set[ThesisEvaluationCommittee] = field(default_factory=set)
@@ -83,7 +83,7 @@ class PersonMixinProtocol(OWL2BenchOntology):
     has_email_address: Optional[Any]
     has_first_name: Optional[Any]
     has_last_name: Optional[Any]
-    has_major: Set[Science]
+    has_major: Set[Any]
     has_master_degree_from: Set[University]
     has_telephone: Optional[Any]
     has_title: Optional[Any]

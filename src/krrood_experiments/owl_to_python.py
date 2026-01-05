@@ -962,6 +962,8 @@ class InferenceEngine:
                 if cls_name in base.declared_domains:
                     base.declared_domains.remove(cls_name)
                 for rng_name in sorted(rng_names):
+                    if rng_name in base.ranges:
+                        base.ranges.remove(rng_name)
                     spec_key = f"{prop_name}{{{rng_name}}}"
                     if (
                         spec_key in self.onto.properties
