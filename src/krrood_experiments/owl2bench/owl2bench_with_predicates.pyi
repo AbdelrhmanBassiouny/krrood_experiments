@@ -11,6 +11,12 @@ from .owl2bench_with_predicates_base import *
 
 # Generated classes
 @dataclass(eq=False)
+class Man(ManORWoman):
+    ...
+
+
+
+@dataclass(eq=False)
 class OWL2BenchOntology(Symbol, ABC):
     """Base class for OWL2Bench"""
     has_code: Optional[Any] = field(kw_only=True, default=None)
@@ -28,7 +34,7 @@ class OWL2BenchOntology(Symbol, ABC):
 
 
 @dataclass(eq=False)
-class CollegeANDhasStudentALLAnonymousClass(OWL2BenchOntology):
+class Woman(ManORWoman):
     ...
 
 
@@ -66,7 +72,7 @@ class Organization(OWL2BenchOntology):
     has_evaluation_committee: Set[EvaluationCommittee] = field(default_factory=set)
     has_member: Set[Person] = field(default_factory=set)
     has_part: Set[Organization] = field(default_factory=set)
-    has_student: Set[Student] = field(default_factory=set)
+    has_student: Set[Union[Student, Woman]] = field(default_factory=set)
     has_student_evaluation_committee: Set[StudentEvaluationCommittee] = field(default_factory=set)
     has_sub_organization: Set[Organization] = field(default_factory=set)
     has_thesis_evaluation_committee: Set[ThesisEvaluationCommittee] = field(default_factory=set)
@@ -89,7 +95,7 @@ class PersonMixinProtocol(OWL2BenchOntology):
     has_email_address: Optional[Any]
     has_first_name: Optional[Any]
     has_last_name: Optional[Any]
-    has_major: Set[Any]
+    has_major: Set[Science]
     has_master_degree_from: Set[University]
     has_telephone: Optional[Any]
     has_title: Optional[Any]
@@ -122,12 +128,6 @@ class Publication(OWL2BenchOntology):
 
 
 @dataclass(eq=False)
-class StudentANDAnonymousClass(OWL2BenchOntology):
-    ...
-
-
-
-@dataclass(eq=False)
 class Thing(OWL2BenchOntology):
     ...
 
@@ -142,16 +142,6 @@ class Work(OWL2BenchOntology):
 @dataclass(eq=False)
 class Article(Publication):
     ...
-
-
-
-@dataclass(eq=False)
-class BasketBallFan(PersonMixinProtocol, Symbol):
-
-
-
-@dataclass(eq=False)
-class BasketBallLover(PersonMixinProtocol, Symbol):
 
 
 
@@ -250,12 +240,6 @@ class Institute(Organization):
 
 
 @dataclass(eq=False)
-class ManORWoman(Person):
-    ...
-
-
-
-@dataclass(eq=False)
 class Management(CollegeDiscipline):
     ...
 
@@ -293,6 +277,7 @@ class Painting(Interest):
 
 @dataclass(eq=False)
 class PeopleWithHobby(PersonMixinProtocol, Symbol):
+    likes: Set[Interest] = field(default_factory=set)
 
 
 
@@ -350,16 +335,6 @@ class Specification(Publication):
 @dataclass(eq=False)
 class Sports(Interest):
     ...
-
-
-
-@dataclass(eq=False)
-class SportsFan(PersonMixinProtocol, Symbol):
-
-
-
-@dataclass(eq=False)
-class SportsLover(PersonMixinProtocol, Symbol):
 
 
 
@@ -625,19 +600,13 @@ class LatinArts(FineArts):
 
 
 @dataclass(eq=False)
-class LeisureStudent(Student, StudentANDAnonymousClass):
+class LeisureStudent(Student):
     ...
 
 
 
 @dataclass(eq=False)
 class Linguistics(HumanitiesAndSocial):
-    ...
-
-
-
-@dataclass(eq=False)
-class Man(ManORWoman):
     ...
 
 
@@ -716,54 +685,12 @@ class OperationsManagement(Management):
 
 @dataclass(eq=False)
 class PGStudent(Student):
-    ...
+    enroll_for: Set[PGProgram] = field(default_factory=set)
 
 
 
 @dataclass(eq=False)
 class PerformingArts(FineArts):
-    ...
-
-
-
-@dataclass(eq=False)
-class PersonANDenrollInSOMEDepartment(Student):
-    ...
-
-
-
-@dataclass(eq=False)
-class PersonANDisCrazyAboutSOMEBasketBall(BasketBallFan):
-    ...
-
-
-
-@dataclass(eq=False)
-class PersonANDisCrazyAboutSOMESports(SportsFan):
-    ...
-
-
-
-@dataclass(eq=False)
-class PersonANDlikesSOMEInterest(PeopleWithHobby):
-    ...
-
-
-
-@dataclass(eq=False)
-class PersonANDlovesSOMEBasketBall(BasketBallLover):
-    ...
-
-
-
-@dataclass(eq=False)
-class PersonANDlovesSOMESports(SportsLover):
-    ...
-
-
-
-@dataclass(eq=False)
-class PersonANDworksForSOMEOrganization(Employee):
     ...
 
 
@@ -776,7 +703,7 @@ class PetroleumlEngineering(Engineering):
 
 @dataclass(eq=False)
 class PhDStudent(Student):
-    ...
+    enroll_for: Set[PhDProgram] = field(default_factory=set)
 
 
 
@@ -836,7 +763,19 @@ class SalesManagement(Management):
 
 @dataclass(eq=False)
 class ScienceStudent(Student):
-    ...
+    has_major: Set[Science] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
+class SportsFan(PeopleWithHobby):
+    is_crazy_about: Set[Sports] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
+class SportsLover(PeopleWithHobby):
+    loves: Set[Sports] = field(default_factory=set)
 
 
 
@@ -897,30 +836,30 @@ class ThesisEvaluationCommittee(StudentEvaluationCommittee):
 
 @dataclass(eq=False)
 class UGStudent(Student):
-    ...
+    enroll_for: Set[UGProgram] = field(default_factory=set)
 
 
 
 @dataclass(eq=False)
-class Woman(ManORWoman):
-    ...
+class WomanCollege(College):
+    has_student: Set[Woman] = field(default_factory=set)
 
 
 
 @dataclass(eq=False)
-class WomanCollege(College, CollegeANDhasStudentALLAnonymousClass):
-    ...
+class BasketBallFan(SportsLover):
+    is_crazy_about: Set[BasketBall] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
+class BasketBallLover(SportsLover):
+    loves: Set[BasketBall] = field(default_factory=set)
 
 
 
 @dataclass(eq=False)
 class ClericalStaff(SupportingStaff):
-    ...
-
-
-
-@dataclass(eq=False)
-class EmployeeANDteachesCourseSOMECourse(Faculty):
     ...
 
 
@@ -952,36 +891,6 @@ class ProfessorMixinProtocol(Faculty):
 @dataclass(eq=False)
 class Professor(ProfessorMixinProtocol):
     ...
-
-
-@dataclass(eq=False)
-class StudentANDenrollForSOMEPGProgram(PGStudent):
-    ...
-
-
-
-@dataclass(eq=False)
-class StudentANDenrollForSOMEPhDProgram(PhDStudent):
-    ...
-
-
-
-@dataclass(eq=False)
-class StudentANDenrollForSOMEUGProgram(UGStudent):
-    ...
-
-
-
-@dataclass(eq=False)
-class StudentANDhasMajorSOMEScience(ScienceStudent):
-    ...
-
-
-
-@dataclass(eq=False)
-class StudentANDisTeachingAssistantOfSOMECourse(TeachingAssistant):
-    ...
-
 
 
 @dataclass(eq=False)

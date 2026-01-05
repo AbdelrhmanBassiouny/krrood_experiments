@@ -69,6 +69,10 @@ class ClassInfo:
     all_base_classes: List[str] = field(default_factory=list)
     all_base_classes_including_role_takers: List[str] = field(default_factory=list)
     base_classes_for_topological_sort: List[str] = field(default_factory=list)
+    disjoint_with: List[str] = field(default_factory=list)
+    equivalent_classes: List[str] = field(default_factory=list)
+    is_description_for: Optional[str] = None
+    has_descriptions: List[str] = field(default_factory=list)
     label: Optional[str] = None
     comment: Optional[str] = None
     add_role_taker: bool = True
@@ -122,12 +126,19 @@ class OntologyInfo:
 
     graph: rdflib.Graph
     classes: Dict[str, ClassInfo] = field(default_factory=dict)
+    class_descriptions: Dict[str, ClassInfo] = field(default_factory=dict)
     original_properties: Dict[str, PropertyInfo] = field(default_factory=dict)
     predefined_data_types: Optional[Dict[str, Dict[str, str]]] = None
     ontology_label: str = "Ontology"
     role_cls_name: str = "Role"
     _properties: Optional[Dict[str, PropertyInfo]] = None
     property_restrictions: Dict[str, Dict[str, set]] = field(default_factory=dict)
+
+    def description_for(self, description_name: str) -> Optional[str]:
+        for cls_name, cls_info in self.class_descriptions.items():
+            if cls_info.name == description_name:
+                return cls_name
+        return None
 
     @property
     def properties(self):
@@ -158,7 +169,7 @@ class NamingRegistry:
     """Registry for converting OWL URIs and names to Python-compatible identifiers."""
 
     @staticmethod
-    def uri_to_python_name(uri: Any) -> str:
+    def uri_to_python_name(uri: Any, graph: Optional[rdflib.Graph] = None) -> str:
         """Convert URI to valid Python identifier"""
         if isinstance(uri, rdflib.URIRef):
             # Extract local name from URI
@@ -171,10 +182,12 @@ class NamingRegistry:
             # Convert to PascalCase for classes, camelCase for properties
             local_name = re.sub(r"[^a-zA-Z0-9_]", "_", local_name)
             return local_name
+        elif isinstance(uri, rdflib.BNode) and graph is not None:
+            return NamingRegistry.bnode_to_name(graph, uri)
         return str(uri)
 
     @staticmethod
-    def bnode_to_name(graph: rdflib.Graph, bnode: rdflib.BNode) -> str:
+    def bnode_to_name(graph: rdflib.Graph, bnode: rdflib.BNode) -> Optional[str]:
         """Generate a meaningful name for a BNode based on its description."""
         # Intersection
         intersections = list(graph.objects(bnode, OWL.intersectionOf))
@@ -197,12 +210,32 @@ class NamingRegistry:
                 return f"{prop_name}SOME{NamingRegistry._get_node_name(graph, target)}"
             if graph.value(bnode, OWL.allValuesFrom):
                 target = graph.value(bnode, OWL.allValuesFrom)
-                return f"{prop_name}ALL{NamingRegistry._get_node_name(graph, target)}"
+                target_name = NamingRegistry._get_node_name(graph, target)
+                return f"{prop_name}ALL{target_name}"
             if graph.value(bnode, OWL.hasValue):
                 target = graph.value(bnode, OWL.hasValue)
                 return f"{prop_name}HAS{NamingRegistry._get_node_name(graph, target)}"
-
-        return "AnonymousClass"
+            if graph.value(bnode, OWL.maxQualifiedCardinality):
+                target = NamingRegistry.uri_to_python_name(
+                    graph.value(bnode, OWL.maxQualifiedCardinality)
+                )
+                on_class = NamingRegistry.uri_to_python_name(
+                    graph.value(bnode, OWL.onClass)
+                )
+                return f"{prop_name}MAX{target}{on_class}"
+            if graph.value(bnode, OWL.complementOf):
+                target = NamingRegistry.uri_to_python_name(
+                    graph.value(bnode, OWL.complementOf)
+                )
+                return f"Not{target}"
+        elif graph.value(bnode, OWL.complementOf):
+            complement_of = graph.value(bnode, OWL.complementOf)
+            possible_complements = map(
+                NamingRegistry.uri_to_python_name,
+                list(graph.objects(complement_of, OWL.disjointWith)),
+            )
+            return "OR".join(possible_complements)
+        return None
 
     @staticmethod
     def _get_node_name(graph, node):
@@ -275,13 +308,16 @@ class ClassExtractor:
 
     def extract_info(self, class_uri: Any) -> ClassInfo:
         """Extract information about a class"""
+        is_b_node = False
         if isinstance(class_uri, rdflib.BNode):
+            is_b_node = True
             class_name = NamingRegistry.bnode_to_name(self.graph, class_uri)
         else:
             class_name = NamingRegistry.uri_to_python_name(class_uri)
 
         # Get superclasses from explicit rdfs:subClassOf
         superclasses: List[str] = []
+        has_descriptions = []
         for superclass in self.graph.objects(class_uri, RDFS.subClassOf):
             if isinstance(superclass, rdflib.URIRef):
                 superclasses.append(NamingRegistry.uri_to_python_name(superclass))
@@ -290,8 +326,8 @@ class ClassExtractor:
                 if list(self.graph.objects(superclass, OWL.intersectionOf)) or list(
                     self.graph.objects(superclass, OWL.unionOf)
                 ):
-                    superclasses.append(
-                        NamingRegistry.bnode_to_name(self.graph, superclass)
+                    has_descriptions.append(
+                        NamingRegistry.uri_to_python_name(superclass, self.graph)
                     )
 
         # De-duplicate while preserving order
@@ -302,13 +338,43 @@ class ClassExtractor:
                 unique_superclasses.append(sc)
                 seen.add(sc)
 
+        # disjoint with
+        disjoint_with: List[str] = []
+        for disjoint_class in self.graph.objects(class_uri, OWL.disjointWith):
+            if isinstance(disjoint_class, rdflib.URIRef):
+                disjoint_with.append(NamingRegistry.uri_to_python_name(disjoint_class))
+
+        # equivalent classes
+        equivalent_classes: List[str] = []
+        for eq_class in self.graph.objects(class_uri, OWL.equivalentClass):
+            if isinstance(eq_class, rdflib.URIRef):
+                equivalent_classes.append(NamingRegistry.uri_to_python_name(eq_class))
+
         # Get label
         label = self.metadata_extractor.get_label(class_uri)
+        is_description_for = None
+        if is_b_node and unique_superclasses:
+            if len(unique_superclasses) > 1:
+                raise NotImplemented(
+                    f"BNode class {class_name} has multiple superclasses: {unique_superclasses}"
+                )
+            is_description_for = unique_superclasses[0]
+        elif is_b_node and not unique_superclasses:
+            subclasses = list(self.graph.subjects(RDFS.subClassOf, class_uri))
+            if len(subclasses) > 1:
+                raise NotImplemented(
+                    f"BNode class {class_name} has multiple subclasses: {subclasses}"
+                )
+            is_description_for = NamingRegistry.uri_to_python_name(subclasses[0])
 
         return ClassInfo(
             name=class_name,
             uri=str(class_uri),
             superclasses=unique_superclasses or ["Symbol"],
+            disjoint_with=disjoint_with,
+            equivalent_classes=equivalent_classes,
+            is_description_for=is_description_for,
+            has_descriptions=has_descriptions,
             label=label,
             comment=self.metadata_extractor.get_comment(class_uri),
             add_role_taker=True,
@@ -606,18 +672,19 @@ class InferenceEngine:
         """
         # Walk class restrictions
         for cls_uri in self.onto.graph.subjects(RDF.type, OWL.Class):
-            if isinstance(cls_uri, rdflib.BNode):
-                continue
-            cls_name = NamingRegistry.uri_to_python_name(cls_uri)
+            # if isinstance(cls_uri, rdflib.BNode):
+            #     continue
+            cls_name = NamingRegistry.uri_to_python_name(cls_uri, self.onto.graph)
             # direct subclass restrictions
             for restr in self.onto.graph.objects(cls_uri, RDFS.subClassOf):
                 self._restrictions_handler(cls_name, restr)
                 # If restriction mentions a property, count this class as declared domain for that property
                 on_prop = self.onto.graph.value(restr, OWL.onProperty)
                 if on_prop:
-                    self.property_maps.declared_dom_map[
-                        NamingRegistry.uri_to_python_name(on_prop)
-                    ].add(cls_name)
+                    prop_name = NamingRegistry.uri_to_python_name(
+                        on_prop, self.onto.graph
+                    )
+                    self.property_maps.declared_dom_map[prop_name].add(cls_name)
 
             # restrictions inside intersectionOf
             for coll in self.onto.graph.objects(cls_uri, OWL.intersectionOf):
@@ -629,9 +696,10 @@ class InferenceEngine:
                         self.onto.graph.value(first, OWL.onProperty) if first else None
                     )
                     if on_prop:
+                        for_class = self.onto.description_for(cls_name) or cls_name
                         self.property_maps.declared_dom_map[
-                            NamingRegistry.uri_to_python_name(on_prop)
-                        ].add(cls_name)
+                            NamingRegistry.uri_to_python_name(on_prop, self.onto.graph)
+                        ].add(for_class)
                     node = self.onto.graph.value(node, RDF.rest)
 
     def _restrictions_handler(self, for_class: str, node: rdflib.term.Node):
@@ -646,7 +714,9 @@ class InferenceEngine:
         on_prop = self.onto.graph.value(node, OWL.onProperty)
         if not on_prop:
             return
-        prop_name = NamingRegistry.uri_to_python_name(on_prop)
+        description_for = self.onto.description_for(for_class)
+        for_class = description_for or for_class
+        prop_name = NamingRegistry.uri_to_python_name(on_prop, self.onto.graph)
         if prop_name in self.onto.properties:
             self.property_maps.dom_map[prop_name].add(for_class)
         some = self.onto.graph.value(node, OWL.someValuesFrom) or self.onto.graph.value(
@@ -654,7 +724,7 @@ class InferenceEngine:
         )
         if some:
             try:
-                rng_name = NamingRegistry.uri_to_python_name(some)
+                rng_name = NamingRegistry.uri_to_python_name(some, self.onto.graph)
                 if prop_name == "roleFor":
                     cls_info = self.onto.classes.get(for_class)
                     if cls_info:
@@ -662,8 +732,30 @@ class InferenceEngine:
                             rng_name, NamingRegistry.to_snake_case(rng_name)
                         )
                     return
+                if rng_name is None:
+                    if self.onto.graph.value(some, OWL.complementOf):
+                        complement_of = self.onto.graph.value(some, OWL.complementOf)
+                        complement_rng_name = NamingRegistry.uri_to_python_name(
+                            complement_of, self.onto.graph
+                        )
+                        if (
+                            complement_rng_name in self.onto.classes
+                            and self.onto.classes[complement_rng_name].disjoint_with
+                        ):
+                            rng_name = self.onto.classes[
+                                complement_rng_name
+                            ].disjoint_with[0]
+                        else:
+                            return
+                    else:
+                        return
                 self.property_maps.rng_map[prop_name].add(rng_name)
-                self.property_maps.rng_uri_map[prop_name].add(some)
+                rng_uri = (
+                    some
+                    if not isinstance(some, rdflib.term.BNode)
+                    else rdflib.URIRef(self.onto.classes[rng_name].uri)
+                )
+                self.property_maps.rng_uri_map[prop_name].add(rng_uri)
                 self.onto.property_restrictions.setdefault(for_class, {}).setdefault(
                     prop_name, set()
                 ).add(rng_name)
@@ -1271,6 +1363,12 @@ class CodeGenerator:
 
         self.engine.infer_properties()
 
+        for cls_name, cls_info in copy(self.onto.classes).items():
+            for desc in cls_info.has_descriptions:
+                if desc in self.onto.classes:
+                    self.onto.class_descriptions[cls_name] = self.onto.classes[desc]
+                    del self.onto.classes[desc]
+
         self.engine.apply_predefined_overrides()
 
         self.attach_domainless_data_properties_to_ontology_base_class()
@@ -1492,6 +1590,7 @@ class OwlToPythonConverter:
         """
         self.graph = rdflib.Graph()
         self.classes: Dict[str, ClassInfo] = {}
+        self.class_descriptions: Dict[str, ClassInfo] = {}
         self.properties: Dict[str, PropertyInfo] = {}
         self.predefined_data_types = predefined_data_types or {}
         self.metadata = MetadataExtractor(self.graph)
@@ -1521,11 +1620,18 @@ class OwlToPythonConverter:
             if "Symbol" in existing.superclasses and len(existing.superclasses) > 1:
                 existing.superclasses.remove("Symbol")
 
+            # Merge declared properties
+            for dp in info.declared_properties:
+                if dp not in existing.declared_properties:
+                    existing.declared_properties.append(dp)
+
             # Merge other metadata
             if not existing.label:
                 existing.label = info.label
             if not existing.comment:
                 existing.comment = info.comment
+        elif info.is_description_for:
+            self.class_descriptions[info.is_description_for] = info
         else:
             self.classes[info.name] = info
 
@@ -1580,6 +1686,8 @@ class OwlToPythonConverter:
 
             # Handle regular classes and other BNodes (Intersections, Restrictions)
             info = self.class_ext.extract_info(cls_uri)
+            if not info:
+                continue
             self._register_class(info)
 
         for p_type in [
@@ -1605,6 +1713,7 @@ class OwlToPythonConverter:
         self.ontology_info = OntologyInfo(
             self.graph,
             self.classes,
+            self.class_descriptions,
             self.properties,
             self.predefined_data_types,
             self.ontology_label,
@@ -1639,5 +1748,5 @@ if __name__ == "__main__":
         generate_owl2bench_with_predicates,
     )
 
-    generate_lubm_with_predicates(clean=True)
+    # generate_lubm_with_predicates(clean=True)
     generate_owl2bench_with_predicates(clean=True)

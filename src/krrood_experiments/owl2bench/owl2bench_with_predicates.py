@@ -14,7 +14,12 @@ from .owl2bench_with_predicates_base import *
 
 # Generated classes
 @dataclass(eq=False)
-class CollegeANDhasStudentALLAnonymousClass(OWL2BenchOntology):
+class Man(ManORWoman):
+    ...
+
+
+@dataclass(eq=False)
+class Woman(ManORWoman):
     ...
 
 
@@ -47,7 +52,7 @@ class Organization(OWL2BenchOntology):
     has_evaluation_committee: Set[EvaluationCommittee] = field(kw_only=True, default_factory=set)
     has_member: Set[Person] = field(kw_only=True, default_factory=set)
     has_part: Set[Organization] = field(kw_only=True, default_factory=set)
-    has_student: Set[Student] = field(kw_only=True, default_factory=set)
+    has_student: Set[Union[Student, Woman]] = field(kw_only=True, default_factory=set)
     has_student_evaluation_committee: Set[StudentEvaluationCommittee] = field(kw_only=True, default_factory=set)
     has_sub_organization: Set[Organization] = field(kw_only=True, default_factory=set)
     has_thesis_evaluation_committee: Set[ThesisEvaluationCommittee] = field(kw_only=True, default_factory=set)
@@ -69,7 +74,7 @@ class Person(OWL2BenchOntology):
     has_email_address: Optional[Any] = field(kw_only=True, default=None)
     has_first_name: Optional[Any] = field(kw_only=True, default=None)
     has_last_name: Optional[Any] = field(kw_only=True, default=None)
-    has_major: Set[Any] = field(kw_only=True, default_factory=set)
+    has_major: Set[Science] = field(kw_only=True, default_factory=set)
     has_master_degree_from: Set[University] = field(kw_only=True, default_factory=set)
     has_telephone: Optional[Any] = field(kw_only=True, default=None)
     has_title: Optional[Any] = field(kw_only=True, default=None)
@@ -95,11 +100,6 @@ class Publication(OWL2BenchOntology):
 
 
 @dataclass(eq=False)
-class StudentANDAnonymousClass(OWL2BenchOntology):
-    ...
-
-
-@dataclass(eq=False)
 class Thing(OWL2BenchOntology):
     ...
 
@@ -112,28 +112,6 @@ class Work(OWL2BenchOntology):
 @dataclass(eq=False)
 class Article(Publication):
     ...
-
-
-@dataclass(eq=False)
-class BasketBallFan(Role[Person], Symbol):
-    # Role taker
-    person: Person
-
-    @classmethod
-    @lru_cache(maxsize=None)
-    def role_taker_field(cls) -> Field:
-        return next(iter(f for f in fields(cls) if f.name == "person"))
-
-
-@dataclass(eq=False)
-class BasketBallLover(Role[Person], Symbol):
-    # Role taker
-    person: Person
-
-    @classmethod
-    @lru_cache(maxsize=None)
-    def role_taker_field(cls) -> Field:
-        return next(iter(f for f in fields(cls) if f.name == "person"))
 
 
 @dataclass(eq=False)
@@ -227,11 +205,6 @@ class Institute(Organization):
 
 
 @dataclass(eq=False)
-class ManORWoman(Person):
-    ...
-
-
-@dataclass(eq=False)
 class Management(CollegeDiscipline):
     ...
 
@@ -265,6 +238,7 @@ class Painting(Interest):
 class PeopleWithHobby(Role[Person], Symbol):
     # Role taker
     person: Person
+    likes: Set[Interest] = field(kw_only=True, default_factory=set)
 
     @classmethod
     @lru_cache(maxsize=None)
@@ -318,28 +292,6 @@ class Specification(Publication):
 @dataclass(eq=False)
 class Sports(Interest):
     ...
-
-
-@dataclass(eq=False)
-class SportsFan(Role[Person], Symbol):
-    # Role taker
-    person: Person
-
-    @classmethod
-    @lru_cache(maxsize=None)
-    def role_taker_field(cls) -> Field:
-        return next(iter(f for f in fields(cls) if f.name == "person"))
-
-
-@dataclass(eq=False)
-class SportsLover(Role[Person], Symbol):
-    # Role taker
-    person: Person
-
-    @classmethod
-    @lru_cache(maxsize=None)
-    def role_taker_field(cls) -> Field:
-        return next(iter(f for f in fields(cls) if f.name == "person"))
 
 
 @dataclass(eq=False)
@@ -569,17 +521,12 @@ class LatinArts(FineArts):
 
 
 @dataclass(eq=False)
-class LeisureStudent(Student, StudentANDAnonymousClass):
+class LeisureStudent(Student):
     ...
 
 
 @dataclass(eq=False)
 class Linguistics(HumanitiesAndSocial):
-    ...
-
-
-@dataclass(eq=False)
-class Man(ManORWoman):
     ...
 
 
@@ -645,46 +592,11 @@ class OperationsManagement(Management):
 
 @dataclass(eq=False)
 class PGStudent(Student):
-    ...
+    enroll_for: Set[PGProgram] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
 class PerformingArts(FineArts):
-    ...
-
-
-@dataclass(eq=False)
-class PersonANDenrollInSOMEDepartment(Student):
-    ...
-
-
-@dataclass(eq=False)
-class PersonANDisCrazyAboutSOMEBasketBall(BasketBallFan):
-    ...
-
-
-@dataclass(eq=False)
-class PersonANDisCrazyAboutSOMESports(SportsFan):
-    ...
-
-
-@dataclass(eq=False)
-class PersonANDlikesSOMEInterest(PeopleWithHobby):
-    ...
-
-
-@dataclass(eq=False)
-class PersonANDlovesSOMEBasketBall(BasketBallLover):
-    ...
-
-
-@dataclass(eq=False)
-class PersonANDlovesSOMESports(SportsLover):
-    ...
-
-
-@dataclass(eq=False)
-class PersonANDworksForSOMEOrganization(Employee):
     ...
 
 
@@ -695,7 +607,7 @@ class PetroleumlEngineering(Engineering):
 
 @dataclass(eq=False)
 class PhDStudent(Student):
-    ...
+    enroll_for: Set[PhDProgram] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
@@ -745,7 +657,17 @@ class SalesManagement(Management):
 
 @dataclass(eq=False)
 class ScienceStudent(Student):
-    ...
+    has_major: Set[Science] = field(kw_only=True, default_factory=set)
+
+
+@dataclass(eq=False)
+class SportsFan(PeopleWithHobby):
+    is_crazy_about: Set[Sports] = field(kw_only=True, default_factory=set)
+
+
+@dataclass(eq=False)
+class SportsLover(PeopleWithHobby):
+    loves: Set[Sports] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
@@ -803,26 +725,26 @@ class ThesisEvaluationCommittee(StudentEvaluationCommittee):
 
 @dataclass(eq=False)
 class UGStudent(Student):
-    ...
+    enroll_for: Set[UGProgram] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
-class Woman(ManORWoman):
-    ...
+class WomanCollege(College):
+    has_student: Set[Woman] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
-class WomanCollege(College, CollegeANDhasStudentALLAnonymousClass):
-    ...
+class BasketBallFan(SportsLover):
+    is_crazy_about: Set[BasketBall] = field(kw_only=True, default_factory=set)
+
+
+@dataclass(eq=False)
+class BasketBallLover(SportsLover):
+    loves: Set[BasketBall] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
 class ClericalStaff(SupportingStaff):
-    ...
-
-
-@dataclass(eq=False)
-class EmployeeANDteachesCourseSOMECourse(Faculty):
     ...
 
 
@@ -852,31 +774,6 @@ class PostDoc(Faculty):
 class Professor(Faculty):
     is_professor_of: Set[Department] = field(kw_only=True, default_factory=set)
     tenured: Optional[bool] = field(kw_only=True, default=None)
-
-
-@dataclass(eq=False)
-class StudentANDenrollForSOMEPGProgram(PGStudent):
-    ...
-
-
-@dataclass(eq=False)
-class StudentANDenrollForSOMEPhDProgram(PhDStudent):
-    ...
-
-
-@dataclass(eq=False)
-class StudentANDenrollForSOMEUGProgram(UGStudent):
-    ...
-
-
-@dataclass(eq=False)
-class StudentANDhasMajorSOMEScience(ScienceStudent):
-    ...
-
-
-@dataclass(eq=False)
-class StudentANDisTeachingAssistantOfSOMECourse(TeachingAssistant):
-    ...
 
 
 @dataclass(eq=False)
@@ -1014,6 +911,7 @@ Employee.is_other_staff_of = IsOtherStaffOf(Employee, 'is_other_staff_of')
 Employee.is_supporting_staff_of = IsSupportingStaffOf(Employee, 'is_supporting_staff_of')
 Employee.is_system_staff_of = IsSystemStaffOf(Employee, 'is_system_staff_of')
 Employee.works_for = WorksFor(Employee, 'works_for')
+PeopleWithHobby.likes = Likes(PeopleWithHobby, 'likes')
 ResearchGroup.has_research_assistant = HasResearchAssistant(ResearchGroup, 'has_research_assistant')
 ResearchGroup.has_research_project = HasResearchProject(ResearchGroup, 'has_research_project')
 ResearchGroup.is_research_group_of = IsResearchGroupOf(ResearchGroup, 'is_research_group_of')
@@ -1027,8 +925,17 @@ University.has_research_group = HasResearchGroup(University, 'has_research_group
 University.has_women_college = HasWomenCollege(University, 'has_women_college')
 Faculty.is_faculty_of = IsFacultyOf(Faculty, 'is_faculty_of')
 Faculty.teaches_course = TeachesCourse(Faculty, 'teaches_course')
+PGStudent.enroll_for = EnrollFor(PGStudent, 'enroll_for')
+PhDStudent.enroll_for = EnrollFor(PhDStudent, 'enroll_for')
 ResearchAssistant.is_research_assistant_of = IsResearchAssistantOf(ResearchAssistant, 'is_research_assistant_of')
+ScienceStudent.has_major = HasMajor(ScienceStudent, 'has_major')
+SportsFan.is_crazy_about = IsCrazyAbout(SportsFan, 'is_crazy_about')
+SportsLover.loves = Loves(SportsLover, 'loves')
 TeachingAssistant.is_teaching_assistant_of = IsTeachingAssistantOf(TeachingAssistant, 'is_teaching_assistant_of')
+UGStudent.enroll_for = EnrollFor(UGStudent, 'enroll_for')
+WomanCollege.has_student = HasStudent(WomanCollege, 'has_student')
+BasketBallFan.is_crazy_about = IsCrazyAbout(BasketBallFan, 'is_crazy_about')
+BasketBallLover.loves = Loves(BasketBallLover, 'loves')
 Lecturer.is_lecturer_of = IsLecturerOf(Lecturer, 'is_lecturer_of')
 PostDoc.is_post_doc_of = IsPostDocOf(PostDoc, 'is_post_doc_of')
 Professor.is_professor_of = IsProfessorOf(Professor, 'is_professor_of')
