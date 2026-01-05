@@ -17,58 +17,58 @@ from .lubm_with_predicates_base import *
 class Organization(UnivBenchOntology):
     """organization"""
     # is affiliated with
-    affiliate_of: Set[Person] = field(default_factory=set)
+    affiliate_of: Set[Person] = field(kw_only=True, default_factory=set)
     # is affiliated with
-    affiliated_organization_of: Set[Organization] = field(default_factory=set)
+    affiliated_organization_of: Set[Organization] = field(kw_only=True, default_factory=set)
     # has as a member
-    member: Set[Person] = field(default_factory=set)
+    member: Set[Person] = field(kw_only=True, default_factory=set)
     # publishes
-    org_publication: Set[Publication] = field(default_factory=set)
+    org_publication: Set[Publication] = field(kw_only=True, default_factory=set)
     # is part of
-    sub_organization_of: Set[Organization] = field(default_factory=set)
+    sub_organization_of: Set[Organization] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
 class Person(UnivBenchOntology):
     """person"""
     # is being advised by
-    advisor: Set[Professor] = field(default_factory=set)
+    advisor: Set[Professor] = field(kw_only=True, default_factory=set)
     # is age
     age: Optional[int] = field(kw_only=True, default=None)
     # has a degree from
-    degree_from: Set[University] = field(default_factory=set)
+    degree_from: Set[University] = field(kw_only=True, default_factory=set)
     # has a doctoral degree from
-    doctoral_degree_from: Set[University] = field(default_factory=set)
+    doctoral_degree_from: Set[University] = field(kw_only=True, default_factory=set)
     # can be reached at
     email_address: Optional[str] = field(kw_only=True, default=None)
     # has a masters degree from
-    masters_degree_from: Set[University] = field(default_factory=set)
+    masters_degree_from: Set[University] = field(kw_only=True, default_factory=set)
     # member of
-    member_of: Set[Organization] = field(default_factory=set)
+    member_of: Set[Organization] = field(kw_only=True, default_factory=set)
     # telephone number
     telephone: Optional[str] = field(kw_only=True, default=None)
     # title
     title: Optional[str] = field(kw_only=True, default=None)
     # has an undergraduate degree from
-    undergraduate_degree_from: Set[University] = field(default_factory=set)
+    undergraduate_degree_from: Set[University] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
 class Publication(UnivBenchOntology):
     """publication"""
     # was written by
-    publication_author: Set[Person] = field(default_factory=set)
+    publication_author: Set[Person] = field(kw_only=True, default_factory=set)
     # was written on
     publication_date: Optional[str] = field(kw_only=True, default=None)
     # is about
-    publication_research: Set[Research] = field(default_factory=set)
+    publication_research: Set[Research] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
 class Schedule(UnivBenchOntology):
     """schedule"""
     # lists as a course
-    listed_course: Set[Course] = field(default_factory=set)
+    listed_course: Set[Course] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
@@ -113,7 +113,7 @@ class Employee(Role[Person], Symbol):
     # Role taker
     person: Person
     # Works For
-    works_for: Set[Organization] = field(default_factory=set)
+    works_for: Set[Organization] = field(kw_only=True, default_factory=set)
 
     @classmethod
     @lru_cache(maxsize=None)
@@ -149,14 +149,14 @@ class Research(Work):
 class ResearchGroup(Organization):
     """research group"""
     # has as a research project
-    research_project: Set[Research] = field(default_factory=set)
+    research_project: Set[Research] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
 class Software(Publication):
     """software program"""
     # is documented in
-    software_documentation: Set[Publication] = field(default_factory=set)
+    software_documentation: Set[Publication] = field(kw_only=True, default_factory=set)
     # is version
     software_version: Optional[str] = field(kw_only=True, default=None)
 
@@ -173,7 +173,7 @@ class Student(Role[Person], Symbol):
     # Role taker
     person: Person
     # is taking
-    takes_course: Set[Course] = field(default_factory=set)
+    takes_course: Set[Course] = field(kw_only=True, default_factory=set)
 
     @classmethod
     @lru_cache(maxsize=None)
@@ -187,7 +187,7 @@ class TeachingAssistant(Role[Person], Symbol):
     # Role taker
     person: Person
     # is a teaching assistant for
-    teaching_assistant_of: Set[Course] = field(default_factory=set)
+    teaching_assistant_of: Set[Course] = field(kw_only=True, default_factory=set)
 
     @classmethod
     @lru_cache(maxsize=None)
@@ -199,7 +199,7 @@ class TeachingAssistant(Role[Person], Symbol):
 class University(Organization):
     """university"""
     # has as an alumnus
-    has_alumnus: Set[Person] = field(default_factory=set)
+    has_alumnus: Set[Person] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
@@ -224,14 +224,14 @@ class ConferencePaper(Article):
 class Director(Employee):
     """director"""
     # is the head of
-    head_of: Set[Program] = field(default_factory=set)
+    head_of: Set[Program] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
 class Faculty(Employee):
     """faculty member"""
     # teaches
-    teacher_of: Set[Course] = field(default_factory=set)
+    teacher_of: Set[Course] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
@@ -244,7 +244,7 @@ class GraduateCourse(Course):
 class GraduateStudent(Student):
     """graduate student"""
     # is taking
-    takes_course: Set[GraduateCourse] = field(default_factory=set)
+    takes_course: Set[GraduateCourse] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
@@ -257,7 +257,7 @@ class JournalArticle(Article):
 class ResearchAssistant(Employee):
     """university research assistant"""
     # Works For
-    works_for: Set[ResearchGroup] = field(default_factory=set)
+    works_for: Set[ResearchGroup] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
@@ -340,7 +340,7 @@ class Chair(Role[Professor], Symbol):
     # Role taker
     professor: Professor
     # is the head of
-    head_of: Set[Department] = field(default_factory=set)
+    head_of: Set[Department] = field(kw_only=True, default_factory=set)
 
     @classmethod
     @lru_cache(maxsize=None)
@@ -354,7 +354,7 @@ class Dean(Role[Professor], Symbol):
     # Role taker
     professor: Professor
     # is the head of
-    head_of: Set[College] = field(default_factory=set)
+    head_of: Set[College] = field(kw_only=True, default_factory=set)
 
     @classmethod
     @lru_cache(maxsize=None)

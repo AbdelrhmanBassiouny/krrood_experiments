@@ -26,7 +26,7 @@ class {{ cls.name }}({{ ', '.join(cls.base_classes) }}):
     {% if prop.label or prop.comment %}    # {{ prop.label if prop.label else '' }}{% if prop.label and prop.comment %} - {% endif %}{{ prop.comment if prop.comment else '' }}
     {% endif %}
     {% if prop.type == 'ObjectProperty' %}
-    {{ prop.field_name }}: Set[{{ prop.object_range_hint }}] = field(default_factory=set)
+    {{ prop.field_name }}: Set[{{ prop.object_range_hint }}] = field(kw_only=True, default_factory=set)
     {% else %}
     {{ prop.field_name }}: Optional[{{ prop.data_type_hint_inner }}] = field(kw_only=True, default=None)
     {% endif %}

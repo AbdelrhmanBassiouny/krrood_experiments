@@ -14,19 +14,24 @@ from .owl2bench_with_predicates_base import *
 
 # Generated classes
 @dataclass(eq=False)
+class CollegeANDhasStudentALLAnonymousClass(OWL2BenchOntology):
+    ...
+
+
+@dataclass(eq=False)
 class CollegeDiscipline(OWL2BenchOntology):
     ...
 
 
 @dataclass(eq=False)
 class Course(OWL2BenchOntology):
-    is_taught_by: Set[Faculty] = field(default_factory=set)
+    is_taught_by: Set[Faculty] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
 class EvaluationCommittee(OWL2BenchOntology):
-    evaluates: Set[Person] = field(default_factory=set)
-    has_committee_members: Set[Person] = field(default_factory=set)
+    evaluates: Set[Person] = field(kw_only=True, default_factory=set)
+    has_committee_members: Set[Person] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
@@ -35,51 +40,46 @@ class Interest(OWL2BenchOntology):
 
 
 @dataclass(eq=False)
-class Man(OWL2BenchOntology):
-    ...
-
-
-@dataclass(eq=False)
 class Organization(OWL2BenchOntology):
-    has_dean: Set[Person] = field(default_factory=set)
-    has_employee: Set[Employee] = field(default_factory=set)
-    has_employee_evaluation_committee: Set[EmployeeEvaluationCommittee] = field(default_factory=set)
-    has_evaluation_committee: Set[EvaluationCommittee] = field(default_factory=set)
-    has_member: Set[Person] = field(default_factory=set)
-    has_part: Set[Organization] = field(default_factory=set)
-    has_student: Set[Student] = field(default_factory=set)
-    has_student_evaluation_committee: Set[StudentEvaluationCommittee] = field(default_factory=set)
-    has_sub_organization: Set[Organization] = field(default_factory=set)
-    has_thesis_evaluation_committee: Set[ThesisEvaluationCommittee] = field(default_factory=set)
-    is_affiliated_organization_of: Set[Organization] = field(default_factory=set)
-    is_part_of: Set[Organization] = field(default_factory=set)
-    is_sub_organization_of: Set[Organization] = field(default_factory=set)
-    org_publication: Set[Publication] = field(default_factory=set)
+    has_dean: Set[Person] = field(kw_only=True, default_factory=set)
+    has_employee: Set[Employee] = field(kw_only=True, default_factory=set)
+    has_employee_evaluation_committee: Set[EmployeeEvaluationCommittee] = field(kw_only=True, default_factory=set)
+    has_evaluation_committee: Set[EvaluationCommittee] = field(kw_only=True, default_factory=set)
+    has_member: Set[Person] = field(kw_only=True, default_factory=set)
+    has_part: Set[Organization] = field(kw_only=True, default_factory=set)
+    has_student: Set[Student] = field(kw_only=True, default_factory=set)
+    has_student_evaluation_committee: Set[StudentEvaluationCommittee] = field(kw_only=True, default_factory=set)
+    has_sub_organization: Set[Organization] = field(kw_only=True, default_factory=set)
+    has_thesis_evaluation_committee: Set[ThesisEvaluationCommittee] = field(kw_only=True, default_factory=set)
+    is_affiliated_organization_of: Set[Organization] = field(kw_only=True, default_factory=set)
+    is_part_of: Set[Organization] = field(kw_only=True, default_factory=set)
+    is_sub_organization_of: Set[Organization] = field(kw_only=True, default_factory=set)
+    org_publication: Set[Publication] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
 class Person(OWL2BenchOntology):
-    dislikes: Set[Interest] = field(default_factory=set)
-    evaluated_by: Set[EvaluationCommittee] = field(default_factory=set)
-    has_advisor: Set[Professor] = field(default_factory=set)
+    dislikes: Set[Interest] = field(kw_only=True, default_factory=set)
+    evaluated_by: Set[EvaluationCommittee] = field(kw_only=True, default_factory=set)
+    has_advisor: Set[Professor] = field(kw_only=True, default_factory=set)
     has_age: Optional[Any] = field(kw_only=True, default=None)
-    has_collaboration_with: Set[Person] = field(default_factory=set)
-    has_degree_from: Set[University] = field(default_factory=set)
-    has_doctoral_degree_from: Set[University] = field(default_factory=set)
+    has_collaboration_with: Set[Person] = field(kw_only=True, default_factory=set)
+    has_degree_from: Set[University] = field(kw_only=True, default_factory=set)
+    has_doctoral_degree_from: Set[University] = field(kw_only=True, default_factory=set)
     has_email_address: Optional[Any] = field(kw_only=True, default=None)
     has_first_name: Optional[Any] = field(kw_only=True, default=None)
     has_last_name: Optional[Any] = field(kw_only=True, default=None)
-    has_major: Set[Any] = field(default_factory=set)
-    has_master_degree_from: Set[University] = field(default_factory=set)
+    has_major: Set[Any] = field(kw_only=True, default_factory=set)
+    has_master_degree_from: Set[University] = field(kw_only=True, default_factory=set)
     has_telephone: Optional[Any] = field(kw_only=True, default=None)
     has_title: Optional[Any] = field(kw_only=True, default=None)
-    has_undergraduate_degree_from: Set[University] = field(default_factory=set)
-    is_advised_by: Set[Professor] = field(default_factory=set)
-    is_crazy_about: Set[Interest] = field(default_factory=set)
-    is_dean_of: Set[Organization] = field(default_factory=set)
-    is_member_of: Set[Organization] = field(default_factory=set)
-    likes: Set[Interest] = field(default_factory=set)
-    loves: Set[Interest] = field(default_factory=set)
+    has_undergraduate_degree_from: Set[University] = field(kw_only=True, default_factory=set)
+    is_advised_by: Set[Professor] = field(kw_only=True, default_factory=set)
+    is_crazy_about: Set[Interest] = field(kw_only=True, default_factory=set)
+    is_dean_of: Set[Organization] = field(kw_only=True, default_factory=set)
+    is_member_of: Set[Organization] = field(kw_only=True, default_factory=set)
+    likes: Set[Interest] = field(kw_only=True, default_factory=set)
+    loves: Set[Interest] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
@@ -90,17 +90,17 @@ class Program(OWL2BenchOntology):
 
 @dataclass(eq=False)
 class Publication(OWL2BenchOntology):
-    has_author: Set[Person] = field(default_factory=set)
-    publication_research: Set[Any] = field(default_factory=set)
+    has_author: Set[Person] = field(kw_only=True, default_factory=set)
+    publication_research: Set[Any] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
-class Thing(OWL2BenchOntology):
+class StudentANDAnonymousClass(OWL2BenchOntology):
     ...
 
 
 @dataclass(eq=False)
-class Woman(OWL2BenchOntology):
+class Thing(OWL2BenchOntology):
     ...
 
 
@@ -131,33 +131,33 @@ class Book(Publication):
 
 @dataclass(eq=False)
 class College(Organization):
-    has_college_discipline: Set[CollegeDiscipline] = field(default_factory=set)
-    has_department: Set[Department] = field(default_factory=set)
-    is_college_of: Set[University] = field(default_factory=set)
-    is_women_college_of: Set[University] = field(default_factory=set)
+    has_college_discipline: Set[CollegeDiscipline] = field(kw_only=True, default_factory=set)
+    has_department: Set[Department] = field(kw_only=True, default_factory=set)
+    is_college_of: Set[University] = field(kw_only=True, default_factory=set)
+    is_women_college_of: Set[University] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
 class Department(Organization):
-    has_assistant_professor: Set[AssistantProfessor] = field(default_factory=set)
-    has_associate_professor: Set[AssociateProfessor] = field(default_factory=set)
-    has_clerical_staff: Set[ClericalStaff] = field(default_factory=set)
-    has_faculty: Set[Faculty] = field(default_factory=set)
-    has_full_professor: Set[FullProfessor] = field(default_factory=set)
-    has_head: Set[FullProfessor] = field(default_factory=set)
-    has_lecturer: Set[Lecturer] = field(default_factory=set)
-    has_other_staff: Set[OtherStaff] = field(default_factory=set)
-    has_pg_program: Set[PGProgram] = field(default_factory=set)
-    has_ph_d_program: Set[PhDProgram] = field(default_factory=set)
-    has_post_doc: Set[PostDoc] = field(default_factory=set)
-    has_professor: Set[Professor] = field(default_factory=set)
-    has_program: Set[Program] = field(default_factory=set)
-    has_supporting_staff: Set[SupportingStaff] = field(default_factory=set)
-    has_system_staff: Set[SystemStaff] = field(default_factory=set)
-    has_ug_program: Set[UGProgram] = field(default_factory=set)
-    has_visiting_professor: Set[VisitingProfessor] = field(default_factory=set)
-    is_department_of: Set[College] = field(default_factory=set)
-    offer_course: Set[Course] = field(default_factory=set)
+    has_assistant_professor: Set[AssistantProfessor] = field(kw_only=True, default_factory=set)
+    has_associate_professor: Set[AssociateProfessor] = field(kw_only=True, default_factory=set)
+    has_clerical_staff: Set[ClericalStaff] = field(kw_only=True, default_factory=set)
+    has_faculty: Set[Faculty] = field(kw_only=True, default_factory=set)
+    has_full_professor: Set[FullProfessor] = field(kw_only=True, default_factory=set)
+    has_head: Set[FullProfessor] = field(kw_only=True, default_factory=set)
+    has_lecturer: Set[Lecturer] = field(kw_only=True, default_factory=set)
+    has_other_staff: Set[OtherStaff] = field(kw_only=True, default_factory=set)
+    has_pg_program: Set[PGProgram] = field(kw_only=True, default_factory=set)
+    has_ph_d_program: Set[PhDProgram] = field(kw_only=True, default_factory=set)
+    has_post_doc: Set[PostDoc] = field(kw_only=True, default_factory=set)
+    has_professor: Set[Professor] = field(kw_only=True, default_factory=set)
+    has_program: Set[Program] = field(kw_only=True, default_factory=set)
+    has_supporting_staff: Set[SupportingStaff] = field(kw_only=True, default_factory=set)
+    has_system_staff: Set[SystemStaff] = field(kw_only=True, default_factory=set)
+    has_ug_program: Set[UGProgram] = field(kw_only=True, default_factory=set)
+    has_visiting_professor: Set[VisitingProfessor] = field(kw_only=True, default_factory=set)
+    is_department_of: Set[College] = field(kw_only=True, default_factory=set)
+    offer_course: Set[Course] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
@@ -169,12 +169,12 @@ class ElectiveCourse(Course):
 class Employee(Role[Person], Symbol):
     # Role taker
     person: Person
-    has_work: Set[Work] = field(default_factory=set)
-    is_clerical_staff_of: Set[Organization] = field(default_factory=set)
-    is_other_staff_of: Set[Organization] = field(default_factory=set)
-    is_supporting_staff_of: Set[Organization] = field(default_factory=set)
-    is_system_staff_of: Set[Organization] = field(default_factory=set)
-    works_for: Set[Organization] = field(default_factory=set)
+    has_work: Set[Work] = field(kw_only=True, default_factory=set)
+    is_clerical_staff_of: Set[Organization] = field(kw_only=True, default_factory=set)
+    is_other_staff_of: Set[Organization] = field(kw_only=True, default_factory=set)
+    is_supporting_staff_of: Set[Organization] = field(kw_only=True, default_factory=set)
+    is_system_staff_of: Set[Organization] = field(kw_only=True, default_factory=set)
+    works_for: Set[Organization] = field(kw_only=True, default_factory=set)
 
     @classmethod
     @lru_cache(maxsize=None)
@@ -211,6 +211,11 @@ class HumanitiesAndSocial(CollegeDiscipline):
 
 @dataclass(eq=False)
 class Institute(Organization):
+    ...
+
+
+@dataclass(eq=False)
+class ManORWoman(Person):
     ...
 
 
@@ -261,9 +266,9 @@ class Reading(Interest):
 
 @dataclass(eq=False)
 class ResearchGroup(Organization):
-    has_research_assistant: Set[ResearchAssistant] = field(default_factory=set)
-    has_research_project: Set[ResearchProject] = field(default_factory=set)
-    is_research_group_of: Set[University] = field(default_factory=set)
+    has_research_assistant: Set[ResearchAssistant] = field(kw_only=True, default_factory=set)
+    has_research_project: Set[ResearchProject] = field(kw_only=True, default_factory=set)
+    is_research_group_of: Set[University] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
@@ -309,10 +314,10 @@ class SportsLover(Person):
 
 @dataclass(eq=False)
 class Student(Person):
-    enroll_for: Set[Program] = field(default_factory=set)
-    enroll_in: Set[Department] = field(default_factory=set)
-    is_student_of: Set[Organization] = field(default_factory=set)
-    takes_course: Set[Course] = field(default_factory=set)
+    enroll_for: Set[Program] = field(kw_only=True, default_factory=set)
+    enroll_in: Set[Department] = field(kw_only=True, default_factory=set)
+    is_student_of: Set[Organization] = field(kw_only=True, default_factory=set)
+    takes_course: Set[Course] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
@@ -348,10 +353,10 @@ class UGProgram(Program):
 
 @dataclass(eq=False)
 class University(Organization):
-    has_alumnus: Set[Person] = field(default_factory=set)
-    has_college: Set[College] = field(default_factory=set)
-    has_research_group: Set[ResearchGroup] = field(default_factory=set)
-    has_women_college: Set[College] = field(default_factory=set)
+    has_alumnus: Set[Person] = field(kw_only=True, default_factory=set)
+    has_college: Set[College] = field(kw_only=True, default_factory=set)
+    has_research_group: Set[ResearchGroup] = field(kw_only=True, default_factory=set)
+    has_women_college: Set[College] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
@@ -471,8 +476,8 @@ class English(HumanitiesAndSocial):
 
 @dataclass(eq=False)
 class Faculty(Employee):
-    is_faculty_of: Set[Organization] = field(default_factory=set)
-    teaches_course: Set[Course] = field(default_factory=set)
+    is_faculty_of: Set[Organization] = field(kw_only=True, default_factory=set)
+    teaches_course: Set[Course] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
@@ -521,12 +526,17 @@ class LatinArts(FineArts):
 
 
 @dataclass(eq=False)
-class LeisureStudent(Student):
+class LeisureStudent(Student, StudentANDAnonymousClass):
     ...
 
 
 @dataclass(eq=False)
 class Linguistics(HumanitiesAndSocial):
+    ...
+
+
+@dataclass(eq=False)
+class Man(ManORWoman):
     ...
 
 
@@ -601,6 +611,41 @@ class PerformingArts(FineArts):
 
 
 @dataclass(eq=False)
+class PersonANDenrollInSOMEDepartment(Student):
+    ...
+
+
+@dataclass(eq=False)
+class PersonANDisCrazyAboutSOMEBasketBall(BasketBallFan):
+    ...
+
+
+@dataclass(eq=False)
+class PersonANDisCrazyAboutSOMESports(SportsFan):
+    ...
+
+
+@dataclass(eq=False)
+class PersonANDlikesSOMEInterest(PeopleWithHobby):
+    ...
+
+
+@dataclass(eq=False)
+class PersonANDlovesSOMEBasketBall(BasketBallLover):
+    ...
+
+
+@dataclass(eq=False)
+class PersonANDlovesSOMESports(SportsLover):
+    ...
+
+
+@dataclass(eq=False)
+class PersonANDworksForSOMEOrganization(Employee):
+    ...
+
+
+@dataclass(eq=False)
 class PetroleumlEngineering(Engineering):
     ...
 
@@ -642,7 +687,7 @@ class Religions(HumanitiesAndSocial):
 
 @dataclass(eq=False)
 class ResearchAssistant(Employee):
-    is_research_assistant_of: Set[ResearchGroup] = field(default_factory=set)
+    is_research_assistant_of: Set[ResearchGroup] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
@@ -682,7 +727,7 @@ class Swimming(Sports):
 
 @dataclass(eq=False)
 class TeachingAssistant(Student):
-    is_teaching_assistant_of: Set[Course] = field(default_factory=set)
+    is_teaching_assistant_of: Set[Course] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
@@ -712,7 +757,12 @@ class UGStudent(Student):
 
 
 @dataclass(eq=False)
-class WomanCollege(College):
+class Woman(ManORWoman):
+    ...
+
+
+@dataclass(eq=False)
+class WomanCollege(College, CollegeANDhasStudentALLAnonymousClass):
     ...
 
 
@@ -722,8 +772,13 @@ class ClericalStaff(SupportingStaff):
 
 
 @dataclass(eq=False)
+class EmployeeANDteachesCourseSOMECourse(Faculty):
+    ...
+
+
+@dataclass(eq=False)
 class Lecturer(Faculty):
-    is_lecturer_of: Set[Department] = field(default_factory=set)
+    is_lecturer_of: Set[Department] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
@@ -733,13 +788,38 @@ class OtherStaff(SupportingStaff):
 
 @dataclass(eq=False)
 class PostDoc(Faculty):
-    is_post_doc_of: Set[Department] = field(default_factory=set)
+    is_post_doc_of: Set[Department] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
 class Professor(Faculty):
-    is_professor_of: Set[Department] = field(default_factory=set)
+    is_professor_of: Set[Department] = field(kw_only=True, default_factory=set)
     tenured: Optional[bool] = field(kw_only=True, default=None)
+
+
+@dataclass(eq=False)
+class StudentANDenrollForSOMEPGProgram(PGStudent):
+    ...
+
+
+@dataclass(eq=False)
+class StudentANDenrollForSOMEPhDProgram(PhDStudent):
+    ...
+
+
+@dataclass(eq=False)
+class StudentANDenrollForSOMEUGProgram(UGStudent):
+    ...
+
+
+@dataclass(eq=False)
+class StudentANDhasMajorSOMEScience(ScienceStudent):
+    ...
+
+
+@dataclass(eq=False)
+class StudentANDisTeachingAssistantOfSOMECourse(TeachingAssistant):
+    ...
 
 
 @dataclass(eq=False)
@@ -749,23 +829,23 @@ class SystemStaff(SupportingStaff):
 
 @dataclass(eq=False)
 class AssistantProfessor(Professor):
-    is_assistant_professor_of: Set[Department] = field(default_factory=set)
+    is_assistant_professor_of: Set[Department] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
 class AssociateProfessor(Professor):
-    is_associate_professor_of: Set[Department] = field(default_factory=set)
+    is_associate_professor_of: Set[Department] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
 class FullProfessor(Professor):
-    is_full_professor_of: Set[Department] = field(default_factory=set)
-    is_head_of: Set[Department] = field(default_factory=set)
+    is_full_professor_of: Set[Department] = field(kw_only=True, default_factory=set)
+    is_head_of: Set[Department] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
 class VisitingProfessor(Professor):
-    is_visiting_professor_of: Set[Department] = field(default_factory=set)
+    is_visiting_professor_of: Set[Department] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
