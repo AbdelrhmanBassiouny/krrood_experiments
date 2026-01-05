@@ -262,8 +262,14 @@ class Painting(Interest):
 
 
 @dataclass(eq=False)
-class PeopleWithHobby(Person):
-    ...
+class PeopleWithHobby(Role[Person], Symbol):
+    # Role taker
+    person: Person
+
+    @classmethod
+    @lru_cache(maxsize=None)
+    def role_taker_field(cls) -> Field:
+        return next(iter(f for f in fields(cls) if f.name == "person"))
 
 
 @dataclass(eq=False)

@@ -292,8 +292,7 @@ class Painting(Interest):
 
 
 @dataclass(eq=False)
-class PeopleWithHobby(Person):
-    ...
+class PeopleWithHobby(PersonMixinProtocol, Symbol):
 
 
 
