@@ -395,16 +395,6 @@ class BasketBall(Sports):
 
 
 @dataclass(eq=False)
-class BasketBallFan(PeopleWithHobby):
-    is_crazy_about: Set[BasketBall] = field(kw_only=True, default_factory=set)
-
-
-@dataclass(eq=False)
-class BasketBallLover(PeopleWithHobby):
-    loves: Set[BasketBall] = field(kw_only=True, default_factory=set)
-
-
-@dataclass(eq=False)
 class Biology(Science):
     ...
 
@@ -744,6 +734,16 @@ class WomanCollege(College):
 
 
 @dataclass(eq=False)
+class BasketBallFan(SportsFan):
+    is_crazy_about: Set[BasketBall] = field(kw_only=True, default_factory=set)
+
+
+@dataclass(eq=False)
+class BasketBallLover(SportsLover):
+    loves: Set[BasketBall] = field(kw_only=True, default_factory=set)
+
+
+@dataclass(eq=False)
 class ClericalStaff(SupportingStaff):
     ...
 
@@ -923,8 +923,6 @@ University.has_alumnus = HasAlumnus(University, 'has_alumnus')
 University.has_college = HasCollege(University, 'has_college')
 University.has_research_group = HasResearchGroup(University, 'has_research_group')
 University.has_women_college = HasWomenCollege(University, 'has_women_college')
-BasketBallFan.is_crazy_about = IsCrazyAbout(BasketBallFan, 'is_crazy_about')
-BasketBallLover.loves = Loves(BasketBallLover, 'loves')
 Faculty.is_faculty_of = IsFacultyOf(Faculty, 'is_faculty_of')
 Faculty.teaches_course = TeachesCourse(Faculty, 'teaches_course')
 PGStudent.enroll_for = EnrollFor(PGStudent, 'enroll_for')
@@ -936,6 +934,8 @@ SportsLover.loves = Loves(SportsLover, 'loves')
 TeachingAssistant.is_teaching_assistant_of = IsTeachingAssistantOf(TeachingAssistant, 'is_teaching_assistant_of')
 UGStudent.enroll_for = EnrollFor(UGStudent, 'enroll_for')
 WomanCollege.has_student = HasStudent(WomanCollege, 'has_student')
+BasketBallFan.is_crazy_about = IsCrazyAbout(BasketBallFan, 'is_crazy_about')
+BasketBallLover.loves = Loves(BasketBallLover, 'loves')
 Lecturer.is_lecturer_of = IsLecturerOf(Lecturer, 'is_lecturer_of')
 PostDoc.is_post_doc_of = IsPostDocOf(PostDoc, 'is_post_doc_of')
 Professor.is_professor_of = IsProfessorOf(Professor, 'is_professor_of')

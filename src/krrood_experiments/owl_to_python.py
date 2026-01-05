@@ -9,10 +9,11 @@ from __future__ import annotations
 import os
 import re
 from abc import ABC
+from collections import defaultdict
 from copy import deepcopy, copy
 from dataclasses import dataclass, field, asdict
 from enum import Enum
-from functools import cached_property
+from functools import cached_property, lru_cache
 from symtable import Symbol
 from typing import Dict, List, Optional, Any, Set, ClassVar
 
@@ -177,6 +178,101 @@ class OntologyInfo:
         The class ancestors map as a dictionary mapping class names to their ancestors.
         """
         return {name: set(info.all_base_classes) for name, info in self.classes.items()}
+
+    @lru_cache
+    def properties_inheritance_path_length(
+        self,
+        child_class: str,
+        parent_class: str,
+    ) -> Optional[int]:
+        """
+        Calculate the inheritance path length between two classes.
+        Every inheritance level that lies between `child_class` and `parent_class` increases the length by one.
+        In case of multiple inheritance, the path length is calculated for each branch and the minimum is returned.
+
+        :param child_class: The child class.
+        :param parent_class: The parent class.
+        :return: The minimum path length between `child_class` and `parent_class` or None if no path exists.
+        """
+        if parent_class not in self.properties[child_class].all_superproperties + [
+            child_class
+        ]:
+            return None
+
+        return self._properties_inheritance_path_length(child_class, parent_class, 0)
+
+    def _properties_inheritance_path_length(
+        self, child_class: str, parent_class: str, current_length: int = 0
+    ) -> int:
+        """
+        Helper function for :func:`inheritance_path_length`.
+
+        :param child_class: The child class.
+        :param parent_class: The parent class.
+        :param current_length: The current length of the inheritance path.
+        :return: The minimum path length between `child_class` and `parent_class`.
+        """
+
+        if child_class == parent_class:
+            return current_length
+        else:
+            return min(
+                self._properties_inheritance_path_length(
+                    base, parent_class, current_length + 1
+                )
+                for base in self.properties[child_class].superproperties
+                if parent_class in self.properties[base].all_superproperties + [base]
+            )
+
+    @lru_cache
+    def classes_inheritance_path_length(
+        self,
+        child_class: str,
+        parent_class: str,
+    ) -> Optional[int]:
+        """
+        Calculate the inheritance path length between two classes.
+        Every inheritance level that lies between `child_class` and `parent_class` increases the length by one.
+        In case of multiple inheritance, the path length is calculated for each branch and the minimum is returned.
+
+        :param child_class: The child class.
+        :param parent_class: The parent class.
+        :return: The minimum path length between `child_class` and `parent_class` or None if no path exists.
+        """
+        if (
+            parent_class
+            not in self.classes[child_class].all_base_classes_including_role_takers
+        ):
+            return None
+
+        return self._classes_inheritance_path_length(child_class, parent_class, 0)
+
+    def _classes_inheritance_path_length(
+        self, child_class: str, parent_class: str, current_length: int = 0
+    ) -> int:
+        """
+        Helper function for :func:`inheritance_path_length`.
+
+        :param child_class: The child class.
+        :param parent_class: The parent class.
+        :param current_length: The current length of the inheritance path.
+        :return: The minimum path length between `child_class` and `parent_class`.
+        """
+
+        if child_class == parent_class:
+            return current_length
+        else:
+            return min(
+                self._classes_inheritance_path_length(
+                    base, parent_class, current_length + 1
+                )
+                for base in self.classes[child_class].base_classes
+                if parent_class
+                in self.classes[base].all_base_classes_including_role_takers
+            )
+
+    def __hash__(self):
+        return hash(id(self))
 
 
 class NamingRegistry:
@@ -710,10 +806,11 @@ class InferenceEngine:
                         self.onto.graph.value(first, OWL.onProperty) if first else None
                     )
                     if on_prop:
+                        prop_name = NamingRegistry.uri_to_python_name(
+                            on_prop, self.onto.graph
+                        )
                         for_class = self.onto.description_for(cls_name) or cls_name
-                        self.property_maps.declared_dom_map[
-                            NamingRegistry.uri_to_python_name(on_prop, self.onto.graph)
-                        ].add(for_class)
+                        self.property_maps.declared_dom_map[prop_name].add(for_class)
                     node = self.onto.graph.value(node, RDF.rest)
 
     def _restrictions_handler(self, for_class: str, node: rdflib.term.Node):
@@ -1063,10 +1160,15 @@ class InferenceEngine:
                 py_types.append("bool")
         return py_types
 
-    def find_implicit_subtypes(self):
+    def find_implicit_subtypes(self, props_order: List[str]):
         """
         Identify implicit subtype or role relationships between classes based on property commonality.
         """
+        candidate_parents: Dict[
+            str,
+            Dict[Tuple[str, ...], List[Tuple[str, SubsumptionType, Dict[str, str]]]],
+        ] = defaultdict(lambda: defaultdict(list))
+        child_max_matched_props: Dict[str, int] = {n: 0 for n in self.onto.classes}
         for parent_name, parent_info in self.onto.classes.items():
             for child_name, child_info in self.onto.classes.items():
                 if not self._is_subsumption_candidate(
@@ -1074,7 +1176,9 @@ class InferenceEngine:
                 ):
                     continue
 
-                matched_props = self._get_matched_properties(parent_info, child_info)
+                matched_props, child_matched_props = self._get_matched_properties(
+                    parent_info, child_info
+                )
                 if not matched_props:
                     continue
 
@@ -1082,12 +1186,46 @@ class InferenceEngine:
                     matched_props, parent_info, child_info
                 )
                 if subsumption_type:
-                    self._apply_implicit_subsumption(
-                        child_info,
-                        parent_name,
-                        parent_info,
-                        subsumption_type,
+                    matched_props = tuple(sorted(matched_props))
+                    if len(matched_props) >= child_max_matched_props[child_name]:
+                        child_max_matched_props[child_name] = len(matched_props)
+                        candidate_parents[child_name][matched_props].append(
+                            (parent_name, subsumption_type, child_matched_props)
+                        )
+                    continue
+        for child_name, candidates in candidate_parents.items():
+            if len(candidates) == 1:
+                parent_name, subsumption_type, _ = next(iter(candidates.values()))[0]
+                self._apply_implicit_subsumption(
+                    parent_name,
+                    child_name,
+                    subsumption_type,
+                )
+                continue
+            min_mro = float("inf")
+            selected = None
+            for matched_props, subsumption_data in candidates.items():
+                for (
+                    parent_name,
+                    subsumption_type,
+                    child_matched_props,
+                ) in subsumption_data:
+                    parent_prop_name = list(child_matched_props.keys())[0]
+                    child_prop_name = child_matched_props[parent_prop_name]
+                    length = self.onto.properties_inheritance_path_length(
+                        child_prop_name, parent_prop_name
                     )
+                    if length < min_mro:
+                        min_mro = length
+                        selected = (parent_name, subsumption_type)
+            if selected:
+                parent_name, subsumption_type = selected
+                self._apply_implicit_subsumption(
+                    parent_name,
+                    child_name,
+                    subsumption_type,
+                )
+                continue
 
     def _is_subsumption_candidate(
         self,
@@ -1118,7 +1256,7 @@ class InferenceEngine:
         self,
         parent_info: ClassInfo,
         child_info: ClassInfo,
-    ) -> Set[str]:
+    ) -> Tuple[Set[str], Dict[str, str]]:
         """
         Find property base names that are compatible between parent and child.
         """
@@ -1132,6 +1270,7 @@ class InferenceEngine:
 
         # Re-verify based on original logic: check all combinations of parent/child properties
         # and remove/add base name based on range and superproperty compatibility.
+        child_matched_prop_names = {}
         for parent_p_name in parent_props:
             parent_base_name = parent_p_name.split("{")[0]
             for child_p_name in child_props:
@@ -1159,8 +1298,11 @@ class InferenceEngine:
                         matched_prop_names.remove(parent_base_name)
                     continue
                 matched_prop_names.add(parent_base_name)
+                child_matched_prop_names[parent_base_name] = [
+                    pname for pname in child_props if child_p_name in pname
+                ][0]
 
-        return matched_prop_names
+        return matched_prop_names, child_matched_prop_names
 
     @staticmethod
     def _determine_subsumption_type(
@@ -1184,12 +1326,13 @@ class InferenceEngine:
 
     def _apply_implicit_subsumption(
         self,
-        child_info: ClassInfo,
         parent_name: str,
-        parent_info: ClassInfo,
+        child_name: str,
         subsumption_type: SubsumptionType,
     ):
         """Apply the determined subsumption to the child class."""
+        child_info = self.onto.classes[child_name]
+        parent_info = self.onto.classes[parent_name]
         if self.onto.base_cls_name in child_info.base_classes:
             child_info.base_classes.remove(self.onto.base_cls_name)
 
@@ -1436,7 +1579,12 @@ class CodeGenerator:
                 list(initial), self.onto.classes, "all_base_classes", "role_taker"
             )
 
-        self.engine.find_implicit_subtypes()
+        prop_classes = {
+            k: v for k, v in self.onto.properties.items() if not v.is_specialized
+        }
+        props_order = self.engine.topological_order(prop_classes, "superproperties")
+
+        self.engine.find_implicit_subtypes(props_order)
 
         for info in self.onto.classes.values():
             info.base_classes_for_topological_sort = info.base_classes[:]
@@ -1448,10 +1596,6 @@ class CodeGenerator:
         classes_order = self.engine.topological_order(
             self.onto.classes, "base_classes_for_topological_sort"
         )
-        prop_classes = {
-            k: v for k, v in self.onto.properties.items() if not v.is_specialized
-        }
-        props_order = self.engine.topological_order(prop_classes, "superproperties")
 
         idx_map = {n: i for i, n in enumerate(props_order)}
         for info in prop_classes.values():
