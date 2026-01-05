@@ -1899,5 +1899,5 @@ if __name__ == "__main__":
         generate_owl2bench_with_predicates,
     )
 
-    # generate_lubm_with_predicates(clean=True)
+    generate_lubm_with_predicates(clean=True)
     generate_owl2bench_with_predicates(clean=True)
