@@ -1111,7 +1111,13 @@
     <!-- http://benchmark/OWL2Bench#BasketBallFan -->
 
     <owl:Class rdf:about="http://benchmark/OWL2Bench#BasketBallFan">
-        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Person"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://benchmark/OWL2Bench#roleFor"/>
+                <owl:someValuesFrom rdf:resource="http://benchmark/OWL2Bench#Person"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Role"/>
     </owl:Class>
     
 
@@ -1119,7 +1125,13 @@
     <!-- http://benchmark/OWL2Bench#BasketBallLover -->
 
     <owl:Class rdf:about="http://benchmark/OWL2Bench#BasketBallLover">
-        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Person"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://benchmark/OWL2Bench#roleFor"/>
+                <owl:someValuesFrom rdf:resource="http://benchmark/OWL2Bench#Person"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Role"/>
     </owl:Class>
     
 
@@ -1151,7 +1163,13 @@
     <!-- http://benchmark/OWL2Bench#Chair -->
 
     <owl:Class rdf:about="http://benchmark/OWL2Bench#Chair">
-        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#FullProfessor"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://benchmark/OWL2Bench#roleFor"/>
+                <owl:someValuesFrom rdf:resource="http://benchmark/OWL2Bench#FullProfessor"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Role"/>
     </owl:Class>
     
 
@@ -1254,7 +1272,13 @@
     <!-- http://benchmark/OWL2Bench#Dean -->
 
     <owl:Class rdf:about="http://benchmark/OWL2Bench#Dean">
-        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#FullProfessor"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://benchmark/OWL2Bench#roleFor"/>
+                <owl:someValuesFrom rdf:resource="http://benchmark/OWL2Bench#FullProfessor"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Role"/>
     </owl:Class>
     
 
@@ -1278,7 +1302,13 @@
     <!-- http://benchmark/OWL2Bench#Director -->
 
     <owl:Class rdf:about="http://benchmark/OWL2Bench#Director">
-        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#FullProfessor"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://benchmark/OWL2Bench#roleFor"/>
+                <owl:someValuesFrom rdf:resource="http://benchmark/OWL2Bench#FullProfessor"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Role"/>
     </owl:Class>
     
 
@@ -1493,7 +1523,13 @@
     <!-- http://benchmark/OWL2Bench#Lecturer -->
 
     <owl:Class rdf:about="http://benchmark/OWL2Bench#Lecturer">
-        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Faculty"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://benchmark/OWL2Bench#roleFor"/>
+                <owl:someValuesFrom rdf:resource="http://benchmark/OWL2Bench#Faculty"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Role"/>
     </owl:Class>
     
 
@@ -1923,7 +1959,13 @@
     <!-- http://benchmark/OWL2Bench#SportsFan -->
 
     <owl:Class rdf:about="http://benchmark/OWL2Bench#SportsFan">
-        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Person"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://benchmark/OWL2Bench#roleFor"/>
+                <owl:someValuesFrom rdf:resource="http://benchmark/OWL2Bench#Person"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Role"/>
     </owl:Class>
     
 
@@ -1931,7 +1973,13 @@
     <!-- http://benchmark/OWL2Bench#SportsLover -->
 
     <owl:Class rdf:about="http://benchmark/OWL2Bench#SportsLover">
-        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Person"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://benchmark/OWL2Bench#roleFor"/>
+                <owl:someValuesFrom rdf:resource="http://benchmark/OWL2Bench#Person"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Role"/>
     </owl:Class>
     
 
@@ -1947,7 +1995,13 @@
     <!-- http://benchmark/OWL2Bench#Student -->
 
     <owl:Class rdf:about="http://benchmark/OWL2Bench#Student">
-        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Person"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://benchmark/OWL2Bench#roleFor"/>
+                <owl:someValuesFrom rdf:resource="http://benchmark/OWL2Bench#Person"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Role"/>
         <owl:hasKey rdf:parseType="Collection">
             <rdf:Description rdf:about="http://benchmark/OWL2Bench#hasID"/>
         </owl:hasKey>
@@ -2004,7 +2058,13 @@
                 <owl:hasValue rdf:resource="http://benchmark/OWL2Bench#T20Cricket"/>
             </owl:Restriction>
         </owl:equivalentClass>
-        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Person"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://benchmark/OWL2Bench#roleFor"/>
+                <owl:someValuesFrom rdf:resource="http://benchmark/OWL2Bench#Person"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Role"/>
     </owl:Class>
     
 
@@ -2012,7 +2072,13 @@
     <!-- http://benchmark/OWL2Bench#TeachingAssistant -->
 
     <owl:Class rdf:about="http://benchmark/OWL2Bench#TeachingAssistant">
-        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Student"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://benchmark/OWL2Bench#roleFor"/>
+                <owl:someValuesFrom rdf:resource="http://benchmark/OWL2Bench#Student"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Role"/>
     </owl:Class>
     
 
@@ -2110,7 +2176,13 @@
     <!-- http://benchmark/OWL2Bench#VisitingProfessor -->
 
     <owl:Class rdf:about="http://benchmark/OWL2Bench#VisitingProfessor">
-        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Professor"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://benchmark/OWL2Bench#roleFor"/>
+                <owl:someValuesFrom rdf:resource="http://benchmark/OWL2Bench#Professor"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Role"/>
     </owl:Class>
     
 

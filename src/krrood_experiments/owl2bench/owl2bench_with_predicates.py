@@ -115,13 +115,25 @@ class Article(Publication):
 
 
 @dataclass(eq=False)
-class BasketBallFan(Person):
-    ...
+class BasketBallFan(Role[Person], Symbol):
+    # Role taker
+    person: Person
+
+    @classmethod
+    @lru_cache(maxsize=None)
+    def role_taker_field(cls) -> Field:
+        return next(iter(f for f in fields(cls) if f.name == "person"))
 
 
 @dataclass(eq=False)
-class BasketBallLover(Person):
-    ...
+class BasketBallLover(Role[Person], Symbol):
+    # Role taker
+    person: Person
+
+    @classmethod
+    @lru_cache(maxsize=None)
+    def role_taker_field(cls) -> Field:
+        return next(iter(f for f in fields(cls) if f.name == "person"))
 
 
 @dataclass(eq=False)
@@ -303,21 +315,40 @@ class Sports(Interest):
 
 
 @dataclass(eq=False)
-class SportsFan(Person):
-    ...
+class SportsFan(Role[Person], Symbol):
+    # Role taker
+    person: Person
+
+    @classmethod
+    @lru_cache(maxsize=None)
+    def role_taker_field(cls) -> Field:
+        return next(iter(f for f in fields(cls) if f.name == "person"))
 
 
 @dataclass(eq=False)
-class SportsLover(Person):
-    ...
+class SportsLover(Role[Person], Symbol):
+    # Role taker
+    person: Person
+
+    @classmethod
+    @lru_cache(maxsize=None)
+    def role_taker_field(cls) -> Field:
+        return next(iter(f for f in fields(cls) if f.name == "person"))
 
 
 @dataclass(eq=False)
-class Student(Person):
+class Student(Role[Person], Symbol):
+    # Role taker
+    person: Person
     enroll_for: Set[Program] = field(kw_only=True, default_factory=set)
     enroll_in: Set[Department] = field(kw_only=True, default_factory=set)
     is_student_of: Set[Organization] = field(kw_only=True, default_factory=set)
     takes_course: Set[Course] = field(kw_only=True, default_factory=set)
+
+    @classmethod
+    @lru_cache(maxsize=None)
+    def role_taker_field(cls) -> Field:
+        return next(iter(f for f in fields(cls) if f.name == "person"))
 
 
 @dataclass(eq=False)
@@ -326,8 +357,14 @@ class StudentEvaluationCommittee(EvaluationCommittee):
 
 
 @dataclass(eq=False)
-class T20CricketFan(Person):
-    ...
+class T20CricketFan(Role[Person], Symbol):
+    # Role taker
+    person: Person
+
+    @classmethod
+    @lru_cache(maxsize=None)
+    def role_taker_field(cls) -> Field:
+        return next(iter(f for f in fields(cls) if f.name == "person"))
 
 
 @dataclass(eq=False)
@@ -726,8 +763,15 @@ class Swimming(Sports):
 
 
 @dataclass(eq=False)
-class TeachingAssistant(Student):
+class TeachingAssistant(Role[Student], Symbol):
+    # Role taker
+    student: Student
     is_teaching_assistant_of: Set[Course] = field(kw_only=True, default_factory=set)
+
+    @classmethod
+    @lru_cache(maxsize=None)
+    def role_taker_field(cls) -> Field:
+        return next(iter(f for f in fields(cls) if f.name == "student"))
 
 
 @dataclass(eq=False)
@@ -777,8 +821,15 @@ class EmployeeANDteachesCourseSOMECourse(Faculty):
 
 
 @dataclass(eq=False)
-class Lecturer(Faculty):
+class Lecturer(Role[Faculty], Symbol):
+    # Role taker
+    faculty: Faculty
     is_lecturer_of: Set[Department] = field(kw_only=True, default_factory=set)
+
+    @classmethod
+    @lru_cache(maxsize=None)
+    def role_taker_field(cls) -> Field:
+        return next(iter(f for f in fields(cls) if f.name == "faculty"))
 
 
 @dataclass(eq=False)
@@ -844,23 +895,48 @@ class FullProfessor(Professor):
 
 
 @dataclass(eq=False)
-class VisitingProfessor(Professor):
+class VisitingProfessor(Role[Professor], Symbol):
+    # Role taker
+    professor: Professor
     is_visiting_professor_of: Set[Department] = field(kw_only=True, default_factory=set)
 
-
-@dataclass(eq=False)
-class Chair(FullProfessor):
-    ...
-
-
-@dataclass(eq=False)
-class Dean(FullProfessor):
-    ...
+    @classmethod
+    @lru_cache(maxsize=None)
+    def role_taker_field(cls) -> Field:
+        return next(iter(f for f in fields(cls) if f.name == "professor"))
 
 
 @dataclass(eq=False)
-class Director(FullProfessor):
-    ...
+class Chair(Role[FullProfessor], Symbol):
+    # Role taker
+    full_professor: FullProfessor
+
+    @classmethod
+    @lru_cache(maxsize=None)
+    def role_taker_field(cls) -> Field:
+        return next(iter(f for f in fields(cls) if f.name == "full_professor"))
+
+
+@dataclass(eq=False)
+class Dean(Role[FullProfessor], Symbol):
+    # Role taker
+    full_professor: FullProfessor
+
+    @classmethod
+    @lru_cache(maxsize=None)
+    def role_taker_field(cls) -> Field:
+        return next(iter(f for f in fields(cls) if f.name == "full_professor"))
+
+
+@dataclass(eq=False)
+class Director(Role[FullProfessor], Symbol):
+    # Role taker
+    full_professor: FullProfessor
+
+    @classmethod
+    @lru_cache(maxsize=None)
+    def role_taker_field(cls) -> Field:
+        return next(iter(f for f in fields(cls) if f.name == "full_professor"))
 
 
 
