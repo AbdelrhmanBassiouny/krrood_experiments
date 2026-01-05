@@ -1739,7 +1739,13 @@
     <!-- http://benchmark/OWL2Bench#PeopleWithHobby -->
 
     <owl:Class rdf:about="http://benchmark/OWL2Bench#PeopleWithHobby">
-        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Person"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://benchmark/OWL2Bench#roleFor"/>
+                <owl:someValuesFrom rdf:resource="http://benchmark/OWL2Bench#Person"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf rdf:resource="http://benchmark/OWL2Bench#Role"/>
     </owl:Class>
     
 
