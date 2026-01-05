@@ -445,18 +445,6 @@ class BasketBall(Sports):
 
 
 @dataclass(eq=False)
-class BasketBallFan(PeopleWithHobby):
-    is_crazy_about: Set[BasketBall] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
-class BasketBallLover(PeopleWithHobby):
-    loves: Set[BasketBall] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
 class Biology(Science):
     ...
 
@@ -855,6 +843,18 @@ class UGStudent(Student):
 @dataclass(eq=False)
 class WomanCollege(College):
     has_student: Set[Woman] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
+class BasketBallFan(SportsFan):
+    is_crazy_about: Set[BasketBall] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
+class BasketBallLover(SportsLover):
+    loves: Set[BasketBall] = field(default_factory=set)
 
 
 
