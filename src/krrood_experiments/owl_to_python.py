@@ -1363,12 +1363,6 @@ class CodeGenerator:
 
         self.engine.infer_properties()
 
-        for cls_name, cls_info in copy(self.onto.classes).items():
-            for desc in cls_info.has_descriptions:
-                if desc in self.onto.classes:
-                    self.onto.class_descriptions[cls_name] = self.onto.classes[desc]
-                    del self.onto.classes[desc]
-
         self.engine.apply_predefined_overrides()
 
         self.attach_domainless_data_properties_to_ontology_base_class()
