@@ -8,16 +8,30 @@ from __future__ import annotations
 
 import os
 import re
+from abc import ABC
 from copy import deepcopy, copy
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 from functools import cached_property
+from symtable import Symbol
 from typing import Dict, List, Optional, Any, Set, ClassVar
 
 import rdflib
 from jinja2 import Environment, FileSystemLoader
 from jinja2.ext import loopcontrols
 from krrood import logger
+from krrood.class_diagrams.utils import Role
+from krrood.ontomatic.property_descriptor.mixins import (
+    TransitiveProperty,
+    HasInverseProperty,
+    HasEquivalentProperties,
+    HasDisjointProperties,
+    SymmetricProperty,
+    ASymmetricProperty,
+    ReflexiveProperty,
+    IrreflexiveProperty,
+)
+from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
 from rdflib.namespace import RDF, RDFS, OWL, XSD
 from sqlalchemy.util import OrderedSet
 from typing_extensions import Tuple
@@ -130,7 +144,7 @@ class OntologyInfo:
     original_properties: Dict[str, PropertyInfo] = field(default_factory=dict)
     predefined_data_types: Optional[Dict[str, Dict[str, str]]] = None
     ontology_label: str = "Ontology"
-    role_cls_name: str = "Role"
+    role_cls_name: str = Role.__name__
     _properties: Optional[Dict[str, PropertyInfo]] = None
     property_restrictions: Dict[str, Dict[str, set]] = field(default_factory=dict)
 
@@ -370,7 +384,7 @@ class ClassExtractor:
         return ClassInfo(
             name=class_name,
             uri=str(class_uri),
-            superclasses=unique_superclasses or ["Symbol"],
+            superclasses=unique_superclasses or [Symbol.__name__],
             disjoint_with=disjoint_with,
             equivalent_classes=equivalent_classes,
             is_description_for=is_description_for,
@@ -935,23 +949,23 @@ class InferenceEngine:
             self.onto.properties[sp].descriptor_name
             for sp in info.superproperties
             if sp in self.onto.properties
-        ] or ["PropertyDescriptor"]
+        ] or [PropertyDescriptor.__name__]
         if info.is_transitive:
-            bases.append("TransitiveProperty")
+            bases.append(TransitiveProperty.__name__)
         if info.inverse_of:
-            bases.append("HasInverseProperty")
+            bases.append(HasInverseProperty.__name__)
         if info.equivalent_properties:
-            bases.append("HasEquivalentProperties")
+            bases.append(HasEquivalentProperties.__name__)
         if info.disjoint_properties:
-            bases.append("HasDisjointProperties")
+            bases.append(HasDisjointProperties.__name__)
         if info.is_symmetric:
-            bases.append("SymmetricProperty")
+            bases.append(SymmetricProperty.__name__)
         if info.is_asymmetric:
-            bases.append("ASymmetricProperty")
+            bases.append(ASymmetricProperty.__name__)
         if info.is_reflexive:
-            bases.append("ReflexiveProperty")
+            bases.append(ReflexiveProperty.__name__)
         if info.is_irreflexive:
-            bases.append("IrreflexiveProperty")
+            bases.append(IrreflexiveProperty.__name__)
         info.base_descriptors = bases
 
     def _set_object_range_hint(self, info: PropertyInfo):
@@ -1093,7 +1107,7 @@ class InferenceEngine:
             bc
             for bc in child_info.base_classes
             if bc != self.onto.base_cls_name
-            and bc != "Symbol"
+            and bc != Symbol.__name__
             and bc != self.onto.role_cls_name
         ]
         if len(base_classes) >= 1:
@@ -1305,9 +1319,9 @@ class CodeGenerator:
         Replace ontology role class name with current role class name.
         """
         for info in self.onto.classes.values():
-            if "Role" not in info.base_classes:
+            if Role.__name__ not in info.base_classes:
                 continue
-            info.base_classes.remove("Role")
+            info.base_classes.remove(Role.__name__)
             info.base_classes.append(self.onto.role_cls_name)
 
     def _ensure_uri_in_ontology_properties(self):
@@ -1335,14 +1349,14 @@ class CodeGenerator:
         for n, info in self.onto.classes.items():
             if n == self.onto.base_cls_name:
                 continue
-            info.base_classes = [b for b in info.superclasses if b != "Symbol"] or [
-                self.onto.base_cls_name
-            ]
+            info.base_classes = [
+                b for b in info.superclasses if b != Symbol.__name__
+            ] or [self.onto.base_cls_name]
             if (
                 len(info.base_classes) == 1
                 and info.base_classes[0] == self.onto.role_cls_name
             ):
-                info.base_classes.append("Symbol")
+                info.base_classes.append(Symbol.__name__)
 
     def _ensure_ontology_base_class_in_classes(self):
         if self.onto.base_cls_name in self.onto.classes:
@@ -1350,8 +1364,8 @@ class CodeGenerator:
         self.onto.classes[self.onto.base_cls_name] = ClassInfo(
             self.onto.base_cls_name,
             "",
-            ["Symbol", "ABC"],
-            ["Symbol", "ABC"],
+            [Symbol.__name__, ABC.__name__],
+            [Symbol.__name__, ABC.__name__],
             label=f"Base class for {self.onto.ontology_label}",
         )
 
@@ -1468,12 +1482,12 @@ class CodeGenerator:
             else:
                 info.add_role_taker = stubs_classes[cls_name].add_role_taker = False
 
-        if "Role" in self.onto.classes:
-            del self.onto.classes["Role"]
+        if Role.__name__ in self.onto.classes:
+            del self.onto.classes[Role.__name__]
 
         # topological_order might still have 'Role' name if it was in the items keys
         # We need to filter the order as well
-        classes_order = [c for c in classes_order if c != "Role"]
+        classes_order = [c for c in classes_order if c != Role.__name__]
 
         render_classes = {k: asdict(v) for k, v in self.onto.classes.items()}
         for c in render_classes.values():
@@ -1611,8 +1625,11 @@ class OwlToPythonConverter:
                     existing.superclasses.append(sc)
 
             # Special handling for "Symbol"
-            if "Symbol" in existing.superclasses and len(existing.superclasses) > 1:
-                existing.superclasses.remove("Symbol")
+            if (
+                Symbol.__name__ in existing.superclasses
+                and len(existing.superclasses) > 1
+            ):
+                existing.superclasses.remove(Symbol.__name__)
 
             # Merge declared properties
             for dp in info.declared_properties:
@@ -1655,24 +1672,18 @@ class OwlToPythonConverter:
 
             unions = list(self.graph.objects(cls_uri, OWL.unionOf))
             if unions:
-                # 1. Generate parent union class name (e.g., ManORWoman)
-                if isinstance(cls_uri, rdflib.BNode):
-                    parent_name = NamingRegistry.bnode_to_name(self.graph, cls_uri)
-                else:
-                    parent_name = NamingRegistry.uri_to_python_name(cls_uri)
-
                 # 2. Register the parent class
                 info = self.class_ext.extract_info(cls_uri)
-                info.name = parent_name
-                self._register_class(info)
+                super_classes = info.superclasses[:]
 
                 # 3. Process members and make them inherit from the parent union class
                 members = NamingRegistry._get_rdf_list(self.graph, unions[0])
                 for member in members:
                     member_info = self.class_ext.extract_info(member)
                     # Ensure member inherits from the union parent
-                    if parent_name not in member_info.superclasses:
-                        member_info.superclasses.append(parent_name)
+                    for sc in super_classes:
+                        if sc not in member_info.superclasses:
+                            member_info.superclasses.append(sc)
 
                     # Update/Register member
                     self._register_class(member_info)

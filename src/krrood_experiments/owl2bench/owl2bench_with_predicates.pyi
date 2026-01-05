@@ -11,12 +11,6 @@ from .owl2bench_with_predicates_base import *
 
 # Generated classes
 @dataclass(eq=False)
-class Man(ManORWoman):
-    ...
-
-
-
-@dataclass(eq=False)
 class OWL2BenchOntology(Symbol, ABC):
     """Base class for OWL2Bench"""
     has_code: Optional[Any] = field(kw_only=True, default=None)
@@ -30,12 +24,6 @@ class OWL2BenchOntology(Symbol, ABC):
     has_same_home_town_with: Set[Any] = field(default_factory=set)
     is_affiliate_of: Set[Any] = field(default_factory=set)
     knows: Set[Any] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
-class Woman(ManORWoman):
-    ...
 
 
 
@@ -240,6 +228,12 @@ class Institute(Organization):
 
 
 @dataclass(eq=False)
+class Man(Person):
+    ...
+
+
+
+@dataclass(eq=False)
 class Management(CollegeDiscipline):
     ...
 
@@ -403,6 +397,12 @@ class UnofficialPublication(Publication):
 
 
 @dataclass(eq=False)
+class Woman(Person):
+    ...
+
+
+
+@dataclass(eq=False)
 class AeronauticalEngineering(Engineering):
     ...
 
@@ -441,6 +441,18 @@ class Badminton(Sports):
 @dataclass(eq=False)
 class BasketBall(Sports):
     ...
+
+
+
+@dataclass(eq=False)
+class BasketBallFan(PeopleWithHobby):
+    is_crazy_about: Set[BasketBall] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
+class BasketBallLover(PeopleWithHobby):
+    loves: Set[BasketBall] = field(default_factory=set)
 
 
 
@@ -843,18 +855,6 @@ class UGStudent(Student):
 @dataclass(eq=False)
 class WomanCollege(College):
     has_student: Set[Woman] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
-class BasketBallFan(SportsLover):
-    is_crazy_about: Set[BasketBall] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
-class BasketBallLover(SportsLover):
-    loves: Set[BasketBall] = field(default_factory=set)
 
 
 
