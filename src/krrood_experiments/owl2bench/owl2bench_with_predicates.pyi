@@ -28,6 +28,12 @@ class OWL2BenchOntology(Symbol, ABC):
 
 
 @dataclass(eq=False)
+class CollegeANDhasStudentALLAnonymousClass(OWL2BenchOntology):
+    ...
+
+
+
+@dataclass(eq=False)
 class CollegeDiscipline(OWL2BenchOntology):
     ...
 
@@ -48,12 +54,6 @@ class EvaluationCommittee(OWL2BenchOntology):
 
 @dataclass(eq=False)
 class Interest(OWL2BenchOntology):
-    ...
-
-
-
-@dataclass(eq=False)
-class Man(OWL2BenchOntology):
     ...
 
 
@@ -122,13 +122,13 @@ class Publication(OWL2BenchOntology):
 
 
 @dataclass(eq=False)
-class Thing(OWL2BenchOntology):
+class StudentANDAnonymousClass(OWL2BenchOntology):
     ...
 
 
 
 @dataclass(eq=False)
-class Woman(OWL2BenchOntology):
+class Thing(OWL2BenchOntology):
     ...
 
 
@@ -247,6 +247,12 @@ class HumanitiesAndSocial(CollegeDiscipline):
 
 @dataclass(eq=False)
 class Institute(Organization):
+    ...
+
+
+
+@dataclass(eq=False)
+class ManORWoman(Person):
     ...
 
 
@@ -617,13 +623,19 @@ class LatinArts(FineArts):
 
 
 @dataclass(eq=False)
-class LeisureStudent(Student):
+class LeisureStudent(Student, StudentANDAnonymousClass):
     ...
 
 
 
 @dataclass(eq=False)
 class Linguistics(HumanitiesAndSocial):
+    ...
+
+
+
+@dataclass(eq=False)
+class Man(ManORWoman):
     ...
 
 
@@ -708,6 +720,48 @@ class PGStudent(Student):
 
 @dataclass(eq=False)
 class PerformingArts(FineArts):
+    ...
+
+
+
+@dataclass(eq=False)
+class PersonANDenrollInSOMEDepartment(Student):
+    ...
+
+
+
+@dataclass(eq=False)
+class PersonANDisCrazyAboutSOMEBasketBall(BasketBallFan):
+    ...
+
+
+
+@dataclass(eq=False)
+class PersonANDisCrazyAboutSOMESports(SportsFan):
+    ...
+
+
+
+@dataclass(eq=False)
+class PersonANDlikesSOMEInterest(PeopleWithHobby):
+    ...
+
+
+
+@dataclass(eq=False)
+class PersonANDlovesSOMEBasketBall(BasketBallLover):
+    ...
+
+
+
+@dataclass(eq=False)
+class PersonANDlovesSOMESports(SportsLover):
+    ...
+
+
+
+@dataclass(eq=False)
+class PersonANDworksForSOMEOrganization(Employee):
     ...
 
 
@@ -846,13 +900,25 @@ class UGStudent(Student):
 
 
 @dataclass(eq=False)
-class WomanCollege(College):
+class Woman(ManORWoman):
+    ...
+
+
+
+@dataclass(eq=False)
+class WomanCollege(College, CollegeANDhasStudentALLAnonymousClass):
     ...
 
 
 
 @dataclass(eq=False)
 class ClericalStaff(SupportingStaff):
+    ...
+
+
+
+@dataclass(eq=False)
+class EmployeeANDteachesCourseSOMECourse(Faculty):
     ...
 
 
@@ -879,6 +945,36 @@ class PostDoc(Faculty):
 class Professor(Faculty):
     is_professor_of: Set[Department] = field(default_factory=set)
     tenured: Optional[bool] = field(kw_only=True, default=None)
+
+
+
+@dataclass(eq=False)
+class StudentANDenrollForSOMEPGProgram(PGStudent):
+    ...
+
+
+
+@dataclass(eq=False)
+class StudentANDenrollForSOMEPhDProgram(PhDStudent):
+    ...
+
+
+
+@dataclass(eq=False)
+class StudentANDenrollForSOMEUGProgram(UGStudent):
+    ...
+
+
+
+@dataclass(eq=False)
+class StudentANDhasMajorSOMEScience(ScienceStudent):
+    ...
+
+
+
+@dataclass(eq=False)
+class StudentANDisTeachingAssistantOfSOMECourse(TeachingAssistant):
+    ...
 
 
 

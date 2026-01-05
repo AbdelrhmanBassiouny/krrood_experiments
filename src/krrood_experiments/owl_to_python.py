@@ -174,6 +174,53 @@ class NamingRegistry:
         return str(uri)
 
     @staticmethod
+    def bnode_to_name(graph: rdflib.Graph, bnode: rdflib.BNode) -> str:
+        """Generate a meaningful name for a BNode based on its description."""
+        # Intersection
+        intersections = list(graph.objects(bnode, OWL.intersectionOf))
+        if intersections:
+            items = NamingRegistry._get_rdf_list(graph, intersections[0])
+            return "AND".join([NamingRegistry._get_node_name(graph, i) for i in items])
+
+        # Union
+        unions = list(graph.objects(bnode, OWL.unionOf))
+        if unions:
+            items = NamingRegistry._get_rdf_list(graph, unions[0])
+            return "OR".join([NamingRegistry._get_node_name(graph, i) for i in items])
+
+        # Restrictions
+        on_prop = graph.value(bnode, OWL.onProperty)
+        if on_prop:
+            prop_name = NamingRegistry.uri_to_python_name(on_prop)
+            if graph.value(bnode, OWL.someValuesFrom):
+                target = graph.value(bnode, OWL.someValuesFrom)
+                return f"{prop_name}SOME{NamingRegistry._get_node_name(graph, target)}"
+            if graph.value(bnode, OWL.allValuesFrom):
+                target = graph.value(bnode, OWL.allValuesFrom)
+                return f"{prop_name}ALL{NamingRegistry._get_node_name(graph, target)}"
+            if graph.value(bnode, OWL.hasValue):
+                target = graph.value(bnode, OWL.hasValue)
+                return f"{prop_name}HAS{NamingRegistry._get_node_name(graph, target)}"
+
+        return "AnonymousClass"
+
+    @staticmethod
+    def _get_node_name(graph, node):
+        if isinstance(node, rdflib.URIRef):
+            return NamingRegistry.uri_to_python_name(node)
+        if isinstance(node, rdflib.BNode):
+            return NamingRegistry.bnode_to_name(graph, node)
+        return str(node)
+
+    @staticmethod
+    def _get_rdf_list(graph, head):
+        items = []
+        while head != rdflib.RDF.nil:
+            items.append(graph.value(head, rdflib.RDF.first))
+            head = graph.value(head, rdflib.RDF.rest)
+        return [i for i in items if i is not None]
+
+    @staticmethod
     def to_snake_case(name: str) -> str:
         """Convert a name like 'worksFor' or 'WorksFor' to 'works_for'"""
         s1 = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", name)
@@ -228,14 +275,24 @@ class ClassExtractor:
 
     def extract_info(self, class_uri: Any) -> ClassInfo:
         """Extract information about a class"""
-        class_name = NamingRegistry.uri_to_python_name(class_uri)
+        if isinstance(class_uri, rdflib.BNode):
+            class_name = NamingRegistry.bnode_to_name(self.graph, class_uri)
+        else:
+            class_name = NamingRegistry.uri_to_python_name(class_uri)
 
         # Get superclasses from explicit rdfs:subClassOf
         superclasses: List[str] = []
         for superclass in self.graph.objects(class_uri, RDFS.subClassOf):
-            if not isinstance(superclass, rdflib.URIRef):
-                continue
-            superclasses.append(NamingRegistry.uri_to_python_name(superclass))
+            if isinstance(superclass, rdflib.URIRef):
+                superclasses.append(NamingRegistry.uri_to_python_name(superclass))
+            elif isinstance(superclass, rdflib.BNode):
+                # Only include BNode superclasses if they are intersections or unions
+                if list(self.graph.objects(superclass, OWL.intersectionOf)) or list(
+                    self.graph.objects(superclass, OWL.unionOf)
+                ):
+                    superclasses.append(
+                        NamingRegistry.bnode_to_name(self.graph, superclass)
+                    )
 
         # De-duplicate while preserving order
         seen = set()
@@ -1451,6 +1508,27 @@ class OwlToPythonConverter:
         self.graph.parse(path)
         self._extract_ontology_info()
 
+    def _register_class(self, info: ClassInfo):
+        """Register or update class information."""
+        if info.name in self.classes:
+            existing = self.classes[info.name]
+            # Merge superclasses
+            for sc in info.superclasses:
+                if sc not in existing.superclasses:
+                    existing.superclasses.append(sc)
+
+            # Special handling for "Symbol"
+            if "Symbol" in existing.superclasses and len(existing.superclasses) > 1:
+                existing.superclasses.remove("Symbol")
+
+            # Merge other metadata
+            if not existing.label:
+                existing.label = info.label
+            if not existing.comment:
+                existing.comment = info.comment
+        else:
+            self.classes[info.name] = info
+
     def _extract_ontology_info(self):
         """
         Extract classes and properties from the loaded graph.
@@ -1464,11 +1542,45 @@ class OwlToPythonConverter:
         if not self.ontology_label:
             self.ontology_label = "Ontology"
 
-        for cls_uri in self.graph.subjects(RDF.type, OWL.Class):
-            if isinstance(cls_uri, rdflib.term.BNode):
+        all_class_subjects = set(self.graph.subjects(RDF.type, OWL.Class))
+
+        for cls_uri in all_class_subjects:
+            # Skip BNodes that are not intersections or unions
+            if isinstance(cls_uri, rdflib.BNode):
+                if not (
+                    list(self.graph.objects(cls_uri, OWL.intersectionOf))
+                    or list(self.graph.objects(cls_uri, OWL.unionOf))
+                ):
+                    continue
+
+            unions = list(self.graph.objects(cls_uri, OWL.unionOf))
+            if unions:
+                # 1. Generate parent union class name (e.g., ManORWoman)
+                if isinstance(cls_uri, rdflib.BNode):
+                    parent_name = NamingRegistry.bnode_to_name(self.graph, cls_uri)
+                else:
+                    parent_name = NamingRegistry.uri_to_python_name(cls_uri)
+
+                # 2. Register the parent class
+                info = self.class_ext.extract_info(cls_uri)
+                info.name = parent_name
+                self._register_class(info)
+
+                # 3. Process members and make them inherit from the parent union class
+                members = NamingRegistry._get_rdf_list(self.graph, unions[0])
+                for member in members:
+                    member_info = self.class_ext.extract_info(member)
+                    # Ensure member inherits from the union parent
+                    if parent_name not in member_info.superclasses:
+                        member_info.superclasses.append(parent_name)
+
+                    # Update/Register member
+                    self._register_class(member_info)
                 continue
+
+            # Handle regular classes and other BNodes (Intersections, Restrictions)
             info = self.class_ext.extract_info(cls_uri)
-            self.classes[info.name] = info
+            self._register_class(info)
 
         for p_type in [
             OWL.ObjectProperty,

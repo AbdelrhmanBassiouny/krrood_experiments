@@ -613,9 +613,10 @@ class OwlLoader:
         """
         s_uri = subj.uri
         existing_roles = self.registry.resolve(s_uri)
-        for er in existing_roles:
-            if type(er) is role_class:
-                return er
+        if existing_roles:
+            for er in existing_roles:
+                if type(er) is role_class:
+                    return er
 
         kwargs = self._get_common_role_taker_kwargs([subj], role_class)
         role_taker_inst = next(iter(kwargs.values()), None) if kwargs else None
