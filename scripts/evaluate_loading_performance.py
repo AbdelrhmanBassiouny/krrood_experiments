@@ -21,6 +21,7 @@ def evaluate_loading():
     rdf_file_path = os.path.join(dir_path, "..", "resources", "statements.rdf")
 
     print("Loading data into owlready2...")
+    # TODO perform reasoning
     owlready2_world = owlready2.World()
     start = time.time()
     owlready2_world.get_ontology(rdf_file_path).load()
@@ -32,37 +33,10 @@ def evaluate_loading():
     rdflib_graph.parse(rdf_file_path, format="xml")
     rdflib_loading_time = time.time() - start
 
-    print("Loading data into KRROOD from GraphDB...")
-    start = time.time()
-    loader = WorldLoader(sparql)
-    loader.parse()
-    krrood_graphdb_loading_time = time.time() - start
-
-    engine = create_engine(os.environ["KRROOD_EXPERIMENTS_DATABASE_URI"])
-    drop_database(engine)
-    Base.metadata.create_all(engine)
-
-    session = sessionmaker(engine)()
-
-    dao: WorldDAO = to_dao(loader.world)
-
-    session.add(dao)
-    session.commit()
-    session.expunge_all()
-
-    print("Loading data into KRROOD from SQLAlchemy...")
-
-    start = time.time()
-    world_dao: WorldDAO = session.scalars(select(WorldDAO)).one()
-    # _ = world_dao.from_dao()
-    krrood_sqlalchemy_loading_time = time.time() - start
-
     loading_timing = LoadingTiming(
         backend_runtimes={
             Backend.Owlready2: owlready2_loading_time,
             Backend.RDFLib: rdflib_loading_time,
-            Backend.EQL: krrood_graphdb_loading_time,
-            Backend.SQLAlchemy: krrood_sqlalchemy_loading_time,
         }
     )
 
