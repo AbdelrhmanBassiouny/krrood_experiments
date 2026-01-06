@@ -7,6 +7,7 @@ from typing import Dict, List
 import numpy as np
 import SPARQLWrapper
 import rdflib
+import owlready2
 import tqdm
 from krrood.ormatic.dao import to_dao
 from krrood.ormatic.utils import create_engine, drop_database
@@ -25,6 +26,7 @@ class Backend(enum.Enum):
     SPARQLWrapper = "SPARQLWrapper"
     EQL = "EQL"
     RDFLib = "RDFLib"
+    Owlready2 = "owlready2"
 
 
 @dataclass
@@ -146,10 +148,18 @@ iterations_per_query = 1
 sparql = SPARQLWrapper.SPARQLWrapper("http://localhost:7200/repositories/KRROOD")
 sparql.setReturnFormat(SPARQLWrapper.JSON)
 
+dir_path = os.path.dirname(os.path.realpath(__file__))
+rdf_file_path = os.path.join(dir_path, "..", "resources", "statements.rdf")
+
+print("Loading data into owlready2...")
+owlready2_world = owlready2.World()
+owlready2_world.get_ontology(rdf_file_path).load()
+
 print("Loading data into rdflib...")
 rdflib_graph = rdflib.Graph()
-rdflib_graph.parse("resources/statements.rdf", format="xml")
+rdflib_graph.parse(rdf_file_path, format="xml")
 
+print("Loading data into KRROOD...")
 loader = WorldLoader(sparql)
 loader.parse()
 
@@ -190,6 +200,7 @@ for sparql_query in pbar:
     current_sparqlwrapper_runtimes = []
     current_eql_runtimes = []
     current_rdflib_runtimes = []
+    current_owlready2_runtimes = []
 
     for _ in range(iterations_per_query):
 
@@ -214,11 +225,21 @@ for sparql_query in pbar:
         rdflib_results = list(rdflib_graph.query(sparql_query.raw_sparql_string))
         current_rdflib_runtimes.append(time.time() - start)
 
+        # Execute Owlready2 query
+        start = time.time()
+        owlready2_results = list(
+            owlready2_world.sparql(
+                sparql_query.raw_sparql_string, error_on_undefined_entities=False
+            )
+        )
+        current_owlready2_runtimes.append(time.time() - start)
+
         assert (
             len(sql_results)
             == len(sparql_results["results"]["bindings"])
             == len(eql_results)
             == len(rdflib_results)
+            == len(owlready2_results)
         )
 
     backend_runtimes = {
@@ -226,6 +247,7 @@ for sparql_query in pbar:
         Backend.SQLAlchemy: current_sqlalchemy_runtimes,
         Backend.EQL: current_eql_runtimes,
         Backend.RDFLib: current_rdflib_runtimes,
+        Backend.Owlready2: current_owlready2_runtimes,
     }
 
     query_timings.append(
