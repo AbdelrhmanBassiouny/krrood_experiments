@@ -838,7 +838,7 @@ class InferenceEngine:
                 raise ValueError(f"Could not determine class for restriction {restr}")
             self._restrictions_handler(for_class, restr)
             prop_name = NamingRegistry.uri_to_python_name(on_prop, self.onto.graph)
-            for_class = self.onto.description_for(cls_name) or cls_name
+            for_class = self.onto.description_for(for_class) or for_class
             self.property_maps.declared_dom_map[prop_name].add(for_class)
 
     def _restrictions_handler(self, for_class: str, node: rdflib.term.Node):
@@ -858,12 +858,23 @@ class InferenceEngine:
         prop_name = NamingRegistry.uri_to_python_name(on_prop, self.onto.graph)
         if prop_name in self.onto.properties:
             self.property_maps.dom_map[prop_name].add(for_class)
-        some = self.onto.graph.value(node, OWL.someValuesFrom) or self.onto.graph.value(
-            node, OWL.allValuesFrom
-        )
-        if some:
+        has_value = self.onto.graph.value(node, OWL.hasValue)
+        if has_value:
+            value_type = [
+                v
+                for v in self.onto.graph.objects(has_value, RDF.type)
+                if v != OWL.NamedIndividual
+            ][0]
+            value_type = NamingRegistry.uri_to_python_name(value_type, self.onto.graph)
+        else:
+            value_type = self.onto.graph.value(
+                node, OWL.someValuesFrom
+            ) or self.onto.graph.value(node, OWL.allValuesFrom)
+        if value_type:
             try:
-                rng_name = NamingRegistry.uri_to_python_name(some, self.onto.graph)
+                rng_name = NamingRegistry.uri_to_python_name(
+                    value_type, self.onto.graph
+                )
                 if prop_name == "roleFor":
                     cls_info = self.onto.classes.get(for_class)
                     if cls_info:
@@ -872,8 +883,10 @@ class InferenceEngine:
                         )
                     return
                 if rng_name is None:
-                    if self.onto.graph.value(some, OWL.complementOf):
-                        complement_of = self.onto.graph.value(some, OWL.complementOf)
+                    if self.onto.graph.value(value_type, OWL.complementOf):
+                        complement_of = self.onto.graph.value(
+                            value_type, OWL.complementOf
+                        )
                         complement_rng_name = NamingRegistry.uri_to_python_name(
                             complement_of, self.onto.graph
                         )
@@ -890,8 +903,8 @@ class InferenceEngine:
                         return
                 self.property_maps.rng_map[prop_name].add(rng_name)
                 rng_uri = (
-                    some
-                    if not isinstance(some, rdflib.term.BNode)
+                    value_type
+                    if not isinstance(value_type, rdflib.term.BNode)
                     else rdflib.URIRef(self.onto.classes[rng_name].uri)
                 )
                 self.property_maps.rng_uri_map[prop_name].add(rng_uri)
@@ -1931,5 +1944,5 @@ if __name__ == "__main__":
         generate_owl2bench_with_predicates,
     )
 
-    generate_lubm_with_predicates(clean=True)
+    # generate_lubm_with_predicates(clean=True)
     generate_owl2bench_with_predicates(clean=True)
