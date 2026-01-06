@@ -6,4 +6,5 @@ pytest
 krrood
 rustworkx
 sqlalchemy
+ripple_down_rules
 
