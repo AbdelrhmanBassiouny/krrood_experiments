@@ -1,4 +1,5 @@
-from krrood.class_diagrams.utils import Role
+from krrood.class_diagrams.utils import Role, issubclass_or_role
+from krrood.utils import inheritance_path_length
 from typing_extensions import Type, Set, List, Iterable
 from dataclasses import fields
 
@@ -11,13 +12,6 @@ def get_non_class_attribute_names_of_instance(instance: Type) -> Set[str]:
     )
 
 
-def issubclass_or_role(subtype: Type, supertype: Type) -> bool:
-    return issubclass(subtype, supertype) or (
-        issubclass(subtype, Role)
-        and issubclass(subtype.get_role_taker_type(), supertype)
-    )
-
-
 def get_most_specific_types(types: Iterable[type]) -> List[type]:
     ts = list(dict.fromkeys(types))  # stable unique
     keep = []
@@ -26,3 +20,10 @@ def get_most_specific_types(types: Iterable[type]) -> List[type]:
         if not any(u is not t and issubclass_or_role(u, t) for u in ts):
             keep.append(t)
     return keep
+
+
+def not_none_inheritance_path_length(child: Type, parent: Type) -> int:
+    length = inheritance_path_length(child, parent)
+    if length is None:
+        return float("inf")
+    return length
