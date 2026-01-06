@@ -780,6 +780,7 @@ class InferenceEngine:
         """
         Walk through all classes and their restrictions in the graph and update declared_dom_map accordingly.
         """
+        covered_restrictions = set()
         # Walk class restrictions
         for cls_uri in self.onto.graph.subjects(RDF.type, OWL.Class):
             # if isinstance(cls_uri, rdflib.BNode):
@@ -789,6 +790,7 @@ class InferenceEngine:
             for restr in self.onto.graph.objects(cls_uri, RDFS.subClassOf):
                 self._restrictions_handler(cls_name, restr)
                 # If restriction mentions a property, count this class as declared domain for that property
+                covered_restrictions.add(restr)
                 on_prop = self.onto.graph.value(restr, OWL.onProperty)
                 if on_prop:
                     prop_name = NamingRegistry.uri_to_python_name(
@@ -802,6 +804,7 @@ class InferenceEngine:
                 while node and node != RDF.nil:
                     first = self.onto.graph.value(node, RDF.first)
                     self._restrictions_handler(cls_name, first)
+                    covered_restrictions.add(first)
                     on_prop = (
                         self.onto.graph.value(first, OWL.onProperty) if first else None
                     )
@@ -812,6 +815,31 @@ class InferenceEngine:
                         for_class = self.onto.description_for(cls_name) or cls_name
                         self.property_maps.declared_dom_map[prop_name].add(for_class)
                     node = self.onto.graph.value(node, RDF.rest)
+        # Standalone Restrictions
+        for restr in self.onto.graph.subjects(RDF.type, OWL.Restriction):
+            if restr in covered_restrictions:
+                continue
+            covered_restrictions.add(restr)
+            on_prop = self.onto.graph.value(restr, OWL.onProperty)
+            if not on_prop:
+                continue
+            for_class = None
+            for subj, pred in self.onto.graph.subject_predicates(restr):
+                if pred == OWL.equivalentClass:
+                    for_class = NamingRegistry.uri_to_python_name(subj, self.onto.graph)
+                    break
+            if not for_class:
+                for_class = self.onto.graph.value(restr, RDFS.subClassOf)
+                if for_class:
+                    for_class = NamingRegistry.uri_to_python_name(
+                        for_class, self.onto.graph
+                    )
+            if not for_class:
+                raise ValueError(f"Could not determine class for restriction {restr}")
+            self._restrictions_handler(for_class, restr)
+            prop_name = NamingRegistry.uri_to_python_name(on_prop, self.onto.graph)
+            for_class = self.onto.description_for(cls_name) or cls_name
+            self.property_maps.declared_dom_map[prop_name].add(for_class)
 
     def _restrictions_handler(self, for_class: str, node: rdflib.term.Node):
         """
@@ -870,6 +898,10 @@ class InferenceEngine:
                 self.onto.property_restrictions.setdefault(for_class, {}).setdefault(
                     prop_name, set()
                 ).add(rng_name)
+                for inverse in self.onto.properties[prop_name].inverses:
+                    self.onto.property_restrictions.setdefault(rng_name, {}).setdefault(
+                        inverse, set()
+                    ).add(for_class)
             except Exception as e:
                 logger.warning(f"[owl_to_python] Error processing restriction: {e}")
 

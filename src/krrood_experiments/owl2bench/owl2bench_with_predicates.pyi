@@ -55,8 +55,8 @@ class Interest(OWL2BenchOntology):
 @dataclass(eq=False)
 class Organization(OWL2BenchOntology):
     has_dean: Set[Person] = field(default_factory=set)
-    has_employee: Set[Employee] = field(default_factory=set)
     has_employee_evaluation_committee: Set[EmployeeEvaluationCommittee] = field(default_factory=set)
+    has_employee: Set[Employee] = field(default_factory=set)
     has_evaluation_committee: Set[EvaluationCommittee] = field(default_factory=set)
     has_member: Set[Person] = field(default_factory=set)
     has_part: Set[Organization] = field(default_factory=set)
@@ -104,7 +104,7 @@ class Person(PersonMixinProtocol):
 @dataclass(eq=False)
 class Program(OWL2BenchOntology):
     """Different programs offered in a department. UG, PG or PhD"""
-    ...
+    has_head: Set[Director] = field(default_factory=set)
 
 
 
@@ -143,6 +143,7 @@ class Book(Publication):
 class College(Organization):
     has_college_discipline: Set[CollegeDiscipline] = field(default_factory=set)
     has_department: Set[Department] = field(default_factory=set)
+    has_head: Set[Dean] = field(default_factory=set)
     is_college_of: Set[University] = field(default_factory=set)
     is_women_college_of: Set[University] = field(default_factory=set)
 
@@ -155,7 +156,7 @@ class Department(Organization):
     has_clerical_staff: Set[ClericalStaff] = field(default_factory=set)
     has_faculty: Set[Faculty] = field(default_factory=set)
     has_full_professor: Set[FullProfessor] = field(default_factory=set)
-    has_head: Set[FullProfessor] = field(default_factory=set)
+    has_head: Set[Chair] = field(default_factory=set)
     has_lecturer: Set[Lecturer] = field(default_factory=set)
     has_other_staff: Set[OtherStaff] = field(default_factory=set)
     has_pg_program: Set[PGProgram] = field(default_factory=set)
@@ -352,11 +353,6 @@ class StudentEvaluationCommittee(EvaluationCommittee):
 
 
 @dataclass(eq=False)
-class T20CricketFan(PersonMixinProtocol, Symbol):
-
-
-
-@dataclass(eq=False)
 class TeachingCourse(Work):
     ...
 
@@ -398,7 +394,7 @@ class UnofficialPublication(Publication):
 
 @dataclass(eq=False)
 class Woman(Person):
-    ...
+    is_student_of: Set[WomanCollege] = field(default_factory=set)
 
 
 
@@ -768,12 +764,6 @@ class ScienceStudent(Student):
 
 
 @dataclass(eq=False)
-class SportsFan(PeopleWithHobby):
-    is_crazy_about: Set[Sports] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
 class SportsLover(PeopleWithHobby):
     loves: Set[Sports] = field(default_factory=set)
 
@@ -847,12 +837,6 @@ class WomanCollege(College):
 
 
 @dataclass(eq=False)
-class BasketBallFan(SportsFan):
-    is_crazy_about: Set[BasketBall] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
 class BasketBallLover(SportsLover):
     loves: Set[BasketBall] = field(default_factory=set)
 
@@ -914,7 +898,6 @@ class AssociateProfessor(Professor):
 @dataclass(eq=False)
 class FullProfessorMixinProtocol(Professor):
     is_full_professor_of: Set[Department]
-    is_head_of: Set[Department]
 
 
 @dataclass(eq=False)
@@ -930,16 +913,37 @@ class VisitingProfessor(ProfessorMixinProtocol, Symbol):
 
 @dataclass(eq=False)
 class Chair(FullProfessorMixinProtocol, Symbol):
+    is_head_of: Set[Department] = field(default_factory=set)
 
 
 
 @dataclass(eq=False)
 class Dean(FullProfessorMixinProtocol, Symbol):
+    is_head_of: Set[College] = field(default_factory=set)
 
 
 
 @dataclass(eq=False)
 class Director(FullProfessorMixinProtocol, Symbol):
+    is_head_of: Set[Program] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
+class BasketBallFan(SportsFan):
+    is_crazy_about: Set[BasketBall] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
+class SportsFan(T20CricketFan):
+    is_crazy_about: Set[Sports] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
+class T20CricketFan(BasketBallFan):
+    is_crazy_about: Set[Interest] = field(default_factory=set)
 
 
 
