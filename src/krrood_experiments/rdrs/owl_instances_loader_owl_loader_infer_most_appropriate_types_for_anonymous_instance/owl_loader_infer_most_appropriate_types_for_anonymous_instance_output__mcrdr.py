@@ -1,7 +1,7 @@
 from typing_extensions import Dict, Optional, Set, Union
-from ripple_down_rules.helpers import get_an_updated_case_copy
 from ripple_down_rules.datastructures.case import Case, create_case
 from ripple_down_rules.utils import make_set
+from ripple_down_rules.helpers import get_an_updated_case_copy
 from .owl_loader_infer_most_appropriate_types_for_anonymous_instance_output__mcrdr_defs import *
 
 
@@ -23,4 +23,7 @@ def classify(case: Dict, **kwargs) -> Set[type]:
 
     if conditions_178686770575922948619403589971234626498(case):
         conclusions.update(make_set(conclusion_178686770575922948619403589971234626498(case)))
+
+    if conditions_107546415252908647157514226735385206217(case):
+        conclusions.update(make_set(conclusion_107546415252908647157514226735385206217(case)))
     return conclusions

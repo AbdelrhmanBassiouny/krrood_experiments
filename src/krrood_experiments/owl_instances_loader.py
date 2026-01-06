@@ -20,7 +20,10 @@ from rdflib import RDF, URIRef, Literal, OWL, BNode, RDFS
 from ripple_down_rules import RDRDecorator
 from typing_extensions import Set
 
-from krrood_experiments.utils import get_non_class_attribute_names_of_instance
+from krrood_experiments.utils import (
+    get_non_class_attribute_names_of_instance,
+    not_none_inheritance_path_length,
+)
 
 
 @dataclass
@@ -29,6 +32,7 @@ class AnonymousClass:
 
     uri: URIRef
     types: Set[Type] = field(default_factory=set)
+    final_sorted_types: List[Type] = field(default_factory=list)
 
     def add_type(self, cls: Type):
         self.types.add(cls)
@@ -273,7 +277,9 @@ class OwlLoader:
         self._create_anonymous_instances_with_explicit_types()
         self._assign_all_properties_to_all_instances()
         for instance in self.anonymous_instances.values():
-            self.infer_most_appropriate_types_for_anonymous_instance(instance)
+            instance.final_sorted_types = (
+                self.infer_most_appropriate_types_for_anonymous_instance(instance)
+            )
         # self._create_explicit_instances()
         self._assign_all_properties()
         return self.registry
@@ -699,12 +705,6 @@ class OwlLoader:
             )
 
         # choose the nearest wrapped field type
-        def not_none_inheritance_path_length(child: Type, parent: Type) -> int:
-            length = inheritance_path_length(child, parent)
-            if length is None:
-                return float("inf")
-            return length
-
         chosen_role = min(
             wrapped_field_types.keys(),
             key=lambda k: not_none_inheritance_path_length(
