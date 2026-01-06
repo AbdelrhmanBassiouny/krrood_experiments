@@ -62,9 +62,21 @@ class QueryTiming:
         return float(np.std(runtimes))
 
 
+@dataclass
+class LoadingTiming:
+    backend_runtimes: Dict[Backend, float]
+
+    def get_runtime(self, backend: Backend) -> float:
+        """
+        Returns the loading runtime for a given backend.
+        """
+        return self.backend_runtimes.get(backend, float("nan"))
+
+
 class LatexTableExporter:
-    def __init__(self, timings: List[QueryTiming]):
+    def __init__(self, timings: List[QueryTiming], loading_timing: LoadingTiming):
         self.timings = timings
+        self.loading_timing = loading_timing
 
     def _format_timing(self, mean: float, std: float, is_best: bool = False) -> str:
         """
@@ -148,6 +160,31 @@ class LatexTableExporter:
 
         content.append(" & ".join(summary_cells) + " \\\\")
         content.append("\\hline")
+
+        # Add loading timing summary row
+        loading_cells = ["Loading", "---"]
+        loading_runtimes = [
+            self.loading_timing.get_runtime(backend) for backend in Backend
+        ]
+        valid_loading_runtimes = [r for r in loading_runtimes if not np.isnan(r)]
+        min_loading_runtime = (
+            min(valid_loading_runtimes) if valid_loading_runtimes else float("inf")
+        )
+
+        for backend in Backend:
+            val = self.loading_timing.get_runtime(backend)
+            is_best = not np.isnan(val) and val == min_loading_runtime
+            if np.isnan(val):
+                formatted = "---"
+            else:
+                formatted = f"{val * 1000:.2f}"
+                if is_best:
+                    formatted = f"\\mathbf{{{formatted}}}"
+                formatted = f"${formatted}$"
+            loading_cells.append(formatted)
+
+        content.append(" & ".join(loading_cells) + " \\\\")
+        content.append("\\hline")
         content.append("\\end{tabular}")
 
         with open(output_path, "w", encoding="utf-8") as f:
@@ -166,15 +203,21 @@ rdf_file_path = os.path.join(dir_path, "..", "resources", "statements.rdf")
 
 print("Loading data into owlready2...")
 owlready2_world = owlready2.World()
+start = time.time()
 owlready2_world.get_ontology(rdf_file_path).load()
+owlready2_loading_time = time.time() - start
 
 print("Loading data into rdflib...")
 rdflib_graph = rdflib.Graph()
+start = time.time()
 rdflib_graph.parse(rdf_file_path, format="xml")
+rdflib_loading_time = time.time() - start
 
 print("Loading data into KRROOD from GraphDB...")
 loader = WorldLoader(sparql)
+start = time.time()
 loader.parse()
+krrood_graphdb_loading_time = time.time() - start
 
 engine = create_engine(os.environ["KRROOD_EXPERIMENTS_DATABASE_URI"])
 drop_database(engine)
@@ -189,8 +232,20 @@ session.commit()
 session.expunge_all()
 
 print("Loading data into KRROOD from SQLAlchemy...")
+
+start = time.time()
 world_dao: WorldDAO = session.scalars(select(WorldDAO)).one()
-world = world_dao.from_dao()
+_ = world_dao.from_dao()
+krrood_sqlalchemy_loading_time = time.time() - start
+
+loading_timing = LoadingTiming(
+    backend_runtimes={
+        Backend.Owlready2: owlready2_loading_time,
+        Backend.RDFLib: rdflib_loading_time,
+        Backend.EQL: krrood_graphdb_loading_time,
+        Backend.SQLAlchemy: krrood_sqlalchemy_loading_time,
+    }
+)
 
 query_timings: List[QueryTiming] = []
 
@@ -277,5 +332,5 @@ for sparql_query in pbar:
     )
 
 
-exporter = LatexTableExporter(query_timings)
+exporter = LatexTableExporter(query_timings, loading_timing)
 exporter.export()
