@@ -590,9 +590,17 @@ class OwlLoader:
             )
 
         # choose the nearest wrapped field type
+        def not_none_inheritance_path_length(child: Type, parent: Type) -> int:
+            length = inheritance_path_length(child, parent)
+            if length is None:
+                return float("inf")
+            return length
+
         chosen_role = min(
             wrapped_field_types.keys(),
-            key=lambda k: inheritance_path_length(wrapped_field_types[k], o_type),
+            key=lambda k: not_none_inheritance_path_length(
+                wrapped_field_types[k], o_type
+            ),
         )
 
         if chosen_role is None:
