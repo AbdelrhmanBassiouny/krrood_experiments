@@ -61,31 +61,37 @@ class QueryTiming:
         return float(np.std(runtimes))
 
 
-class TypstTableExporter:
+class LatexTableExporter:
     def __init__(self, timings: List[QueryTiming]):
         self.timings = timings
 
     def _format_timing(self, mean: float, std: float, is_best: bool = False) -> str:
+        """
+        Formats the timing results for LaTeX.
+        """
         if np.isnan(mean):
             return "---"
-        formatted = f"{mean * 1000:.2f} ± {std * 1000:.2f}"
+        formatted = f"{mean * 1000:.2f} \\pm {std * 1000:.2f}"
         if is_best:
-            return f"* {formatted} *"
+            return f"\\mathbf{{{formatted}}}"
         return formatted
 
-    def export(self, output_path: str = "ood_performance.typ") -> None:
+    def export(self, output_path: str = "ood_performance.tex") -> None:
         """
-        Exports the timing results to a Typst table.
+        Exports the timing results to a LaTeX table.
         """
-        columns = ["[*Query*]", "[*Results*]"]
-        columns += [f"[[*{backend.value} (ms)*]]" for backend in Backend]
+        backend_names = [backend.value.replace("_", "\\_") for backend in Backend]
+        columns = ["Query", "Results"] + [f"{name} (ms)" for name in backend_names]
 
+        # Escape underscores in column headers if any
+        header = " & ".join([f"\\textbf{{{col}}}" for col in columns]) + " \\\\"
+
+        column_spec = "l" * len(columns)
         content = [
-            "#table(",
-            f"  columns: ({', '.join(['auto'] * (2 + len(Backend)))}),",
-            "  inset: 10pt,",
-            "  align: horizon,",
-            f"  {', '.join(columns)},",
+            "\\begin{tabular}{" + column_spec + "}",
+            "\\hline",
+            header,
+            "\\hline",
         ]
 
         for timing in self.timings:
@@ -100,13 +106,15 @@ class TypstTableExporter:
             valid_means = [m for m in means.values() if not np.isnan(m)]
             min_mean = min(valid_means) if valid_means else float("inf")
 
-            row_cells = [f"  [{timing.label}]", f"[{timing.results_count}]"]
+            row_cells = [timing.label, str(timing.results_count)]
             for backend in Backend:
                 is_best = not np.isnan(means[backend]) and means[backend] == min_mean
                 formatted = self._format_timing(means[backend], stds[backend], is_best)
-                row_cells.append(f"[{formatted}]")
+                row_cells.append(f"${formatted}$")
 
-            content.append(", ".join(row_cells) + ",")
+            content.append(" & ".join(row_cells) + " \\\\")
+
+        content.append("\\hline")
 
         # Add geometric mean summary row
         backend_geomeans = {}
@@ -124,26 +132,30 @@ class TypstTableExporter:
         valid_geomeans = [m for m in backend_geomeans.values() if not np.isnan(m)]
         min_geomean = min(valid_geomeans) if valid_geomeans else float("inf")
 
-        summary_cells = ["  [*Geom. Mean*]", "[-]"]
+        summary_cells = ["\\textbf{Geom. Mean}", "---"]
         for backend in Backend:
             val = backend_geomeans[backend]
             is_best = not np.isnan(val) and val == min_geomean
-            formatted = f"{val * 1000:.2f}" if not np.isnan(val) else "---"
-            if is_best:
-                formatted = f"* {formatted} *"
-            summary_cells.append(f"[{formatted}]")
+            if np.isnan(val):
+                formatted = "---"
+            else:
+                formatted = f"{val * 1000:.2f}"
+                if is_best:
+                    formatted = f"\\mathbf{{{formatted}}}"
+                formatted = f"${formatted}$"
+            summary_cells.append(formatted)
 
-        content.append(", ".join(summary_cells) + ",")
-
-        content.append(")")
+        content.append(" & ".join(summary_cells) + " \\\\")
+        content.append("\\hline")
+        content.append("\\end{tabular}")
 
         with open(output_path, "w", encoding="utf-8") as f:
             f.write("\n".join(content))
 
-        print(f"Typst table saved to {output_path}")
+        print(f"LaTeX table saved to {output_path}")
 
 
-iterations_per_query = 1
+iterations_per_query = 10
 
 sparql = SPARQLWrapper.SPARQLWrapper("http://localhost:7200/repositories/KRROOD")
 sparql.setReturnFormat(SPARQLWrapper.JSON)
@@ -259,5 +271,5 @@ for sparql_query in pbar:
     )
 
 
-exporter = TypstTableExporter(query_timings)
+exporter = LatexTableExporter(query_timings)
 exporter.export()
