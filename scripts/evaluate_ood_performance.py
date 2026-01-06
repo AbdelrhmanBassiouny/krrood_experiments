@@ -11,6 +11,7 @@ import owlready2
 import tqdm
 from krrood.ormatic.dao import to_dao
 from krrood.ormatic.utils import create_engine, drop_database
+from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
 from owl2bench.orm.ormatic_interface import Base, WorldDAO
@@ -22,7 +23,7 @@ from owl2bench.sparql_queries import OWLProfile
 
 
 class Backend(enum.Enum):
-    SQLAlchemy = "sqlalchemy"
+    SQLAlchemy = "SQLAlchemy"
     SPARQLWrapper = "SPARQLWrapper"
     EQL = "EQL"
     RDFLib = "RDFLib"
@@ -81,7 +82,7 @@ class LatexTableExporter:
         Exports the timing results to a LaTeX table.
         """
         backend_names = [backend.value.replace("_", "\\_") for backend in Backend]
-        columns = ["Query", "Results"] + [f"{name} (ms)" for name in backend_names]
+        columns = ["Query", "Results"] + [f"{name}" for name in backend_names]
 
         # Escape underscores in column headers if any
         header = " & ".join([f"\\textbf{{{col}}}" for col in columns]) + " \\\\"
@@ -155,7 +156,7 @@ class LatexTableExporter:
         print(f"LaTeX table saved to {output_path}")
 
 
-iterations_per_query = 10
+iterations_per_query = 1
 
 sparql = SPARQLWrapper.SPARQLWrapper("http://localhost:7200/repositories/KRROOD")
 sparql.setReturnFormat(SPARQLWrapper.JSON)
@@ -171,7 +172,7 @@ print("Loading data into rdflib...")
 rdflib_graph = rdflib.Graph()
 rdflib_graph.parse(rdf_file_path, format="xml")
 
-print("Loading data into KRROOD...")
+print("Loading data into KRROOD from GraphDB...")
 loader = WorldLoader(sparql)
 loader.parse()
 
@@ -185,6 +186,11 @@ dao: WorldDAO = to_dao(loader.world)
 
 session.add(dao)
 session.commit()
+session.expunge_all()
+
+print("Loading data into KRROOD from SQLAlchemy...")
+world_dao: WorldDAO = session.scalars(select(WorldDAO)).one()
+world = world_dao.from_dao()
 
 query_timings: List[QueryTiming] = []
 
