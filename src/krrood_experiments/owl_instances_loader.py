@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import os.path
 from collections import defaultdict
 from dataclasses import fields, is_dataclass, dataclass, field
 from types import ModuleType
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union, ClassVar
 
 import rdflib
 from krrood.class_diagrams.class_diagram import Association, ClassDiagram
@@ -16,7 +17,10 @@ from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDes
 from krrood.ormatic.utils import classes_of_module
 from krrood.utils import inheritance_path_length
 from rdflib import RDF, URIRef, Literal, OWL, BNode, RDFS
+from ripple_down_rules import RDRDecorator
 from typing_extensions import Set
+
+from krrood_experiments.utils import get_non_class_attribute_names_of_instance
 
 
 @dataclass
@@ -248,6 +252,13 @@ class OwlLoader:
         default_factory=lambda: defaultdict(set)
     )
     metadata: ModelMetadata = field(init=False)
+    _type_rdr: ClassVar[RDRDecorator] = RDRDecorator(
+        os.path.join(os.path.dirname(__file__), "rdrs"),
+        (type,),
+        False,
+        fit=True,
+        update_existing_rules=False,
+    )
 
     def __post_init__(self):
         self.metadata = ModelMetadata(self.model_modules)
@@ -261,9 +272,31 @@ class OwlLoader:
         self.graph.parse(self.owl_path)
         self._create_anonymous_instances_with_explicit_types()
         self._assign_all_properties_to_all_instances()
+        for instance in self.anonymous_instances.values():
+            self.infer_most_appropriate_types_for_anonymous_instance(instance)
         # self._create_explicit_instances()
         self._assign_all_properties()
         return self.registry
+
+    @_type_rdr.decorator
+    def infer_most_appropriate_types_for_anonymous_instance(
+        self, instance: AnonymousClass
+    ) -> List[Type]:
+        """Infers the most appropriate Python types for anonymous instances based on their explicit types and
+        properties"""
+        ...
+
+    def get_inferred_types_from_descriptors_domains_of_instance(
+        self, instance: AnonymousClass
+    ) -> Set[Type]:
+        """Infers possible types from domains of property descriptors assigned to the instance."""
+        non_class_fields = get_non_class_attribute_names_of_instance(instance)
+        descriptors = [self.metadata.get_descriptor_base(f) for f in non_class_fields]
+        descriptors = [d for d in descriptors if d is not None]
+        inferred_types = set()
+        for d in descriptors:
+            inferred_types.update(d.all_domains[d])
+        return inferred_types
 
     def _create_anonymous_instances_with_explicit_types(self):
         """Creates instances for all anonymous subjects in the graph."""
