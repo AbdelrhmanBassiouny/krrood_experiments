@@ -651,6 +651,11 @@ class ScienceStudent(Student):
 
 
 @dataclass(eq=False)
+class SportsFan(PeopleWithHobby):
+    is_crazy_about: Set[Sports] = field(kw_only=True, default_factory=set)
+
+
+@dataclass(eq=False)
 class SportsLover(PeopleWithHobby):
     loves: Set[Sports] = field(kw_only=True, default_factory=set)
 
@@ -719,6 +724,11 @@ class WomanCollege(College):
 
 
 @dataclass(eq=False)
+class BasketBallFan(SportsFan):
+    is_crazy_about: Set[BasketBall] = field(kw_only=True, default_factory=set)
+
+
+@dataclass(eq=False)
 class BasketBallLover(SportsLover):
     loves: Set[BasketBall] = field(kw_only=True, default_factory=set)
 
@@ -759,6 +769,11 @@ class Professor(Faculty):
 @dataclass(eq=False)
 class SystemStaff(SupportingStaff):
     ...
+
+
+@dataclass(eq=False)
+class T20CricketFan(SportsFan):
+    is_crazy_about: Set[Cricket] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
@@ -822,21 +837,6 @@ class Director(Role[FullProfessor], Symbol):
     @lru_cache(maxsize=None)
     def role_taker_field(cls) -> Field:
         return next(iter(f for f in fields(cls) if f.name == "full_professor"))
-
-
-@dataclass(eq=False)
-class BasketBallFan(SportsFan):
-    is_crazy_about: Set[BasketBall] = field(kw_only=True, default_factory=set)
-
-
-@dataclass(eq=False)
-class SportsFan(T20CricketFan):
-    is_crazy_about: Set[Sports] = field(kw_only=True, default_factory=set)
-
-
-@dataclass(eq=False)
-class T20CricketFan(BasketBallFan):
-    is_crazy_about: Set[Interest] = field(kw_only=True, default_factory=set)
 
 
 
@@ -929,14 +929,17 @@ PGStudent.enroll_for = EnrollFor(PGStudent, 'enroll_for')
 PhDStudent.enroll_for = EnrollFor(PhDStudent, 'enroll_for')
 ResearchAssistant.is_research_assistant_of = IsResearchAssistantOf(ResearchAssistant, 'is_research_assistant_of')
 ScienceStudent.has_major = HasMajor(ScienceStudent, 'has_major')
+SportsFan.is_crazy_about = IsCrazyAbout(SportsFan, 'is_crazy_about')
 SportsLover.loves = Loves(SportsLover, 'loves')
 TeachingAssistant.is_teaching_assistant_of = IsTeachingAssistantOf(TeachingAssistant, 'is_teaching_assistant_of')
 UGStudent.enroll_for = EnrollFor(UGStudent, 'enroll_for')
 WomanCollege.has_student = HasStudent(WomanCollege, 'has_student')
+BasketBallFan.is_crazy_about = IsCrazyAbout(BasketBallFan, 'is_crazy_about')
 BasketBallLover.loves = Loves(BasketBallLover, 'loves')
 Lecturer.is_lecturer_of = IsLecturerOf(Lecturer, 'is_lecturer_of')
 PostDoc.is_post_doc_of = IsPostDocOf(PostDoc, 'is_post_doc_of')
 Professor.is_professor_of = IsProfessorOf(Professor, 'is_professor_of')
+T20CricketFan.is_crazy_about = IsCrazyAbout(T20CricketFan, 'is_crazy_about')
 AssistantProfessor.is_assistant_professor_of = IsAssistantProfessorOf(AssistantProfessor, 'is_assistant_professor_of')
 AssociateProfessor.is_associate_professor_of = IsAssociateProfessorOf(AssociateProfessor, 'is_associate_professor_of')
 FullProfessor.is_full_professor_of = IsFullProfessorOf(FullProfessor, 'is_full_professor_of')
@@ -944,6 +947,3 @@ VisitingProfessor.is_visiting_professor_of = IsVisitingProfessorOf(VisitingProfe
 Chair.is_head_of = IsHeadOf(Chair, 'is_head_of')
 Dean.is_head_of = IsHeadOf(Dean, 'is_head_of')
 Director.is_head_of = IsHeadOf(Director, 'is_head_of')
-BasketBallFan.is_crazy_about = IsCrazyAbout(BasketBallFan, 'is_crazy_about')
-SportsFan.is_crazy_about = IsCrazyAbout(SportsFan, 'is_crazy_about')
-T20CricketFan.is_crazy_about = IsCrazyAbout(T20CricketFan, 'is_crazy_about')

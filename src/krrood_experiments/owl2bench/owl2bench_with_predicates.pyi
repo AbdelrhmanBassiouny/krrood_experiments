@@ -764,6 +764,12 @@ class ScienceStudent(Student):
 
 
 @dataclass(eq=False)
+class SportsFan(PeopleWithHobby):
+    is_crazy_about: Set[Sports] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
 class SportsLover(PeopleWithHobby):
     loves: Set[Sports] = field(default_factory=set)
 
@@ -837,6 +843,12 @@ class WomanCollege(College):
 
 
 @dataclass(eq=False)
+class BasketBallFan(SportsFan):
+    is_crazy_about: Set[BasketBall] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
 class BasketBallLover(SportsLover):
     loves: Set[BasketBall] = field(default_factory=set)
 
@@ -884,6 +896,12 @@ class SystemStaff(SupportingStaff):
 
 
 @dataclass(eq=False)
+class T20CricketFan(SportsFan):
+    is_crazy_about: Set[Cricket] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
 class AssistantProfessor(Professor):
     is_assistant_professor_of: Set[Department] = field(default_factory=set)
 
@@ -926,24 +944,6 @@ class Dean(FullProfessorMixinProtocol, Symbol):
 @dataclass(eq=False)
 class Director(FullProfessorMixinProtocol, Symbol):
     is_head_of: Set[Program] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
-class BasketBallFan(SportsFan):
-    is_crazy_about: Set[BasketBall] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
-class SportsFan(T20CricketFan):
-    is_crazy_about: Set[Sports] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
-class T20CricketFan(BasketBallFan):
-    is_crazy_about: Set[Interest] = field(default_factory=set)
 
 
 
