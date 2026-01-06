@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from dataclasses import fields, is_dataclass
+from dataclasses import fields, is_dataclass, dataclass, field
 from types import ModuleType
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union
 
@@ -15,7 +15,25 @@ from krrood.ontomatic.property_descriptor.attribute_introspector import (
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
 from krrood.ormatic.utils import classes_of_module
 from krrood.utils import inheritance_path_length
-from rdflib import RDF, URIRef, Literal, OWL
+from rdflib import RDF, URIRef, Literal, OWL, BNode, RDFS
+from typing_extensions import Set
+
+
+@dataclass
+class AnonymousClass:
+    """Represents an anonymous class that is yet to be identified"""
+
+    uri: URIRef
+    types: Set[Type] = field(default_factory=set)
+
+    def add_type(self, cls: Type):
+        self.types.add(cls)
+
+    def __hash__(self):
+        return hash(self.uri)
+
+    def __eq__(self, other):
+        return self.uri == other.uri
 
 
 class OwlInstancesRegistry:
@@ -216,30 +234,23 @@ class ModelMetadata:
         return self.descriptor_by_name.get(to_pascal(pred_local))
 
 
+@dataclass
 class OwlLoader:
     """Loader for OWL/RDF instances into Python model instances."""
 
-    def __init__(
-        self,
-        owl_path: str,
-        model_modules: Union[ModuleType, Iterable[ModuleType]],
-        symbol_graph: SymbolGraph,
-        registry: OwlInstancesRegistry,
-    ):
-        """Initializes OwlLoader.
+    owl_path: str
+    model_modules: Union[ModuleType, Iterable[ModuleType]]
+    symbol_graph: SymbolGraph
+    registry: OwlInstancesRegistry
+    graph: rdflib.Graph = field(default_factory=rdflib.Graph)
+    anonymous_instances: Dict[URIRef, AnonymousClass] = field(default_factory=dict)
+    anonymous_instances_by_type: Dict[Type, Set[AnonymousClass]] = field(
+        default_factory=lambda: defaultdict(set)
+    )
+    metadata: ModelMetadata = field(init=False)
 
-        Args:
-            owl_path: Path to the OWL/RDF file.
-            model_modules: Modules containing model classes.
-            symbol_graph: The symbol graph representing the model.
-            registry: Registry to store created instances.
-        """
-        self.owl_path = owl_path
-        self.model_modules = model_modules
-        self.symbol_graph = symbol_graph
-        self.registry = registry
-        self.metadata = ModelMetadata(model_modules)
-        self.graph = rdflib.Graph()
+    def __post_init__(self):
+        self.metadata = ModelMetadata(self.model_modules)
 
     def load(self) -> OwlInstancesRegistry:
         """Parses the OWL file and loads instances into the registry.
@@ -248,9 +259,66 @@ class OwlLoader:
             The populated OwlInstancesRegistry.
         """
         self.graph.parse(self.owl_path)
-        self._create_explicit_instances()
+        self._create_anonymous_instances_with_explicit_types()
+        self._assign_all_properties_to_all_instances()
+        # self._create_explicit_instances()
         self._assign_all_properties()
         return self.registry
+
+    def _create_anonymous_instances_with_explicit_types(self):
+        """Creates instances for all anonymous subjects in the graph."""
+        for s, _, o_class in self.graph.triples((None, RDF.type, None)):
+            if not isinstance(s, URIRef):
+                continue
+            py_cls = self.metadata.get_python_class(o_class)
+            if py_cls is None:
+                continue
+            if o_class in [
+                OWL.SymmetricProperty,
+                OWL.DatatypeProperty,
+                OWL.ObjectProperty,
+                OWL.IrreflexiveProperty,
+                OWL.AsymmetricProperty,
+                OWL.TransitiveProperty,
+                OWL.InverseFunctionalProperty,
+                OWL.Class,
+            ]:
+                continue
+
+            if s not in self.anonymous_instances:
+                ac = AnonymousClass(s, {py_cls})
+                self.anonymous_instances[s] = ac
+            else:
+                ac = self.anonymous_instances[s]
+                ac.add_type(py_cls)
+            self.anonymous_instances_by_type[py_cls].add(ac)
+
+    def _assign_all_properties_to_all_instances(self):
+        """Iterates through all properties of all instances and assigns properties to the instances."""
+        for s, instance in self.anonymous_instances.items():
+            self._assign_all_properties_to_instance(instance)
+
+    def _assign_all_properties_to_instance(self, instance: AnonymousClass):
+        """Iterates through all properties of all instances and assigns properties to the instances."""
+        for p, o in self.graph.predicate_objects(subject=instance.uri):
+            if p in [RDF.type, RDFS.subClassOf, OWL.equivalentClass]:
+                continue
+            predicate_name = to_snake(local_name(p))
+            field_name = self._determine_field_name(
+                instance, predicate_name, instance.types
+            )
+            field_name = field_name or predicate_name
+            obj = o
+            if isinstance(obj, Literal):
+                self._assign_data_property(
+                    instance, field_name, obj, must_have_attr=False
+                )
+            else:
+                obj = self.anonymous_instances.get(obj)
+                if not hasattr(instance, field_name):
+                    setattr(instance, field_name, {obj})
+                else:
+                    getattr(instance, field_name).add(obj)
 
     def _create_explicit_instances(self):
         """Creates instances for all subjects with an explicit rdf:type in the graph."""
@@ -371,7 +439,9 @@ class OwlLoader:
             subj_roles = self._ensure_instance(subject_uri)
         return subj_roles
 
-    def _determine_field_name(self, subj: Any, snake_name: str) -> Optional[str]:
+    def _determine_field_name(
+        self, subj: Any, snake_name: str, subj_types: Optional[Set[Type]] = None
+    ) -> Optional[str]:
         """Determines the appropriate attribute name on the subject for a given predicate.
 
         Args:
@@ -381,8 +451,12 @@ class OwlLoader:
         Returns:
             The field name if determined, otherwise None.
         """
-        subj_cls = type(subj)
-        field_name = self.metadata.get_field_name(subj_cls, snake_name)
+        subj_classes = {type(subj)} if not subj_types else subj_types
+        field_name = None
+        for subj_cls in subj_classes:
+            field_name = self.metadata.get_field_name(subj_cls, snake_name)
+            if field_name:
+                break
         if not field_name:
             if snake_name in [f.name for f in fields(subj_cls)]:
                 field_name = snake_name
@@ -414,6 +488,7 @@ class OwlLoader:
         subj: Any,
         field_name: Optional[str],
         literal: Literal,
+        must_have_attr: bool = True,
     ):
         """Assigns a data property to an instance, coercing the literal value if possible.
 
@@ -421,8 +496,9 @@ class OwlLoader:
             subj: The subject instance.
             field_name: The determined field name on the subject.
             literal: The RDF literal value.
+            must_have_attr: Whether the subject must have the attribute before assigning.
         """
-        if field_name and hasattr(subj, field_name):
+        if field_name and (not must_have_attr or hasattr(subj, field_name)):
             # Coerce to field annotated type
             try:
                 ftypes = {f.name: f.type for f in fields(type(subj))}
@@ -642,7 +718,7 @@ class OwlLoader:
         )
 
     @staticmethod
-    def _coerce_literal(val: Literal, target_type: Optional[Type]) -> Any:
+    def _coerce_literal(val: Literal, target_type: Optional[Type] = None) -> Any:
         """Coerces an RDF literal to a Python type.
 
         Args:
