@@ -6,6 +6,7 @@ from typing import Dict, List
 
 import numpy as np
 import SPARQLWrapper
+import rdflib
 import tqdm
 from krrood.ormatic.dao import to_dao
 from krrood.ormatic.utils import create_engine, drop_database
@@ -23,6 +24,7 @@ class Backend(enum.Enum):
     SQLAlchemy = "sqlalchemy"
     SPARQLWrapper = "SPARQLWrapper"
     EQL = "EQL"
+    RDFLib = "RDFLib"
 
 
 @dataclass
@@ -73,12 +75,15 @@ class TypstTableExporter:
         """
         Exports the timing results to a Typst table.
         """
+        columns = ["[*Query*]", "[*Results*]"]
+        columns += [f"[[*{backend.value} (ms)*]]" for backend in Backend]
+
         content = [
             "#table(",
-            "  columns: (auto, auto, auto, auto, auto),",
+            f"  columns: ({', '.join(['auto'] * (2 + len(Backend)))}),",
             "  inset: 10pt,",
             "  align: horizon,",
-            "  [*Query*], [*Results*], [*SQLAlchemy (ms)*], [*SPARQLWrapper (ms)*], [*EQL (ms)*],",
+            f"  {', '.join(columns)},",
         ]
 
         for timing in self.timings:
@@ -136,10 +141,15 @@ class TypstTableExporter:
         print(f"Typst table saved to {output_path}")
 
 
-iterations_per_query = 10
+iterations_per_query = 1
 
 sparql = SPARQLWrapper.SPARQLWrapper("http://localhost:7200/repositories/KRROOD")
 sparql.setReturnFormat(SPARQLWrapper.JSON)
+
+print("Loading data into rdflib...")
+rdflib_graph = rdflib.Graph()
+rdflib_graph.parse("resources/statements.rdf", format="xml")
+
 loader = WorldLoader(sparql)
 loader.parse()
 
@@ -179,6 +189,7 @@ for sparql_query in pbar:
     current_sqlalchemy_runtimes = []
     current_sparqlwrapper_runtimes = []
     current_eql_runtimes = []
+    current_rdflib_runtimes = []
 
     for _ in range(iterations_per_query):
 
@@ -198,16 +209,23 @@ for sparql_query in pbar:
         eql_results = list(eql_query.query(loader.world).evaluate())
         current_eql_runtimes.append(time.time() - start)
 
+        # Execute RDFLib query
+        start = time.time()
+        rdflib_results = list(rdflib_graph.query(sparql_query.raw_sparql_string))
+        current_rdflib_runtimes.append(time.time() - start)
+
         assert (
             len(sql_results)
             == len(sparql_results["results"]["bindings"])
             == len(eql_results)
+            == len(rdflib_results)
         )
 
     backend_runtimes = {
         Backend.SPARQLWrapper: current_sparqlwrapper_runtimes,
         Backend.SQLAlchemy: current_sqlalchemy_runtimes,
         Backend.EQL: current_eql_runtimes,
+        Backend.RDFLib: current_rdflib_runtimes,
     }
 
     query_timings.append(
