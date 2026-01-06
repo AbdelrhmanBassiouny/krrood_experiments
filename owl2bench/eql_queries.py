@@ -45,7 +45,7 @@ class EQLQuery:
 def eql1(world: World):
     p1 = variable(Person, world.persons)
     p2 = variable_from(p1.knows)
-    q = an(set_of(p1, p2).where(contains(p1.knows, p2)))
+    q = an(set_of(p1, p2))
     return q
 
 
@@ -55,7 +55,7 @@ q1 = EQLQuery(sparql_queries.q1, eql1)
 def eql2(world: World):
     o1 = variable(Organization, world.organizations)
     p = variable_from(o1.members)
-    return an(entity(p).where(contains(o1.members, p)))
+    return an(entity(p))
 
 
 q2 = EQLQuery(sparql_queries.q2, eql2)
@@ -64,7 +64,7 @@ q2 = EQLQuery(sparql_queries.q2, eql2)
 def eql3(world: World):
     o1 = variable(Organization, world.organizations)
     o2 = variable_from(o1.is_part_of)
-    return an(set_of(o1, o2).where(contains(o1.is_part_of, o2)))
+    return an(set_of(o1, o2))
 
 
 q3 = EQLQuery(sparql_queries.q3, eql3)
@@ -89,7 +89,7 @@ q6 = EQLQuery(sparql_queries.q6, eql6)
 def eql7(world: World):
     u = variable(University, world.organizations)
     p = variable_from(u.alumni)
-    return an(set_of(u, p).where(contains(u.alumni, p)))
+    return an(set_of(u, p))
 
 
 q7 = EQLQuery(sparql_queries.q7, eql7)
@@ -98,7 +98,7 @@ q7 = EQLQuery(sparql_queries.q7, eql7)
 def eql8(world: World):
     o1 = variable(Organization, world.organizations)
     o2 = variable_from(o1.affiliated_organizations)
-    return an(set_of(o1, o2).where(contains(o1.affiliated_organizations, o2)))
+    return an(set_of(o1, o2))
 
 
 q8 = EQLQuery(sparql_queries.q8, eql8)
@@ -107,11 +107,7 @@ q8 = EQLQuery(sparql_queries.q8, eql8)
 def eql9(world: World):
     o1 = variable(Organization, world.organizations)
     c = variable_from(o1.courses)
-    return an(
-        set_of(o1, c).where(
-            and_(HasType(c.topic, MaterialScienceEngineering), contains(o1.courses, c))
-        )
-    )
+    return an(set_of(o1, c).where(and_(HasType(c.topic, MaterialScienceEngineering))))
 
 
 q9 = EQLQuery(sparql_queries.q9, eql9)
@@ -120,7 +116,7 @@ q9 = EQLQuery(sparql_queries.q9, eql9)
 def eql10(world: World):
     p1 = variable(Person, world.persons)
     p2 = variable_from(p1.collaborates_with)
-    return an(set_of(p1, p2).where(contains(p1.collaborates_with, p2)))
+    return an(set_of(p1, p2))
 
 
 q10 = EQLQuery(sparql_queries.q10, eql10)
@@ -129,7 +125,7 @@ q10 = EQLQuery(sparql_queries.q10, eql10)
 def eql11(world: World):
     p1 = variable(Person, world.persons)
     p2 = variable_from(p1.is_advised_by)
-    return an(set_of(p1, p2).where(contains(p1.is_advised_by, p2)))
+    return an(set_of(p1, p2))
 
 
 q11 = EQLQuery(sparql_queries.q11, eql11)
@@ -217,7 +213,7 @@ q19 = EQLQuery(sparql_queries.q19, eql19)
 def eql20(world: World):
     p1 = variable(Person, world.persons)
     p2 = variable_from(p1.has_same_hometown_as)
-    return an(set_of(p1, p2).where(contains(p1.has_same_hometown_as, p2)))
+    return an(set_of(p1, p2))
 
 
 q20 = EQLQuery(sparql_queries.q20, eql20)
