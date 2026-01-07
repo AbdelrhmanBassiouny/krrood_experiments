@@ -917,7 +917,7 @@ class InferenceEngine:
                 self.onto.classes[for_class].axioms.extend(
                     [
                         f"HasAttribute(candidate_var, '{snake_prop_name}')",
-                        f"contains(candidate_var.{snake_prop_name}.types, {rng_name})",
+                        f"IsSubClassOf(variable_from(candidate_var.{snake_prop_name}.types), {rng_name})",
                     ]
                 )
                 for inverse in self.onto.properties[prop_name].inverses:
@@ -928,7 +928,7 @@ class InferenceEngine:
                     self.onto.classes[rng_name].axioms.extend(
                         [
                             f"HasAttribute(candidate_var, '{snake_inverse_name}')",
-                            f"contains(candidate_var.{snake_inverse_name}.types, {for_class})",
+                            f"IsSubClassOf(variable_from(candidate_var.{snake_inverse_name}.types), {for_class})",
                         ]
                     )
             except Exception as e:
