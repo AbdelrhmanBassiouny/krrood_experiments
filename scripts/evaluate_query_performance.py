@@ -19,7 +19,7 @@ from owl2bench.sparql_queries import OWLProfile
 from owl2bench.performance_utils import Backend, QueryTiming, LatexPerformanceExporter
 
 
-def evaluate_queries(iterations_per_query: int = 1):
+def evaluate_queries(iterations_per_query: int = 10):
     sparql = SPARQLWrapper.SPARQLWrapper("http://localhost:7200/repositories/KRROOD")
     sparql.setReturnFormat(SPARQLWrapper.JSON)
 
