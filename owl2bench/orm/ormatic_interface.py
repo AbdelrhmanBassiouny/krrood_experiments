@@ -1527,7 +1527,7 @@ class BasketBallDAO(SportsDAO, DataAccessObject[owl2bench.model.interests.Basket
     }
 
 
-class CricketDAO(SportsDAO, DataAccessObject[owl2bench.model.interests.T20Cricket]):
+class CricketDAO(SportsDAO, DataAccessObject[owl2bench.model.interests.Cricket]):
 
     __tablename__ = "CricketDAO"
 

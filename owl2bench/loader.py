@@ -509,8 +509,6 @@ class WorldLoader:
         results = self.sparql_wrapper.query().convert()
         bindings = results["results"]["bindings"]
 
-        disciplines = []
-
         def get_all_subclasses(cls):
             all_subclasses = []
             for subclass in cls.__subclasses__():
@@ -525,10 +523,23 @@ class WorldLoader:
         # Also include the base class itself
         type_mapping["http://benchmark/OWL2Bench#CollegeDiscipline"] = CollegeDiscipline
 
+        discipline_data: Dict[str, List[type]] = {}
         for b in bindings:
+            identifier = str(b["x"]["value"])
             discipline_type = b["type"]["value"]
             cls = type_mapping.get(discipline_type, CollegeDiscipline)
-            disciplines.append(cls(identifier=str(b["x"]["value"])))
+            if identifier not in discipline_data:
+                discipline_data[identifier] = []
+            discipline_data[identifier].append(cls)
+
+        disciplines = []
+        for identifier, classes in discipline_data.items():
+            most_specific_cls = classes[0]
+            for cls in classes[1:]:
+                if issubclass(cls, most_specific_cls):
+                    most_specific_cls = cls
+            disciplines.append(most_specific_cls(identifier=identifier))
+
         return disciplines
 
     def _update_college_disciplines(self):
@@ -813,29 +824,41 @@ class WorldLoader:
         results = self.sparql_wrapper.query().convert()
         bindings = results["results"]["bindings"]
 
-        interests = []
-        # Map of RDF type to Python class
-        type_mapping = {
-            "http://benchmark/OWL2Bench#Interest": Interest,
-            "http://benchmark/OWL2Bench#Game": Game,
-            "http://benchmark/OWL2Bench#Movie": Movie,
-            "http://benchmark/OWL2Bench#Music": Music,
-            "http://benchmark/OWL2Bench#Painting": Painting,
-            "http://benchmark/OWL2Bench#Reading": Reading,
-            "http://benchmark/OWL2Bench#Travelling": Travelling,
-            "http://benchmark/OWL2Bench#Sports": Sports,
-            "http://benchmark/OWL2Bench#Badminton": Badminton,
-            "http://benchmark/OWL2Bench#BasketBall": BasketBall,
-            "http://benchmark/OWL2Bench#T20Cricket": T20Cricket,
-            "http://benchmark/OWL2Bench#FootBall": FootBall,
-            "http://benchmark/OWL2Bench#Swimming": Swimming,
-            "http://benchmark/OWL2Bench#Tennis": Tennis,
-        }
+        def get_all_subclasses(cls):
+            all_subclasses = []
+            for subclass in cls.__subclasses__():
+                all_subclasses.append(subclass)
+                all_subclasses.extend(get_all_subclasses(subclass))
+            return all_subclasses
 
+        subclasses = get_all_subclasses(Interest)
+        type_mapping = {
+            f"http://benchmark/OWL2Bench#{cls.__name__}": cls for cls in subclasses
+        }
+        # Also include the base class itself
+        type_mapping["http://benchmark/OWL2Bench#Interest"] = Interest
+
+        interest_data: Dict[str, List[type]] = {}
         for b in bindings:
+            identifier = str(b["x"]["value"])
             interest_type = b["type"]["value"]
             cls = type_mapping.get(interest_type, Interest)
-            interests.append(cls(identifier=str(b["x"]["value"])))
+            if identifier not in interest_data:
+                interest_data[identifier] = []
+            interest_data[identifier].append(cls)
+
+        interests = []
+        for identifier, classes in interest_data.items():
+            # Find the most specific class.
+            # In Python, we can check this using issubclass.
+            # We want a class that is a subclass of all other classes in the list.
+            most_specific_cls = classes[0]
+            for cls in classes[1:]:
+                if issubclass(cls, most_specific_cls):
+                    most_specific_cls = cls
+
+            interests.append(most_specific_cls(identifier=identifier))
+
         return interests
 
     def _update_person_hobbies(self):
