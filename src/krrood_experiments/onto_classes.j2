@@ -7,8 +7,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, fields, Field
 from functools import lru_cache
+from typing_extensions import Tuple
 
 from krrood.class_diagrams.utils import Role
+from krrood.entity_query_language.entity import contains, ConditionType
+from krrood.entity_query_language.predicate import HasAttribute
+from ..utils import AnonymousClass, get_super_axiom_and_candidate_var
 from .{{ properties_module_name }} import *
 from .{{ ontology_base_module_name }} import *
 
@@ -53,6 +57,15 @@ class {{ cls.name }}({% if cls.base_classes %}{{ ', '.join(cls.base_classes) }}{
     def role_taker_field(cls) -> Field:
         return next(iter(f for f in fields(cls) if f.name == "{{ cls.role_taker.field_name }}"))
     {% endif %}
+    {% endif %}
+    {% if cls.axioms|length > 0 %}
+
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var({{ cls.name }}, cls, candidate)
+        return (*super_axiom,
+                {{ cls.axioms | join(',\n\t\t\t\t') }}
+            )
     {% endif %}
 
 
