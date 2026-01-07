@@ -264,7 +264,7 @@ class OwlLoader:
             instance.final_sorted_types = (
                 self.infer_most_appropriate_types_for_anonymous_instance(instance)
             )
-        # self._create_explicit_instances()
+        self._create_explicit_instances(from_anonymous_instances=True)
         self._assign_all_properties()
         return self.registry
 
@@ -355,12 +355,26 @@ class OwlLoader:
                 else:
                     getattr(instance, field_name).add(obj_inst)
 
-    def _create_explicit_instances(self):
+    def _create_explicit_instances(self, from_anonymous_instances: bool = False):
         """Creates instances for all subjects with an explicit rdf:type in the graph."""
-        for s, _, o_class in self.graph.triples((None, RDF.type, None)):
+        if from_anonymous_instances:
+            so_iterator = (
+                (s, o_class)
+                for s, ai in self.anonymous_instances.items()
+                for o_class in ai.final_sorted_types
+            )
+        else:
+            so_iterator = (
+                (s, o) for s, _, o in self.graph.triples((None, RDF.type, None))
+            )
+        for s, o_class in so_iterator:
             if not isinstance(s, URIRef):
                 continue
-            py_cls = self.metadata.get_python_class(o_class)
+            py_cls = (
+                o_class
+                if isinstance(o_class, type)
+                else self.metadata.get_python_class(o_class)
+            )
             if py_cls is None:
                 continue
             if o_class in [
