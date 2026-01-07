@@ -70,7 +70,10 @@ sqlalchemy_q12 = select(PersonDAO)
 q12 = SQLAlchemyQuery(sparql_queries.q12, sqlalchemy_q12)
 
 sqlalchemy_q13 = select(CollegeDAO).filter(
-    ~CollegeDAO.members.any(PersonDAO.gender != "female")
+    CollegeDAO.members.any(),  # Must have at least one member
+    ~CollegeDAO.members.any(
+        PersonDAO.gender != "female"
+    ),  # None of them are non-female
 )
 q13 = SQLAlchemyQuery(sparql_queries.q13, sqlalchemy_q13)
 
