@@ -19,7 +19,7 @@ from owl2bench.sparql_queries import OWLProfile
 from owl2bench.performance_utils import Backend, QueryTiming, LatexPerformanceExporter
 
 
-def evaluate_queries(iterations_per_query: int = 10):
+def evaluate_queries(iterations_per_query: int = 1):
     sparql = SPARQLWrapper.SPARQLWrapper("http://localhost:7200/repositories/KRROOD")
     sparql.setReturnFormat(SPARQLWrapper.JSON)
 
@@ -34,7 +34,10 @@ def evaluate_queries(iterations_per_query: int = 10):
 
     # RDFLib setup
     rdflib_graph = rdflib.Graph()
-    rdflib_graph.parse(rdf_file_path, format="xml")
+    rdflib_graph.parse(
+        rdf_file_path,
+        format="xml",
+    )
 
     # KRROOD EQL setup
     loader = WorldLoader(sparql)
