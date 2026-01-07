@@ -84,6 +84,9 @@ def eql5(world: World):
     return an(entity(p).where(HasType(p.is_crazy_about, Cricket)))
 
 
+q5 = EQLQuery(sparql_queries.q5, eql5)
+
+
 def eql6(world: World):
     p = variable(Person, world.persons)
     return an(entity(p).where(contains(p.knows, p)))
@@ -248,6 +251,7 @@ all_queries = [
     q2,
     q3,
     q4,
+    q5,
     q6,
     q7,
     q8,
