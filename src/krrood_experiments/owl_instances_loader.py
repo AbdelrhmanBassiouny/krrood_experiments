@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import os.path
+from abc import ABC
 from collections import defaultdict
+from copy import copy
 from dataclasses import fields, is_dataclass, dataclass, field
 from types import ModuleType
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union, ClassVar
@@ -238,14 +240,27 @@ class OwlLoader:
     anonymous_instances_by_type: Dict[Type, Set[AnonymousClass]] = field(
         default_factory=lambda: defaultdict(set)
     )
+
+    @dataclass
+    class Case:
+        instance: AnonymousClass
+        self_: OwlLoader
+        output_: List[Type]
+
+    @staticmethod
+    def ask_now(case: Case):
+        return not case.output_
+
     metadata: ModelMetadata = field(init=False)
     _type_rdr: ClassVar[RDRDecorator] = RDRDecorator(
         os.path.join(os.path.dirname(__file__), "rdrs"),
         (type,),
         False,
-        fit=True,
+        fit=False,
         update_existing_rules=False,
+        # ask_now=ask_now,
         use_generated_classifier=True,
+        regenerate_model=False,
     )
 
     def __post_init__(self):
@@ -260,10 +275,11 @@ class OwlLoader:
         self.graph.parse(self.owl_path)
         self._create_anonymous_instances_with_explicit_types()
         self._assign_all_properties_to_all_instances()
-        for instance in self.anonymous_instances.values():
-            instance.final_sorted_types = (
-                self.infer_most_appropriate_types_for_anonymous_instance(instance)
-            )
+        for instance in copy(self.anonymous_instances).values():
+            result = self.infer_most_appropriate_types_for_anonymous_instance(instance)
+            if result:
+                instance.final_sorted_types = result
+
         self._create_explicit_instances(from_anonymous_instances=True)
         self._assign_all_properties()
         return self.registry
@@ -274,7 +290,7 @@ class OwlLoader:
     ) -> List[Type]:
         """Infers the most appropriate Python types for anonymous instances based on their explicit types and
         properties"""
-        ...
+        return []
 
     def get_inferred_types_from_descriptors_domains_of_instance(
         self, instance: AnonymousClass
@@ -285,15 +301,11 @@ class OwlLoader:
         descriptors = [d for d in descriptors if d is not None]
         inferred_types = set()
         for d in descriptors:
-            inferred_types.update(d.all_domains[d])
-        return set(
-            filter(
-                lambda t: (
-                    has_solution(instance, t.axiom) if hasattr(t, "axiom") else True
-                ),
-                inferred_types,
-            )
-        )
+            for dom in d.all_domains[d]:
+                if ABC in dom.__bases__:
+                    continue
+                inferred_types.add(dom)
+        return inferred_types
 
     def _create_anonymous_instances_with_explicit_types(self):
         """Creates instances for all anonymous subjects in the graph."""
@@ -438,12 +450,16 @@ class OwlLoader:
             py_cls = self.metadata.get_python_class(o_class)
             if py_cls is not None:
                 return [self.registry.get_or_create_for(uri, py_cls, self.symbol_graph)]
+        if uri in self.anonymous_instances:
+            return [self.anonymous_instances[uri]]
         return None
 
     def _assign_all_properties(self):
         """Iterates through all triples in the graph and assigns properties to instances."""
         for s, p, o in self.graph:
-            if p == RDF.type or not isinstance(s, URIRef):
+            if p in [RDF.type, RDFS.subClassOf, OWL.equivalentClass] or not isinstance(
+                s, URIRef
+            ):
                 continue
 
             subj_roles = self._get_subject_roles(s)
@@ -613,6 +629,12 @@ class OwlLoader:
             self._ensure_instance(obj_node) if isinstance(obj_node, URIRef) else None
         )
         obj = obj_roles[0] if obj_roles else None
+        if isinstance(obj, AnonymousClass):
+            if self._assign_to_attribute(subj, field_name, obj):
+                return
+            raise ValueError(
+                f"Could not assign {obj} to {subj} through field ({snake})"
+            )
         matched_obj = None
         if field_name and hasattr(subj, field_name):
             class_diagram = self.symbol_graph.class_diagram
