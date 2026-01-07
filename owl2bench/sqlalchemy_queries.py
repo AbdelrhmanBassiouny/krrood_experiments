@@ -37,6 +37,14 @@ sqlalchemy_q4 = select(PersonDAO.age).where(
 )
 q4 = SQLAlchemyQuery(sparql_queries.q4, sqlalchemy_q4)
 
+sqlalchemy_q5 = (
+    select(PersonDAO.is_crazy_about_id)
+    .join(InterestDAO, PersonDAO.is_crazy_about_id == InterestDAO.database_id)
+    .join(CricketDAO)
+)
+q5 = SQLAlchemyQuery(sparql_queries.q5, sqlalchemy_q5)
+
+
 sqlalchemy_q6 = select(persondao_knows_association).where(
     persondao_knows_association.c.source_persondao_id
     == persondao_knows_association.c.target_persondao_id
@@ -141,6 +149,7 @@ all_queries = [
     q2,
     q3,
     q4,
+    q5,
     q6,
     q7,
     q8,
