@@ -8,6 +8,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union, Clas
 
 import rdflib
 from krrood.class_diagrams.class_diagram import Association, ClassDiagram
+from krrood.entity_query_language.entity import has_solution
 from krrood.entity_query_language.predicate import Symbol
 from krrood.entity_query_language.symbol_graph import SymbolGraph
 from krrood.ontomatic.property_descriptor.attribute_introspector import (
@@ -244,6 +245,7 @@ class OwlLoader:
         False,
         fit=True,
         update_existing_rules=False,
+        use_generated_classifier=True,
     )
 
     def __post_init__(self):
@@ -284,7 +286,14 @@ class OwlLoader:
         inferred_types = set()
         for d in descriptors:
             inferred_types.update(d.all_domains[d])
-        return inferred_types
+        return set(
+            filter(
+                lambda t: (
+                    has_solution(instance, t.axiom) if hasattr(t, "axiom") else True
+                ),
+                inferred_types,
+            )
+        )
 
     def _create_anonymous_instances_with_explicit_types(self):
         """Creates instances for all anonymous subjects in the graph."""
@@ -313,6 +322,11 @@ class OwlLoader:
                 ac = self.anonymous_instances[s]
                 ac.add_type(py_cls)
             self.anonymous_instances_by_type[py_cls].add(ac)
+        for s in self.graph.subjects(RDF.type, OWL.NamedIndividual):
+            if s in self.anonymous_instances:
+                continue
+            ac = AnonymousClass(s, set())
+            self.anonymous_instances[s] = ac
 
     def _assign_all_properties_to_all_instances(self):
         """Iterates through all properties of all instances and assigns properties to the instances."""
@@ -335,11 +349,11 @@ class OwlLoader:
                     instance, field_name, obj, must_have_attr=False
                 )
             else:
-                obj = self.anonymous_instances.get(obj)
+                obj_inst = self.anonymous_instances.get(obj)
                 if not hasattr(instance, field_name):
-                    setattr(instance, field_name, {obj})
+                    setattr(instance, field_name, {obj_inst})
                 else:
-                    getattr(instance, field_name).add(obj)
+                    getattr(instance, field_name).add(obj_inst)
 
     def _create_explicit_instances(self):
         """Creates instances for all subjects with an explicit rdf:type in the graph."""
