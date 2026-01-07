@@ -1048,6 +1048,12 @@ class PersonDAO(IdentifiedEntityDAO, DataAccessObject[owl2bench.model.base.Perso
         String(255), use_existing_column=True
     )
 
+    is_crazy_about_id: Mapped[typing.Optional[builtins.int]] = mapped_column(
+        ForeignKey("InterestDAO.database_id", use_alter=True),
+        nullable=True,
+        use_existing_column=True,
+    )
+
     knows: Mapped[typing.List[PersonDAO]] = relationship(
         "PersonDAO",
         secondary="persondao_knows_association",
@@ -1096,6 +1102,9 @@ class PersonDAO(IdentifiedEntityDAO, DataAccessObject[owl2bench.model.base.Perso
         primaryjoin="PersonDAO.database_id == persondao_has_same_hometown_as_association.c.source_persondao_id",
         secondaryjoin="PersonDAO.database_id == persondao_has_same_hometown_as_association.c.target_persondao_id",
         cascade="save-update, merge",
+    )
+    is_crazy_about: Mapped[InterestDAO] = relationship(
+        "InterestDAO", uselist=False, foreign_keys=[is_crazy_about_id], post_update=True
     )
 
     __mapper_args__ = {
@@ -1518,7 +1527,7 @@ class BasketBallDAO(SportsDAO, DataAccessObject[owl2bench.model.interests.Basket
     }
 
 
-class CricketDAO(SportsDAO, DataAccessObject[owl2bench.model.interests.Cricket]):
+class CricketDAO(SportsDAO, DataAccessObject[owl2bench.model.interests.T20Cricket]):
 
     __tablename__ = "CricketDAO"
 

@@ -92,6 +92,7 @@ class WorldLoader:
         # get all interests
         self.world.interests = self._get_interests()
         self._update_person_hobbies()
+        self._update_person_is_crazy_about()
 
         # get all Publications
 
@@ -825,7 +826,7 @@ class WorldLoader:
             "http://benchmark/OWL2Bench#Sports": Sports,
             "http://benchmark/OWL2Bench#Badminton": Badminton,
             "http://benchmark/OWL2Bench#BasketBall": BasketBall,
-            "http://benchmark/OWL2Bench#Cricket": Cricket,
+            "http://benchmark/OWL2Bench#T20Cricket": T20Cricket,
             "http://benchmark/OWL2Bench#FootBall": FootBall,
             "http://benchmark/OWL2Bench#Swimming": Swimming,
             "http://benchmark/OWL2Bench#Tennis": Tennis,
@@ -865,3 +866,32 @@ class WorldLoader:
                 person_map[person_identifier].hobbies.append(
                     interest_map[interest_identifier]
                 )
+
+    def _update_person_is_crazy_about(self):
+        """
+        Updates the isCrazyAbout relationship for persons.
+        """
+        query = (
+            PREFIXES
+            + """
+            SELECT DISTINCT ?person ?interest WHERE {
+                ?person owl2bench:isCrazyAbout ?interest .
+            }
+            """
+        )
+
+        self.sparql_wrapper.setQuery(query)
+        results = self.sparql_wrapper.query().convert()
+        bindings = results["results"]["bindings"]
+
+        person_map = {p.identifier: p for p in self.world.persons}
+        interest_map = {i.identifier: i for i in self.world.interests}
+
+        for b in bindings:
+            person_identifier = str(b["person"]["value"])
+            interest_identifier = str(b["interest"]["value"])
+
+            if person_identifier in person_map and interest_identifier in interest_map:
+                person_map[person_identifier].is_crazy_about = interest_map[
+                    interest_identifier
+                ]

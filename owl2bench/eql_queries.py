@@ -19,6 +19,7 @@ from krrood.entity_query_language.symbolic import (
     SymbolicExpression,
 )
 
+from .model.interests import T20Cricket
 from .model.base import Course
 from .model.programs import UndergraduateProgram
 from .model.organizations import College
@@ -76,6 +77,11 @@ def eql4(world: World):
 
 
 q4 = EQLQuery(sparql_queries.q4, eql4)
+
+
+def eql5(world: World):
+    p = variable(Person, world.persons)
+    return an(entity(p).where(HasType(p.is_crazy_about, T20Cricket)))
 
 
 def eql6(world: World):
