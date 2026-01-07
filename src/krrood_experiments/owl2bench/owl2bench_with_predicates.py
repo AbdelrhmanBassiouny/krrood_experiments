@@ -7,8 +7,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, fields, Field
 from functools import lru_cache
+from typing_extensions import Tuple
 
 from krrood.class_diagrams.utils import Role
+from krrood.entity_query_language.entity import contains, ConditionType
+from krrood.entity_query_language.predicate import HasAttribute
+from ..utils import AnonymousClass, get_super_axiom_and_candidate_var
 from .owl2bench_with_predicates_properties import *
 from .owl2bench_with_predicates_base import *
 
@@ -21,6 +25,14 @@ class CollegeDiscipline(OWL2BenchOntology):
 @dataclass(eq=False)
 class Course(OWL2BenchOntology):
     is_taught_by: Set[Faculty] = field(kw_only=True, default_factory=set)
+
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(Course, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'is_taught_by'),
+				contains(candidate_var.is_taught_by.types, Faculty)
+            )
 
 
 @dataclass(eq=False)
@@ -50,6 +62,14 @@ class Organization(OWL2BenchOntology):
     is_part_of: Set[Organization] = field(kw_only=True, default_factory=set)
     is_sub_organization_of: Set[Organization] = field(kw_only=True, default_factory=set)
     org_publication: Set[Publication] = field(kw_only=True, default_factory=set)
+
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(Organization, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'has_employee'),
+				contains(candidate_var.has_employee.types, Employee)
+            )
 
 
 @dataclass(eq=False)
@@ -81,6 +101,14 @@ class Person(OWL2BenchOntology):
 class Program(OWL2BenchOntology):
     """Different programs offered in a department. UG, PG or PhD"""
     has_head: Set[Director] = field(kw_only=True, default_factory=set)
+
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(Program, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'has_head'),
+				contains(candidate_var.has_head.types, Director)
+            )
 
 
 @dataclass(eq=False)
@@ -117,6 +145,14 @@ class College(Organization):
     is_college_of: Set[University] = field(kw_only=True, default_factory=set)
     is_women_college_of: Set[University] = field(kw_only=True, default_factory=set)
 
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(College, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'has_head'),
+				contains(candidate_var.has_head.types, Dean)
+            )
+
 
 @dataclass(eq=False)
 class Department(Organization):
@@ -140,6 +176,14 @@ class Department(Organization):
     is_department_of: Set[College] = field(kw_only=True, default_factory=set)
     offer_course: Set[Course] = field(kw_only=True, default_factory=set)
 
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(Department, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'has_head'),
+				contains(candidate_var.has_head.types, Chair)
+            )
+
 
 @dataclass(eq=False)
 class ElectiveCourse(Course):
@@ -161,6 +205,14 @@ class Employee(Role[Person], Symbol):
     @lru_cache(maxsize=None)
     def role_taker_field(cls) -> Field:
         return next(iter(f for f in fields(cls) if f.name == "person"))
+
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(Employee, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'works_for'),
+				contains(candidate_var.works_for.types, Organization)
+            )
 
 
 @dataclass(eq=False)
@@ -241,6 +293,14 @@ class PeopleWithHobby(Role[Person], Symbol):
     def role_taker_field(cls) -> Field:
         return next(iter(f for f in fields(cls) if f.name == "person"))
 
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(PeopleWithHobby, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'likes'),
+				contains(candidate_var.likes.types, Interest)
+            )
+
 
 @dataclass(eq=False)
 class PhDProgram(Program):
@@ -304,6 +364,14 @@ class Student(Role[Person], Symbol):
     def role_taker_field(cls) -> Field:
         return next(iter(f for f in fields(cls) if f.name == "person"))
 
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(Student, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'enroll_in'),
+				contains(candidate_var.enroll_in.types, Department)
+            )
+
 
 @dataclass(eq=False)
 class StudentEvaluationCommittee(EvaluationCommittee):
@@ -347,6 +415,14 @@ class UnofficialPublication(Publication):
 @dataclass(eq=False)
 class Woman(Person):
     is_student_of: Set[WomanCollege] = field(kw_only=True, default_factory=set)
+
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(Woman, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'is_student_of'),
+				contains(candidate_var.is_student_of.types, WomanCollege)
+            )
 
 
 @dataclass(eq=False)
@@ -463,6 +539,14 @@ class English(HumanitiesAndSocial):
 class Faculty(Employee):
     is_faculty_of: Set[Organization] = field(kw_only=True, default_factory=set)
     teaches_course: Set[Course] = field(kw_only=True, default_factory=set)
+
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(Faculty, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'teaches_course'),
+				contains(candidate_var.teaches_course.types, Course)
+            )
 
 
 @dataclass(eq=False)
@@ -584,6 +668,14 @@ class OperationsManagement(Management):
 class PGStudent(Student):
     enroll_for: Set[PGProgram] = field(kw_only=True, default_factory=set)
 
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(PGStudent, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'enroll_for'),
+				contains(candidate_var.enroll_for.types, PGProgram)
+            )
+
 
 @dataclass(eq=False)
 class PerformingArts(FineArts):
@@ -598,6 +690,14 @@ class PetroleumlEngineering(Engineering):
 @dataclass(eq=False)
 class PhDStudent(Student):
     enroll_for: Set[PhDProgram] = field(kw_only=True, default_factory=set)
+
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(PhDStudent, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'enroll_for'),
+				contains(candidate_var.enroll_for.types, PhDProgram)
+            )
 
 
 @dataclass(eq=False)
@@ -649,15 +749,39 @@ class SalesManagement(Management):
 class ScienceStudent(Student):
     has_major: Set[Science] = field(kw_only=True, default_factory=set)
 
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(ScienceStudent, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'has_major'),
+				contains(candidate_var.has_major.types, Science)
+            )
+
 
 @dataclass(eq=False)
 class SportsFan(PeopleWithHobby):
     is_crazy_about: Set[Sports] = field(kw_only=True, default_factory=set)
 
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(SportsFan, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'is_crazy_about'),
+				contains(candidate_var.is_crazy_about.types, Sports)
+            )
+
 
 @dataclass(eq=False)
 class SportsLover(PeopleWithHobby):
     loves: Set[Sports] = field(kw_only=True, default_factory=set)
+
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(SportsLover, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'loves'),
+				contains(candidate_var.loves.types, Sports)
+            )
 
 
 @dataclass(eq=False)
@@ -691,6 +815,14 @@ class TeachingAssistant(Role[Student], Symbol):
     def role_taker_field(cls) -> Field:
         return next(iter(f for f in fields(cls) if f.name == "student"))
 
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(TeachingAssistant, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'is_teaching_assistant_of'),
+				contains(candidate_var.is_teaching_assistant_of.types, Course)
+            )
+
 
 @dataclass(eq=False)
 class TechnicalReport(Article):
@@ -717,20 +849,52 @@ class ThesisEvaluationCommittee(StudentEvaluationCommittee):
 class UGStudent(Student):
     enroll_for: Set[UGProgram] = field(kw_only=True, default_factory=set)
 
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(UGStudent, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'enroll_for'),
+				contains(candidate_var.enroll_for.types, UGProgram)
+            )
+
 
 @dataclass(eq=False)
 class WomanCollege(College):
     has_student: Set[Woman] = field(kw_only=True, default_factory=set)
+
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(WomanCollege, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'has_student'),
+				contains(candidate_var.has_student.types, Woman)
+            )
 
 
 @dataclass(eq=False)
 class BasketBallFan(SportsFan):
     is_crazy_about: Set[BasketBall] = field(kw_only=True, default_factory=set)
 
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(BasketBallFan, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'is_crazy_about'),
+				contains(candidate_var.is_crazy_about.types, BasketBall)
+            )
+
 
 @dataclass(eq=False)
 class BasketBallLover(SportsLover):
     loves: Set[BasketBall] = field(kw_only=True, default_factory=set)
+
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(BasketBallLover, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'loves'),
+				contains(candidate_var.loves.types, BasketBall)
+            )
 
 
 @dataclass(eq=False)
@@ -775,6 +939,14 @@ class SystemStaff(SupportingStaff):
 class T20CricketFan(SportsFan):
     is_crazy_about: Set[Cricket] = field(kw_only=True, default_factory=set)
 
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(T20CricketFan, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'is_crazy_about'),
+				contains(candidate_var.is_crazy_about.types, Cricket)
+            )
+
 
 @dataclass(eq=False)
 class AssistantProfessor(Professor):
@@ -814,6 +986,14 @@ class Chair(Role[FullProfessor], Symbol):
     def role_taker_field(cls) -> Field:
         return next(iter(f for f in fields(cls) if f.name == "full_professor"))
 
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(Chair, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'is_head_of'),
+				contains(candidate_var.is_head_of.types, Department)
+            )
+
 
 @dataclass(eq=False)
 class Dean(Role[FullProfessor], Symbol):
@@ -826,6 +1006,14 @@ class Dean(Role[FullProfessor], Symbol):
     def role_taker_field(cls) -> Field:
         return next(iter(f for f in fields(cls) if f.name == "full_professor"))
 
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(Dean, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'is_head_of'),
+				contains(candidate_var.is_head_of.types, College)
+            )
+
 
 @dataclass(eq=False)
 class Director(Role[FullProfessor], Symbol):
@@ -837,6 +1025,14 @@ class Director(Role[FullProfessor], Symbol):
     @lru_cache(maxsize=None)
     def role_taker_field(cls) -> Field:
         return next(iter(f for f in fields(cls) if f.name == "full_professor"))
+
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(Director, cls, candidate)
+        return (*super_axiom,
+                HasAttribute(candidate_var, 'is_head_of'),
+				contains(candidate_var.is_head_of.types, Program)
+            )
 
 
 

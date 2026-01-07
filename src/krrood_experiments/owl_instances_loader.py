@@ -15,33 +15,15 @@ from krrood.ontomatic.property_descriptor.attribute_introspector import (
 )
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
 from krrood.ormatic.utils import classes_of_module
-from krrood.utils import inheritance_path_length
-from rdflib import RDF, URIRef, Literal, OWL, BNode, RDFS
+from rdflib import RDF, URIRef, Literal, OWL, RDFS
 from ripple_down_rules import RDRDecorator
 from typing_extensions import Set
 
 from krrood_experiments.utils import (
     get_non_class_attribute_names_of_instance,
     not_none_inheritance_path_length,
+    AnonymousClass,
 )
-
-
-@dataclass
-class AnonymousClass:
-    """Represents an anonymous class that is yet to be identified"""
-
-    uri: URIRef
-    types: Set[Type] = field(default_factory=set)
-    final_sorted_types: List[Type] = field(default_factory=list)
-
-    def add_type(self, cls: Type):
-        self.types.add(cls)
-
-    def __hash__(self):
-        return hash(self.uri)
-
-    def __eq__(self, other):
-        return self.uri == other.uri
 
 
 class OwlInstancesRegistry:

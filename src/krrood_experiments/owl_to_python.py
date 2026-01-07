@@ -18,6 +18,7 @@ from symtable import Symbol
 from typing import Dict, List, Optional, Any, Set, ClassVar
 
 import rdflib
+from gi.types import snake_case
 from jinja2 import Environment, FileSystemLoader
 from jinja2.ext import loopcontrols
 from krrood import logger
@@ -93,6 +94,7 @@ class ClassInfo:
     add_role_taker: bool = True
     role_taker: Optional[RoleTakerInfo] = None
     declared_properties: List[str] = field(default_factory=list)
+    axioms: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -911,10 +913,24 @@ class InferenceEngine:
                 self.onto.property_restrictions.setdefault(for_class, {}).setdefault(
                     prop_name, set()
                 ).add(rng_name)
+                snake_prop_name = NamingRegistry.to_snake_case(prop_name)
+                self.onto.classes[for_class].axioms.extend(
+                    [
+                        f"HasAttribute(candidate_var, '{snake_prop_name}')",
+                        f"contains(candidate_var.{snake_prop_name}.types, {rng_name})",
+                    ]
+                )
                 for inverse in self.onto.properties[prop_name].inverses:
+                    snake_inverse_name = NamingRegistry.to_snake_case(inverse)
                     self.onto.property_restrictions.setdefault(rng_name, {}).setdefault(
                         inverse, set()
                     ).add(for_class)
+                    self.onto.classes[rng_name].axioms.extend(
+                        [
+                            f"HasAttribute(candidate_var, '{snake_inverse_name}')",
+                            f"contains(candidate_var.{snake_inverse_name}.types, {for_class})",
+                        ]
+                    )
             except Exception as e:
                 logger.warning(f"[owl_to_python] Error processing restriction: {e}")
 
