@@ -79,7 +79,6 @@ def test_model_metadata_collection():
     assert (
         metadata.get_python_class(URIRef("http://example.org#MockPerson")) == MockPerson
     )
-    assert metadata.get_field_name(MockPerson, "name_attr") == "name_attr"
     assert metadata.get_descriptor_base("name_attr") == NameAttr
 
 

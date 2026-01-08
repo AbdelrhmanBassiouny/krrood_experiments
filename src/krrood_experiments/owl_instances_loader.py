@@ -114,7 +114,11 @@ class ModelMetadata:
     Python attributes and property descriptors.
     """
 
-    def __init__(self, model_modules: Union[ModuleType, Iterable[ModuleType]]):
+    def __init__(
+        self,
+        model_modules: Union[ModuleType, Iterable[ModuleType]],
+        symbol_graph: SymbolGraph,
+    ):
         """Initializes ModelMetadata by scanning the provided modules.
 
         Args:
@@ -122,8 +126,7 @@ class ModelMetadata:
         """
         self.class_by_name: Dict[str, Type] = {}
         self.descriptor_by_name: Dict[str, Type] = {}
-        self.field_by_predicate_local: Dict[Type, Dict[str, str]] = {}
-        self.field_by_descriptor: Dict[Type, Dict[Type, str]] = {}
+        self.symbol_graph = symbol_graph
         self._collect(model_modules)
 
     def _collect(self, model_modules: Union[ModuleType, Iterable[ModuleType]]):
@@ -135,7 +138,6 @@ class ModelMetadata:
         if isinstance(model_modules, (ModuleType, type)):
             model_modules = [model_modules]
         self._collect_classes_and_descriptors(model_modules)
-        self._map_predicates_and_descriptors()
 
     def _collect_classes_and_descriptors(self, model_modules: Iterable[ModuleType]):
         """Scans modules for dataclasses and PropertyDescriptor subclasses.
@@ -166,28 +168,6 @@ class ModelMetadata:
             ):
                 self.descriptor_by_name[obj.__name__] = obj
 
-    def _map_predicates_and_descriptors(self):
-        """Maps predicate local names and descriptors to attributes for each collected class."""
-        # For each model class, map predicate local names to attribute names and descriptors to attributes
-        for _, cls in list(self.class_by_name.items()):
-            pred_map: Dict[str, str] = {}
-            desc_map: Dict[Type, str] = {}
-
-            # Descriptors are class attributes, not dataclass fields. Iterate attributes and
-            # pick those that are instances of PropertyDescriptor (including subclasses).
-            for attr in dir(cls):
-                if attr.startswith("_"):
-                    continue
-                val = getattr(cls, attr)
-                if isinstance(val, PropertyDescriptor):
-                    # Map snake local predicate name to the class attribute name
-                    pred_map.setdefault(attr, attr)
-                    # Map descriptor class to attribute name for inverse lookups
-                    desc_map[type(val)] = attr
-
-            self.field_by_predicate_local[cls] = pred_map
-            self.field_by_descriptor[cls] = desc_map
-
     def get_python_class(self, rdf_class: URIRef) -> Optional[Type]:
         """Returns the Python class corresponding to the given RDF class URI.
 
@@ -200,18 +180,6 @@ class ModelMetadata:
         name = local_name(rdf_class)
         # Expect PascalCase names in model equal to RDF local name
         return self.class_by_name.get(name)
-
-    def get_field_name(self, cls: Type, snake_name: str) -> Optional[str]:
-        """Gets the attribute name for a given class and predicate (in snake_case).
-
-        Args:
-            cls: The Python class.
-            snake_name: The snake_case name of the predicate.
-
-        Returns:
-            The attribute name if mapped, otherwise None.
-        """
-        return self.field_by_predicate_local.get(cls, {}).get(snake_name)
 
     def get_descriptor_base(
         self, pred_local: str
@@ -264,7 +232,7 @@ class OwlLoader:
     )
 
     def __post_init__(self):
-        self.metadata = ModelMetadata(self.model_modules)
+        self.metadata = ModelMetadata(self.model_modules, self.symbol_graph)
 
     def load(self) -> OwlInstancesRegistry:
         """Parses the OWL file and loads instances into the registry.
@@ -279,7 +247,6 @@ class OwlLoader:
             result = self.infer_most_appropriate_types_for_anonymous_instance(instance)
             if result:
                 instance.final_sorted_types = result
-
         self._create_explicit_instances(from_anonymous_instances=True)
         self._assign_all_properties()
         return self.registry
@@ -350,11 +317,7 @@ class OwlLoader:
         for p, o in self.graph.predicate_objects(subject=instance.uri):
             if p in [RDF.type, RDFS.subClassOf, OWL.equivalentClass]:
                 continue
-            predicate_name = to_snake(local_name(p))
-            field_name = self._determine_field_name(
-                instance, predicate_name, instance.types
-            )
-            field_name = field_name or predicate_name
+            field_name = to_snake(local_name(p))
             obj = o
             if isinstance(obj, Literal):
                 self._assign_data_property(
@@ -473,21 +436,20 @@ class OwlLoader:
     def _assign_property(
         self,
         subj: Any,
-        predicate_name: str,
+        field_name: str,
         obj_uri: Union[URIRef, Literal],
     ):
         """Assigns a property to an instance based on the predicate name and object URI. It handles both data and
          object properties.
         Args:
             subj: The subject instance.
-            predicate_name: The snake_case name of the predicate.
+            field_name: name of the field to assign the property to.
             obj_uri: The RDF node of the object.
         """
-        field_name = self._determine_field_name(subj, predicate_name)
         if isinstance(obj_uri, Literal):
             self._assign_data_property(subj, field_name, obj_uri)
         else:
-            self._assign_object_property(subj, field_name, predicate_name, obj_uri)
+            self._assign_object_property(subj, field_name, field_name, obj_uri)
 
     def _get_subject_roles(self, subject_uri: URIRef) -> Optional[List[Any]]:
         """Resolves or ensures instances for a given subject URI.
@@ -503,31 +465,6 @@ class OwlLoader:
             # Subject without explicit type known to model; try infer
             subj_roles = self._ensure_instance(subject_uri)
         return subj_roles
-
-    def _determine_field_name(
-        self, subj: Any, snake_name: str, subj_types: Optional[Set[Type]] = None
-    ) -> Optional[str]:
-        """Determines the appropriate attribute name on the subject for a given predicate.
-
-        Args:
-            subj: The subject instance.
-            snake_name: The snake_case name of the predicate.
-
-        Returns:
-            The field name if determined, otherwise None.
-        """
-        subj_classes = {type(subj)} if not subj_types else subj_types
-        field_name = None
-        for subj_cls in subj_classes:
-            field_name = self.metadata.get_field_name(subj_cls, snake_name)
-            if field_name:
-                break
-        if not field_name:
-            if snake_name in [f.name for f in fields(subj_cls)]:
-                field_name = snake_name
-            elif hasattr(subj, snake_name):
-                field_name = snake_name
-        return field_name
 
     def _get_role_taker_val(self, subj: Any, subj_cls: Type) -> Optional[Any]:
         """Retrieves the role-taker instance for a given subject, if it exists.
