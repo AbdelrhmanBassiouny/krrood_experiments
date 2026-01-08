@@ -1,12 +1,7 @@
-import textwrap
-from pathlib import Path
-import warnings
-
 import pytest
-import rdflib
 from SPARQLWrapper import SPARQLWrapper, JSON
 
-from owl2bench.loader import WorldLoader, OntologyLoadError
+from owl2bench.loader import WorldLoader
 from owl2bench.model.base import (
     Person,
     Organization,
@@ -275,7 +270,7 @@ def test_get_interests(sparql_wrapper):
 
 
 def test_t20_cricket_interest_exists(sparql_wrapper):
-    from owl2bench.model.interests import Cricket
+    from model import Cricket
 
     # We manually add a Cricket individual to the graph for this test
     # because the base ontology has Cricket as a class, and Cricket as an individual

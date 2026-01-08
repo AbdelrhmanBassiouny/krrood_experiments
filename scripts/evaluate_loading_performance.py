@@ -3,14 +3,8 @@ import time
 import SPARQLWrapper
 import rdflib
 import owlready2
-from krrood.ormatic.dao import to_dao
-from krrood.ormatic.utils import create_engine, drop_database
-from sqlalchemy import select
-from sqlalchemy.orm import sessionmaker
 
-from owl2bench.orm.ormatic_interface import Base, WorldDAO
-from owl2bench.loader import WorldLoader
-from owl2bench.performance_utils import Backend, LoadingTiming, LatexPerformanceExporter
+from performance_utils import Backend, LoadingTiming, LatexPerformanceExporter
 
 
 def evaluate_loading():

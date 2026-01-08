@@ -1,6 +1,6 @@
 import pytest
-from owl2bench.sparql_queries import *
 from SPARQLWrapper import SPARQLWrapper, JSON
+from owl2bench.sparql_queries import all_queries, OWLProfile
 
 
 @pytest.mark.parametrize(

@@ -7,9 +7,8 @@ from krrood.ormatic.utils import drop_database, create_engine
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
-import owl2bench.sparql_queries  # type: ignore
-import owl2bench.sqlalchemy_queries  # type: ignore
 from owl2bench.orm.ormatic_interface import *
+import owl2bench.sqlalchemy_queries  # type: ignore
 
 
 @pytest.fixture(scope="session")
