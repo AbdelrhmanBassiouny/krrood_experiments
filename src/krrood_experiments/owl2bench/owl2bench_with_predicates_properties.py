@@ -22,7 +22,7 @@ IrreflexiveProperty
 
 
 # Property descriptor classes (object properties)
-@dataclass
+@dataclass(eq=False)
 class Dislikes(PropertyDescriptor, HasDisjointProperties):
     """Dislikes"""
 
@@ -31,12 +31,12 @@ class Dislikes(PropertyDescriptor, HasDisjointProperties):
         return [Likes]
 
 
-@dataclass
+@dataclass(eq=False)
 class EnrollFor(PropertyDescriptor):
     """EnrollFor"""
 
 
-@dataclass
+@dataclass(eq=False)
 class EvaluatedBy(PropertyDescriptor, HasInverseProperty):
     """EvaluatedBy"""
 
@@ -45,7 +45,7 @@ class EvaluatedBy(PropertyDescriptor, HasInverseProperty):
         return Evaluates
 
 
-@dataclass
+@dataclass(eq=False)
 class Evaluates(PropertyDescriptor, HasInverseProperty):
     """Evaluates"""
 
@@ -54,7 +54,7 @@ class Evaluates(PropertyDescriptor, HasInverseProperty):
         return EvaluatedBy
 
 
-@dataclass
+@dataclass(eq=False)
 class HasAdvisor(PropertyDescriptor, HasEquivalentProperties):
     """HasAdvisor"""
 
@@ -63,7 +63,7 @@ class HasAdvisor(PropertyDescriptor, HasEquivalentProperties):
         return [IsAdvisedBy]
 
 
-@dataclass
+@dataclass(eq=False)
 class HasAlumnus(PropertyDescriptor, HasInverseProperty):
     """HasAlumnus"""
 
@@ -72,17 +72,17 @@ class HasAlumnus(PropertyDescriptor, HasInverseProperty):
         return HasDegreeFrom
 
 
-@dataclass
+@dataclass(eq=False)
 class HasAuthor(PropertyDescriptor):
     """HasAuthor"""
 
 
-@dataclass
+@dataclass(eq=False)
 class HasCollaborationWith(PropertyDescriptor, SymmetricProperty, IrreflexiveProperty):
     """HasCollaborationWith"""
 
 
-@dataclass
+@dataclass(eq=False)
 class HasCollegeDiscipline(PropertyDescriptor, HasDisjointProperties):
     """HasCollegeDiscipline"""
 
@@ -91,7 +91,7 @@ class HasCollegeDiscipline(PropertyDescriptor, HasDisjointProperties):
         return [HasMajor]
 
 
-@dataclass
+@dataclass(eq=False)
 class HasDean(PropertyDescriptor, HasInverseProperty):
     """HasDean"""
 
@@ -100,7 +100,7 @@ class HasDean(PropertyDescriptor, HasInverseProperty):
         return IsDeanOf
 
 
-@dataclass
+@dataclass(eq=False)
 class HasDegreeFrom(PropertyDescriptor, HasInverseProperty):
     """HasDegreeFrom"""
 
@@ -109,12 +109,12 @@ class HasDegreeFrom(PropertyDescriptor, HasInverseProperty):
         return HasAlumnus
 
 
-@dataclass
+@dataclass(eq=False)
 class HasEvaluationCommittee(PropertyDescriptor):
     """HasEvaluationCommittee"""
 
 
-@dataclass
+@dataclass(eq=False)
 class HasMajor(PropertyDescriptor, HasDisjointProperties):
     """HasMajor"""
 
@@ -123,7 +123,7 @@ class HasMajor(PropertyDescriptor, HasDisjointProperties):
         return [HasCollegeDiscipline]
 
 
-@dataclass
+@dataclass(eq=False)
 class HasMember(PropertyDescriptor, HasInverseProperty):
     """HasMember"""
 
@@ -132,7 +132,7 @@ class HasMember(PropertyDescriptor, HasInverseProperty):
         return IsMemberOf
 
 
-@dataclass
+@dataclass(eq=False)
 class HasPart(PropertyDescriptor, TransitiveProperty, HasInverseProperty, HasEquivalentProperties):
     """HasPart"""
 
@@ -145,17 +145,17 @@ class HasPart(PropertyDescriptor, TransitiveProperty, HasInverseProperty, HasEqu
         return [HasSubOrganization]
 
 
-@dataclass
+@dataclass(eq=False)
 class HasProgram(PropertyDescriptor):
     """HasProgram"""
 
 
-@dataclass
+@dataclass(eq=False)
 class HasSameHomeTownWith(PropertyDescriptor, TransitiveProperty, SymmetricProperty):
     """HasSameHomeTownWith"""
 
 
-@dataclass
+@dataclass(eq=False)
 class HasSubOrganization(PropertyDescriptor, TransitiveProperty, HasInverseProperty, HasEquivalentProperties):
     """HasSubOrganization"""
 
@@ -168,12 +168,12 @@ class HasSubOrganization(PropertyDescriptor, TransitiveProperty, HasInversePrope
         return [HasPart]
 
 
-@dataclass
+@dataclass(eq=False)
 class HasWork(PropertyDescriptor):
     """HasWork"""
 
 
-@dataclass
+@dataclass(eq=False)
 class IsAdvisedBy(PropertyDescriptor, HasEquivalentProperties):
     """IsAdvisedBy"""
 
@@ -182,17 +182,17 @@ class IsAdvisedBy(PropertyDescriptor, HasEquivalentProperties):
         return [HasAdvisor]
 
 
-@dataclass
+@dataclass(eq=False)
 class IsAffiliateOf(PropertyDescriptor):
     """IsAffiliateOf"""
 
 
-@dataclass
+@dataclass(eq=False)
 class IsAffiliatedOrganizationOf(PropertyDescriptor, ASymmetricProperty, IrreflexiveProperty):
     """IsAffiliatedOrganizationOf"""
 
 
-@dataclass
+@dataclass(eq=False)
 class IsDeanOf(PropertyDescriptor, HasInverseProperty):
     """IsDeanOf"""
 
@@ -201,7 +201,7 @@ class IsDeanOf(PropertyDescriptor, HasInverseProperty):
         return HasDean
 
 
-@dataclass
+@dataclass(eq=False)
 class IsMemberOf(PropertyDescriptor, HasInverseProperty):
     """IsMemberOf"""
 
@@ -210,7 +210,7 @@ class IsMemberOf(PropertyDescriptor, HasInverseProperty):
         return HasMember
 
 
-@dataclass
+@dataclass(eq=False)
 class IsPartOf(PropertyDescriptor, TransitiveProperty, HasInverseProperty, HasEquivalentProperties):
     """IsPartOf"""
 
@@ -223,7 +223,7 @@ class IsPartOf(PropertyDescriptor, TransitiveProperty, HasInverseProperty, HasEq
         return [IsSubOrganizationOf]
 
 
-@dataclass
+@dataclass(eq=False)
 class IsStudentOf(PropertyDescriptor, HasInverseProperty):
     """IsStudentOf"""
 
@@ -232,7 +232,7 @@ class IsStudentOf(PropertyDescriptor, HasInverseProperty):
         return HasStudent
 
 
-@dataclass
+@dataclass(eq=False)
 class IsSubOrganizationOf(PropertyDescriptor, TransitiveProperty, HasInverseProperty, HasEquivalentProperties):
     """IsSubOrganizationOf"""
 
@@ -245,7 +245,7 @@ class IsSubOrganizationOf(PropertyDescriptor, TransitiveProperty, HasInverseProp
         return [IsPartOf]
 
 
-@dataclass
+@dataclass(eq=False)
 class IsTaughtBy(PropertyDescriptor, HasInverseProperty):
     """IsTaughtBy"""
 
@@ -254,17 +254,17 @@ class IsTaughtBy(PropertyDescriptor, HasInverseProperty):
         return TeachesCourse
 
 
-@dataclass
+@dataclass(eq=False)
 class IsTeachingAssistantOf(PropertyDescriptor):
     """IsTeachingAssistantOf"""
 
 
-@dataclass
+@dataclass(eq=False)
 class Knows(PropertyDescriptor):
     """Knows"""
 
 
-@dataclass
+@dataclass(eq=False)
 class Likes(PropertyDescriptor, HasDisjointProperties, IrreflexiveProperty):
     """Likes"""
 
@@ -273,17 +273,17 @@ class Likes(PropertyDescriptor, HasDisjointProperties, IrreflexiveProperty):
         return [Dislikes]
 
 
-@dataclass
+@dataclass(eq=False)
 class OfferCourse(PropertyDescriptor):
     """OfferCourse"""
 
 
-@dataclass
+@dataclass(eq=False)
 class OrgPublication(PropertyDescriptor):
     """OrgPublication"""
 
 
-@dataclass
+@dataclass(eq=False)
 class PlaysRole(PropertyDescriptor, HasInverseProperty):
     """plays a role of"""
 
@@ -292,12 +292,12 @@ class PlaysRole(PropertyDescriptor, HasInverseProperty):
         return RoleFor
 
 
-@dataclass
+@dataclass(eq=False)
 class PublicationResearch(PropertyDescriptor):
     """PublicationResearch"""
 
 
-@dataclass
+@dataclass(eq=False)
 class RoleFor(PropertyDescriptor, HasInverseProperty):
     """is a role for"""
 
@@ -306,12 +306,12 @@ class RoleFor(PropertyDescriptor, HasInverseProperty):
         return PlaysRole
 
 
-@dataclass
+@dataclass(eq=False)
 class TakesCourse(PropertyDescriptor):
     """TakesCourse"""
 
 
-@dataclass
+@dataclass(eq=False)
 class WorksFor(PropertyDescriptor, HasInverseProperty):
     """WorksFor"""
 
@@ -320,12 +320,12 @@ class WorksFor(PropertyDescriptor, HasInverseProperty):
         return HasEmployee
 
 
-@dataclass
+@dataclass(eq=False)
 class EnrollIn(IsStudentOf):
     """EnrollIn"""
 
 
-@dataclass
+@dataclass(eq=False)
 class HasCollege(HasSubOrganization, HasInverseProperty):
     """HasCollege"""
 
@@ -334,12 +334,12 @@ class HasCollege(HasSubOrganization, HasInverseProperty):
         return IsCollegeOf
 
 
-@dataclass
+@dataclass(eq=False)
 class HasCommitteeMembers(HasMember):
     """HasCommitteeMembers"""
 
 
-@dataclass
+@dataclass(eq=False)
 class HasDepartment(HasSubOrganization, HasInverseProperty):
     """HasDepartment"""
 
@@ -348,12 +348,12 @@ class HasDepartment(HasSubOrganization, HasInverseProperty):
         return IsDepartmentOf
 
 
-@dataclass
+@dataclass(eq=False)
 class HasDoctoralDegreeFrom(HasDegreeFrom):
     """HasDoctoralDegreeFrom"""
 
 
-@dataclass
+@dataclass(eq=False)
 class HasEmployee(HasMember, HasInverseProperty):
     """HasEmployee"""
 
@@ -362,27 +362,27 @@ class HasEmployee(HasMember, HasInverseProperty):
         return WorksFor
 
 
-@dataclass
+@dataclass(eq=False)
 class HasEmployeeEvaluationCommittee(HasEvaluationCommittee):
     """HasEmployeeEvaluationCommittee"""
 
 
-@dataclass
+@dataclass(eq=False)
 class HasMasterDegreeFrom(HasDegreeFrom):
     """HasMasterDegreeFrom"""
 
 
-@dataclass
+@dataclass(eq=False)
 class HasPGProgram(HasProgram):
     """HasPGProgram"""
 
 
-@dataclass
+@dataclass(eq=False)
 class HasPhDProgram(HasProgram):
     """HasPhDProgram"""
 
 
-@dataclass
+@dataclass(eq=False)
 class HasResearchGroup(HasSubOrganization, HasInverseProperty):
     """HasResearchGroup"""
 
@@ -391,12 +391,12 @@ class HasResearchGroup(HasSubOrganization, HasInverseProperty):
         return IsResearchGroupOf
 
 
-@dataclass
+@dataclass(eq=False)
 class HasResearchProject(HasWork):
     """HasResearchProject"""
 
 
-@dataclass
+@dataclass(eq=False)
 class HasStudent(HasMember, HasInverseProperty):
     """HasStudent"""
 
@@ -405,22 +405,22 @@ class HasStudent(HasMember, HasInverseProperty):
         return IsStudentOf
 
 
-@dataclass
+@dataclass(eq=False)
 class HasStudentEvaluationCommittee(HasEvaluationCommittee):
     """HasStudentEvaluationCommittee"""
 
 
-@dataclass
+@dataclass(eq=False)
 class HasUGProgram(HasProgram):
     """HasUGProgram"""
 
 
-@dataclass
+@dataclass(eq=False)
 class HasUndergraduateDegreeFrom(HasDegreeFrom):
     """HasUndergraduateDegreeFrom"""
 
 
-@dataclass
+@dataclass(eq=False)
 class IsCollegeOf(IsSubOrganizationOf, HasInverseProperty):
     """IsCollegeOf"""
 
@@ -429,7 +429,7 @@ class IsCollegeOf(IsSubOrganizationOf, HasInverseProperty):
         return HasCollege
 
 
-@dataclass
+@dataclass(eq=False)
 class IsDepartmentOf(IsSubOrganizationOf, HasInverseProperty):
     """IsDepartmentOf"""
 
@@ -438,7 +438,7 @@ class IsDepartmentOf(IsSubOrganizationOf, HasInverseProperty):
         return HasDepartment
 
 
-@dataclass
+@dataclass(eq=False)
 class IsFacultyOf(WorksFor, HasInverseProperty):
     """IsFacultyOf"""
 
@@ -447,7 +447,7 @@ class IsFacultyOf(WorksFor, HasInverseProperty):
         return HasFaculty
 
 
-@dataclass
+@dataclass(eq=False)
 class IsResearchAssistantOf(WorksFor, HasInverseProperty):
     """IsResearchAssistantOf"""
 
@@ -456,7 +456,7 @@ class IsResearchAssistantOf(WorksFor, HasInverseProperty):
         return HasResearchAssistant
 
 
-@dataclass
+@dataclass(eq=False)
 class IsResearchGroupOf(IsSubOrganizationOf, HasInverseProperty):
     """IsResearchGroupOf"""
 
@@ -465,17 +465,17 @@ class IsResearchGroupOf(IsSubOrganizationOf, HasInverseProperty):
         return HasResearchGroup
 
 
-@dataclass
+@dataclass(eq=False)
 class IsSupportingStaffOf(WorksFor):
     """IsSupportingStaffOf"""
 
 
-@dataclass
+@dataclass(eq=False)
 class Loves(Likes):
     """Loves"""
 
 
-@dataclass
+@dataclass(eq=False)
 class TeachesCourse(HasWork, HasInverseProperty):
     """TeachesCourse"""
 
@@ -484,7 +484,7 @@ class TeachesCourse(HasWork, HasInverseProperty):
         return IsTaughtBy
 
 
-@dataclass
+@dataclass(eq=False)
 class HasFaculty(HasEmployee, HasInverseProperty):
     """HasFaculty"""
 
@@ -493,7 +493,7 @@ class HasFaculty(HasEmployee, HasInverseProperty):
         return IsFacultyOf
 
 
-@dataclass
+@dataclass(eq=False)
 class HasResearchAssistant(HasEmployee, HasInverseProperty):
     """HasResearchAssistant"""
 
@@ -502,32 +502,32 @@ class HasResearchAssistant(HasEmployee, HasInverseProperty):
         return IsResearchAssistantOf
 
 
-@dataclass
+@dataclass(eq=False)
 class HasSupportingStaff(HasEmployee):
     """HasSupportingStaff"""
 
 
-@dataclass
+@dataclass(eq=False)
 class HasThesisEvaluationCommittee(HasStudentEvaluationCommittee):
     """HasThesisEvaluationCommittee"""
 
 
-@dataclass
+@dataclass(eq=False)
 class HasWomenCollege(HasCollege):
     """HasWomenCollege"""
 
 
-@dataclass
+@dataclass(eq=False)
 class IsClericalStaffOf(IsSupportingStaffOf):
     """IsClericalStaffOf"""
 
 
-@dataclass
+@dataclass(eq=False)
 class IsCrazyAbout(Loves):
     """IsCrazyAbout"""
 
 
-@dataclass
+@dataclass(eq=False)
 class IsLecturerOf(IsFacultyOf, HasInverseProperty):
     """IsLecturerOf"""
 
@@ -536,12 +536,12 @@ class IsLecturerOf(IsFacultyOf, HasInverseProperty):
         return HasLecturer
 
 
-@dataclass
+@dataclass(eq=False)
 class IsOtherStaffOf(IsSupportingStaffOf):
     """IsOtherStaffOf"""
 
 
-@dataclass
+@dataclass(eq=False)
 class IsPostDocOf(IsFacultyOf, HasInverseProperty):
     """IsPostDocOf"""
 
@@ -550,7 +550,7 @@ class IsPostDocOf(IsFacultyOf, HasInverseProperty):
         return HasPostDoc
 
 
-@dataclass
+@dataclass(eq=False)
 class IsProfessorOf(IsFacultyOf, HasInverseProperty):
     """IsProfessorOf"""
 
@@ -559,22 +559,22 @@ class IsProfessorOf(IsFacultyOf, HasInverseProperty):
         return HasProfessor
 
 
-@dataclass
+@dataclass(eq=False)
 class IsSystemStaffOf(IsSupportingStaffOf):
     """IsSystemStaffOf"""
 
 
-@dataclass
+@dataclass(eq=False)
 class IsWomenCollegeOf(IsCollegeOf):
     """IsWomenCollegeOf"""
 
 
-@dataclass
+@dataclass(eq=False)
 class HasClericalStaff(HasSupportingStaff):
     """HasClericalStaff"""
 
 
-@dataclass
+@dataclass(eq=False)
 class HasLecturer(HasFaculty, HasInverseProperty):
     """HasLecturer"""
 
@@ -583,12 +583,12 @@ class HasLecturer(HasFaculty, HasInverseProperty):
         return IsLecturerOf
 
 
-@dataclass
+@dataclass(eq=False)
 class HasOtherStaff(HasSupportingStaff):
     """HasOtherStaff"""
 
 
-@dataclass
+@dataclass(eq=False)
 class HasPostDoc(HasFaculty, HasInverseProperty):
     """HasPostDoc"""
 
@@ -597,7 +597,7 @@ class HasPostDoc(HasFaculty, HasInverseProperty):
         return IsPostDocOf
 
 
-@dataclass
+@dataclass(eq=False)
 class HasProfessor(HasFaculty, HasInverseProperty):
     """HasProfessor"""
 
@@ -606,12 +606,12 @@ class HasProfessor(HasFaculty, HasInverseProperty):
         return IsProfessorOf
 
 
-@dataclass
+@dataclass(eq=False)
 class HasSystemStaff(HasSupportingStaff):
     """HasSystemStaff"""
 
 
-@dataclass
+@dataclass(eq=False)
 class IsAssistantProfessorOf(IsProfessorOf, HasInverseProperty):
     """IsAssistantProfessorOf"""
 
@@ -620,7 +620,7 @@ class IsAssistantProfessorOf(IsProfessorOf, HasInverseProperty):
         return HasAssistantProfessor
 
 
-@dataclass
+@dataclass(eq=False)
 class IsAssociateProfessorOf(IsProfessorOf, HasInverseProperty):
     """IsAssociateProfessorOf"""
 
@@ -629,7 +629,7 @@ class IsAssociateProfessorOf(IsProfessorOf, HasInverseProperty):
         return HasAssociateProfessor
 
 
-@dataclass
+@dataclass(eq=False)
 class IsFullProfessorOf(IsProfessorOf, HasInverseProperty):
     """IsFullProfessorOf"""
 
@@ -638,7 +638,7 @@ class IsFullProfessorOf(IsProfessorOf, HasInverseProperty):
         return HasFullProfessor
 
 
-@dataclass
+@dataclass(eq=False)
 class IsVisitingProfessorOf(IsProfessorOf, HasInverseProperty):
     """IsVisitingProfessorOf"""
 
@@ -647,7 +647,7 @@ class IsVisitingProfessorOf(IsProfessorOf, HasInverseProperty):
         return HasVisitingProfessor
 
 
-@dataclass
+@dataclass(eq=False)
 class HasAssistantProfessor(HasProfessor, HasInverseProperty):
     """HasAssistantProfessor"""
 
@@ -656,7 +656,7 @@ class HasAssistantProfessor(HasProfessor, HasInverseProperty):
         return IsAssistantProfessorOf
 
 
-@dataclass
+@dataclass(eq=False)
 class HasAssociateProfessor(HasProfessor, HasInverseProperty):
     """HasAssociateProfessor"""
 
@@ -665,7 +665,7 @@ class HasAssociateProfessor(HasProfessor, HasInverseProperty):
         return IsAssociateProfessorOf
 
 
-@dataclass
+@dataclass(eq=False)
 class HasFullProfessor(HasProfessor, HasInverseProperty):
     """HasFullProfessor"""
 
@@ -674,7 +674,7 @@ class HasFullProfessor(HasProfessor, HasInverseProperty):
         return IsFullProfessorOf
 
 
-@dataclass
+@dataclass(eq=False)
 class HasVisitingProfessor(HasProfessor, HasInverseProperty):
     """HasVisitingProfessor"""
 
@@ -683,7 +683,7 @@ class HasVisitingProfessor(HasProfessor, HasInverseProperty):
         return IsVisitingProfessorOf
 
 
-@dataclass
+@dataclass(eq=False)
 class IsHeadOf(IsFullProfessorOf, HasInverseProperty):
     """IsHeadOf"""
 
@@ -692,7 +692,7 @@ class IsHeadOf(IsFullProfessorOf, HasInverseProperty):
         return HasHead
 
 
-@dataclass
+@dataclass(eq=False)
 class HasHead(HasFullProfessor, HasInverseProperty):
     """HasHead"""
 
