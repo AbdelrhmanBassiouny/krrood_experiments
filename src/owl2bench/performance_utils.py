@@ -46,13 +46,44 @@ class QueryTiming:
 
 @dataclass
 class LoadingTiming:
-    backend_runtimes: Dict[Backend, float]
+    raw_runtimes: Dict[Backend, List[float]]
+    reasoned_runtimes: Dict[Backend, List[float]]
 
-    def get_runtime(self, backend: Backend) -> float:
+    def get_average_raw_runtime(self, backend: Backend) -> float:
         """
-        Returns the loading runtime for a given backend.
+        Returns the average raw loading runtime for a given backend.
         """
-        return self.backend_runtimes.get(backend, float("nan"))
+        runtimes = self.raw_runtimes.get(backend, [])
+        if not runtimes:
+            return float("nan")
+        return float(np.mean(runtimes))
+
+    def get_raw_runtime_standard_deviation(self, backend: Backend) -> float:
+        """
+        Returns the standard deviation of the raw loading runtime for a given backend.
+        """
+        runtimes = self.raw_runtimes.get(backend, [])
+        if not runtimes:
+            return float("nan")
+        return float(np.std(runtimes))
+
+    def get_average_reasoned_runtime(self, backend: Backend) -> float:
+        """
+        Returns the average reasoned loading runtime for a given backend.
+        """
+        runtimes = self.reasoned_runtimes.get(backend, [])
+        if not runtimes:
+            return float("nan")
+        return float(np.mean(runtimes))
+
+    def get_reasoned_runtime_standard_deviation(self, backend: Backend) -> float:
+        """
+        Returns the standard deviation of the reasoned loading runtime for a given backend.
+        """
+        runtimes = self.reasoned_runtimes.get(backend, [])
+        if not runtimes:
+            return float("nan")
+        return float(np.std(runtimes))
 
 
 class LatexPerformanceExporter:
@@ -70,7 +101,7 @@ class LatexPerformanceExporter:
         """
         if np.isnan(mean):
             return "---"
-        formatted = f"{mean * 1000:.2f} \\pm {std * 1000:.2f}"
+        formatted = f"{mean:.2f} \\pm {std:.2f}"
         if is_best:
             return f"\\mathbf{{{formatted}}}"
         return formatted
@@ -81,7 +112,7 @@ class LatexPerformanceExporter:
         """
         if np.isnan(value):
             return "---"
-        formatted = f"{value * 1000:.2f}"
+        formatted = f"{value:.2f}"
         if is_best:
             formatted = f"\\mathbf{{{formatted}}}"
         return f"${formatted}$"
@@ -183,25 +214,54 @@ class LatexPerformanceExporter:
         if self.loading_timing is None:
             raise ValueError("Loading timing data is not provided.")
 
-        backend_names = [backend.value.replace("_", "\\_") for backend in Backend]
-        columns = ["Backend", "Loading Time (ms)"]
+        columns = ["Framework", "Loading Raw", "Loading Reasoned"]
         rows = []
 
-        loading_runtimes = {
-            backend: self.loading_timing.get_runtime(backend) for backend in Backend
+        raw_means = {
+            backend: self.loading_timing.get_average_raw_runtime(backend)
+            for backend in Backend
         }
-        valid_runtimes = [
-            runtime for runtime in loading_runtimes.values() if not np.isnan(runtime)
-        ]
-        min_runtime = min(valid_runtimes) if valid_runtimes else float("inf")
+        reasoned_means = {
+            backend: self.loading_timing.get_average_reasoned_runtime(backend)
+            for backend in Backend
+        }
+
+        raw_stds = {
+            backend: self.loading_timing.get_raw_runtime_standard_deviation(backend)
+            for backend in Backend
+        }
+        reasoned_stds = {
+            backend: self.loading_timing.get_reasoned_runtime_standard_deviation(
+                backend
+            )
+            for backend in Backend
+        }
+
+        valid_raw_means = [m for m in raw_means.values() if not np.isnan(m)]
+        min_raw_mean = min(valid_raw_means) if valid_raw_means else float("inf")
+
+        valid_reasoned_means = [m for m in reasoned_means.values() if not np.isnan(m)]
+        min_reasoned_mean = (
+            min(valid_reasoned_means) if valid_reasoned_means else float("inf")
+        )
 
         for backend in Backend:
-            runtime = loading_runtimes[backend]
-            is_best = not np.isnan(runtime) and runtime == min_runtime
+            if np.isnan(raw_means[backend]) and np.isnan(reasoned_means[backend]):
+                continue
+
+            raw_is_best = (
+                not np.isnan(raw_means[backend]) and raw_means[backend] == min_raw_mean
+            )
+            reasoned_is_best = (
+                not np.isnan(reasoned_means[backend])
+                and reasoned_means[backend] == min_reasoned_mean
+            )
+
             rows.append(
                 [
                     backend.value.replace("_", "\\_"),
-                    self._format_value(runtime, is_best),
+                    f"${self._format_timing(raw_means[backend], raw_stds[backend], raw_is_best)}$",
+                    f"${self._format_timing(reasoned_means[backend], reasoned_stds[backend], reasoned_is_best)}$",
                 ]
             )
 
