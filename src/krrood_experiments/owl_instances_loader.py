@@ -636,6 +636,8 @@ class OwlLoader:
                 f"Could not assign {obj} to {subj} through field ({snake})"
             )
         matched_obj = None
+        # Look for the super, and the inverse properties of the current property,
+        # and try to assign their values as well. So call self._assign_object_property()
         if field_name and hasattr(subj, field_name):
             class_diagram = self.symbol_graph.class_diagram
             try:
