@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import Callable
 
-from krrood.entity_query_language import predicate
 from krrood.entity_query_language.entity import (
     variable,
     contains,
@@ -10,7 +9,6 @@ from krrood.entity_query_language.entity import (
     variable_from,
     and_,
     for_all,
-    flatten,
     exists,
 )
 from krrood.entity_query_language.entity_result_processors import an, count, a

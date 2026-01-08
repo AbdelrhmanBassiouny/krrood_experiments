@@ -7,16 +7,15 @@ import owlready2
 import tqdm
 from krrood.ormatic.dao import to_dao
 from krrood.ormatic.utils import create_engine, drop_database
-from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
 from owl2bench.orm.ormatic_interface import Base, WorldDAO
-from owl2bench.loader import WorldLoader
-import owl2bench.sqlalchemy_queries
-import owl2bench.eql_queries
-import owl2bench.sparql_queries
+from loader import WorldLoader
+import sqlalchemy_queries
 from owl2bench.sparql_queries import OWLProfile
-from owl2bench.performance_utils import Backend, QueryTiming, LatexPerformanceExporter
+import owl2bench.sparql_queries
+import owl2bench.eql_queries
+from performance_utils import Backend, QueryTiming, LatexPerformanceExporter
 
 
 def evaluate_queries(iterations_per_query: int = 10):
@@ -27,10 +26,6 @@ def evaluate_queries(iterations_per_query: int = 10):
     rdf_file_path = os.path.join(dir_path, "..", "resources", "statements.rdf")
 
     print("Setting up backends for query evaluation...")
-
-    # Owlready2 setup
-    owlready2_world = owlready2.World()
-    owlready2_world.get_ontology(rdf_file_path).load()
 
     # RDFLib setup
     rdflib_graph = rdflib.Graph()
@@ -65,9 +60,7 @@ def evaluate_queries(iterations_per_query: int = 10):
 
         # Find the corresponding sqlalchemy query
         sqlalchemy_query = [
-            q
-            for q in owl2bench.sqlalchemy_queries.all_queries
-            if q.sparql_query == sparql_query
+            q for q in sqlalchemy_queries.all_queries if q.sparql_query == sparql_query
         ][0]
 
         # Find the corresponding eql query
@@ -84,6 +77,13 @@ def evaluate_queries(iterations_per_query: int = 10):
         current_owlready2_runtimes = []
 
         for _ in range(iterations_per_query):
+
+            # reset sqlalchemy loadings
+            session.expunge_all()
+
+            # Owlready2 setup to reset the cache everytime
+            owlready2_world = owlready2.World()
+            owlready2_world.get_ontology(rdf_file_path).load()
 
             # Execute SQLAlchemy query
             start = time.time()
@@ -122,6 +122,7 @@ def evaluate_queries(iterations_per_query: int = 10):
                 == len(rdflib_results)
                 == len(owlready2_results)
             )
+            owlready2_world.close()
 
         backend_runtimes = {
             Backend.SPARQLWrapper: current_sparqlwrapper_runtimes,
