@@ -4,12 +4,10 @@ import SPARQLWrapper
 import rdflib
 import owlready2
 
-from performance_utils import Backend, LoadingTiming, LatexPerformanceExporter
+from owl2bench.performance_utils import Backend, LoadingTiming, LatexPerformanceExporter
 
 
 def evaluate_loading():
-    sparql = SPARQLWrapper.SPARQLWrapper("http://localhost:7200/repositories/KRROOD")
-    sparql.setReturnFormat(SPARQLWrapper.JSON)
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
     rdf_file_path = os.path.join(dir_path, "..", "resources", "statements.rdf")

@@ -11,7 +11,7 @@ from owl2bench.model.base import (
     Interest,
 )
 from owl2bench.model.organizations import University, College, Department, ResearchGroup
-
+from owl2bench.model.interests import Cricket
 
 @pytest.fixture(scope="session")
 def sparql_wrapper():
@@ -270,7 +270,7 @@ def test_get_interests(sparql_wrapper):
 
 
 def test_t20_cricket_interest_exists(sparql_wrapper):
-    from model import Cricket
+
 
     # We manually add a Cricket individual to the graph for this test
     # because the base ontology has Cricket as a class, and Cricket as an individual
