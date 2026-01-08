@@ -18,7 +18,6 @@ from symtable import Symbol
 from typing import Dict, List, Optional, Any, Set, ClassVar
 
 import rdflib
-from gi.types import snake_case
 from jinja2 import Environment, FileSystemLoader
 from jinja2.ext import loopcontrols
 from krrood import logger
