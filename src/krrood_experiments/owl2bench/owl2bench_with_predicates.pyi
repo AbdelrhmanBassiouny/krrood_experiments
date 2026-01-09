@@ -11,7 +11,7 @@ from .owl2bench_with_predicates_base import *
 
 # Generated classes
 @dataclass(eq=False)
-class OWL2BenchOntology(Symbol):
+class OWL2BenchThing(Symbol):
     """Base class for OWL2Bench"""
     has_code: Optional[Any] = field(kw_only=True, default=None)
     has_id: Optional[Any] = field(kw_only=True, default=None)
@@ -21,39 +21,39 @@ class OWL2BenchOntology(Symbol):
     has_research_interest: Optional[Any] = field(kw_only=True, default=None)
     # URI of the ontology element - The unique resource identifier (URI) of the ontology element.
     uri: Optional[str] = field(kw_only=True, default=None)
-    has_same_home_town_with: Set[OWL2BenchOntology] = field(default_factory=set)
-    is_affiliate_of: Set[OWL2BenchOntology] = field(default_factory=set)
-    knows: Set[OWL2BenchOntology] = field(default_factory=set)
+    has_same_home_town_with: Set[OWL2BenchThing] = field(default_factory=set)
+    is_affiliate_of: Set[OWL2BenchThing] = field(default_factory=set)
+    knows: Set[OWL2BenchThing] = field(default_factory=set)
 
 
 
 @dataclass(eq=False)
-class CollegeDiscipline(OWL2BenchOntology):
+class CollegeDiscipline(OWL2BenchThing):
     ...
 
 
 
 @dataclass(eq=False)
-class Course(OWL2BenchOntology):
+class Course(OWL2BenchThing):
     is_taught_by: Set[Faculty] = field(default_factory=set)
 
 
 
 @dataclass(eq=False)
-class EvaluationCommittee(OWL2BenchOntology):
+class EvaluationCommittee(OWL2BenchThing):
     evaluates: Set[Person] = field(default_factory=set)
     has_committee_members: Set[Person] = field(default_factory=set)
 
 
 
 @dataclass(eq=False)
-class Interest(OWL2BenchOntology):
+class Interest(OWL2BenchThing):
     ...
 
 
 
 @dataclass(eq=False)
-class Organization(OWL2BenchOntology):
+class Organization(OWL2BenchThing):
     has_dean: Set[Person] = field(default_factory=set)
     has_employee_evaluation_committee: Set[EmployeeEvaluationCommittee] = field(default_factory=set)
     has_employee: Set[Employee] = field(default_factory=set)
@@ -72,7 +72,7 @@ class Organization(OWL2BenchOntology):
 
 
 @dataclass(eq=False)
-class PersonMixinProtocol(OWL2BenchOntology):
+class PersonMixinProtocol(OWL2BenchThing):
     dislikes: Set[Interest]
     evaluated_by: Set[EvaluationCommittee]
     has_advisor: Set[Professor]
@@ -83,7 +83,7 @@ class PersonMixinProtocol(OWL2BenchOntology):
     has_email_address: Optional[Any]
     has_first_name: Optional[Any]
     has_last_name: Optional[Any]
-    has_major: Set[OWL2BenchOntology]
+    has_major: Set[OWL2BenchThing]
     has_master_degree_from: Set[University]
     has_telephone: Optional[Any]
     has_title: Optional[Any]
@@ -102,27 +102,27 @@ class Person(PersonMixinProtocol):
 
 
 @dataclass(eq=False)
-class Program(OWL2BenchOntology):
+class Program(OWL2BenchThing):
     """Different programs offered in a department. UG, PG or PhD"""
     has_head: Set[Director] = field(default_factory=set)
 
 
 
 @dataclass(eq=False)
-class Publication(OWL2BenchOntology):
+class Publication(OWL2BenchThing):
     has_author: Set[Person] = field(default_factory=set)
-    publication_research: Set[OWL2BenchOntology] = field(default_factory=set)
+    publication_research: Set[OWL2BenchThing] = field(default_factory=set)
 
 
 
 @dataclass(eq=False)
-class Thing(OWL2BenchOntology):
+class Thing(OWL2BenchThing):
     ...
 
 
 
 @dataclass(eq=False)
-class Work(OWL2BenchOntology):
+class Work(OWL2BenchThing):
     ...
 
 
