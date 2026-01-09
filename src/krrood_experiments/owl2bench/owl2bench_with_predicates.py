@@ -82,7 +82,7 @@ class Person(OWL2BenchOntology):
     has_email_address: Optional[Any] = field(kw_only=True, default=None)
     has_first_name: Optional[Any] = field(kw_only=True, default=None)
     has_last_name: Optional[Any] = field(kw_only=True, default=None)
-    has_major: Set[Any] = field(kw_only=True, default_factory=set)
+    has_major: Set[OWL2BenchOntology] = field(kw_only=True, default_factory=set)
     has_master_degree_from: Set[University] = field(kw_only=True, default_factory=set)
     has_telephone: Optional[Any] = field(kw_only=True, default=None)
     has_title: Optional[Any] = field(kw_only=True, default=None)
@@ -111,7 +111,7 @@ class Program(OWL2BenchOntology):
 @dataclass(eq=False)
 class Publication(OWL2BenchOntology):
     has_author: Set[Person] = field(kw_only=True, default_factory=set)
-    publication_research: Set[Any] = field(kw_only=True, default_factory=set)
+    publication_research: Set[OWL2BenchOntology] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)

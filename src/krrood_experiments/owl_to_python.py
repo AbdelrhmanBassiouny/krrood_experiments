@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import os
 import re
-from abc import ABC
 from collections import defaultdict
 from copy import deepcopy, copy
 from dataclasses import dataclass, field, asdict
@@ -1150,9 +1149,9 @@ class InferenceEngine:
             info.object_range_hint = ranges[0]
         else:
             logger.warning(
-                f"[owl_to_python]: Could not infer object range type for property '{info.name}'. Using Any."
+                f"[owl_to_python]: Could not infer object range type for property '{info.name}'. Using {self.onto.base_cls_name} instead."
             )
-            info.object_range_hint = "Any"
+            info.object_range_hint = self.onto.base_cls_name
 
     def _set_data_type_hint(self, info: PropertyInfo):
         """
@@ -1569,8 +1568,8 @@ class CodeGenerator:
         self.onto.classes[self.onto.base_cls_name] = ClassInfo(
             self.onto.base_cls_name,
             "",
-            [Symbol.__name__, ABC.__name__],
-            [Symbol.__name__, ABC.__name__],
+            [Symbol.__name__],
+            [Symbol.__name__],
             label=f"Base class for {self.onto.ontology_label}",
         )
 

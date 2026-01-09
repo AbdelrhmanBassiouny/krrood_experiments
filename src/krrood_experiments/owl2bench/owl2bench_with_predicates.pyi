@@ -11,7 +11,7 @@ from .owl2bench_with_predicates_base import *
 
 # Generated classes
 @dataclass(eq=False)
-class OWL2BenchOntology(Symbol, ABC):
+class OWL2BenchOntology(Symbol):
     """Base class for OWL2Bench"""
     has_code: Optional[Any] = field(kw_only=True, default=None)
     has_id: Optional[Any] = field(kw_only=True, default=None)
@@ -21,9 +21,9 @@ class OWL2BenchOntology(Symbol, ABC):
     has_research_interest: Optional[Any] = field(kw_only=True, default=None)
     # URI of the ontology element - The unique resource identifier (URI) of the ontology element.
     uri: Optional[str] = field(kw_only=True, default=None)
-    has_same_home_town_with: Set[Any] = field(default_factory=set)
-    is_affiliate_of: Set[Any] = field(default_factory=set)
-    knows: Set[Any] = field(default_factory=set)
+    has_same_home_town_with: Set[OWL2BenchOntology] = field(default_factory=set)
+    is_affiliate_of: Set[OWL2BenchOntology] = field(default_factory=set)
+    knows: Set[OWL2BenchOntology] = field(default_factory=set)
 
 
 
@@ -83,7 +83,7 @@ class PersonMixinProtocol(OWL2BenchOntology):
     has_email_address: Optional[Any]
     has_first_name: Optional[Any]
     has_last_name: Optional[Any]
-    has_major: Set[Any]
+    has_major: Set[OWL2BenchOntology]
     has_master_degree_from: Set[University]
     has_telephone: Optional[Any]
     has_title: Optional[Any]
@@ -111,7 +111,7 @@ class Program(OWL2BenchOntology):
 @dataclass(eq=False)
 class Publication(OWL2BenchOntology):
     has_author: Set[Person] = field(default_factory=set)
-    publication_research: Set[Any] = field(default_factory=set)
+    publication_research: Set[OWL2BenchOntology] = field(default_factory=set)
 
 
 
