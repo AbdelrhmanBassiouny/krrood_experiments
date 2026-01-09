@@ -1,32 +1,21 @@
 from dataclasses import dataclass
 from typing import Callable
 
-from doc.eql.test_tmp.result_quantifiers import world
 from krrood.entity_query_language.entity import (
     variable,
-    contains,
-    set_of,
     entity,
     variable_from,
-    and_,
-    for_all,
-    exists,
 )
-from krrood.entity_query_language.entity_result_processors import an, count, a
-from krrood.entity_query_language.predicate import HasType, symbolic_function
-from krrood.entity_query_language.symbolic import (
-    SymbolicExpression,
-)
-from typing_extensions import Iterable
+from krrood.entity_query_language.entity_result_processors import an
+from typing_extensions import Iterator
 
-from .model.interests import Cricket
-from .model.base import Course
-from .model.programs import UndergraduateProgram
-from .model.organizations import College
-from .model.college_disciplines import MaterialScienceEngineering, Engineering
-from .model.organizations import University
-from .model.base import World, Person, Organization
 from . import sparql_queries
+from .model.base import World, Person, Organization
+from .model.college_disciplines import MaterialScienceEngineering, Engineering
+from .model.interests import Cricket
+from .model.organizations import College
+from .model.organizations import University
+from .model.programs import UndergraduateProgram
 
 
 @dataclass
@@ -37,62 +26,56 @@ class PythonQuery:
     The sparql query this represents.
     """
 
-    query: Callable[[World], Iterable]
+    query: Callable[[World], Iterator]
     """
-    A function that takes a World and returns an EQL Query.
+    A function that takes a World and returns an iterator of answers.
     """
 
 
 def python_query_1(world: World):
-    return ((p1, p2) for p1 in world.persons for p2 in p1.knows)
+    yield from ((p1, p2) for p1 in world.persons for p2 in p1.knows)
 
 
 q1 = PythonQuery(sparql_queries.q1, python_query_1)
 
 
-def eql2(world: World):
-    o1 = variable(Organization, world.organizations)
-    p = variable_from(o1.members)
-    return an(entity(p))
-
-
 def python_query_2(world: World):
-    return (p for o1 in world.organizations for p in o1.members)
+    yield from (p for o1 in world.organizations for p in o1.members)
 
 
 q2 = PythonQuery(sparql_queries.q2, python_query_2)
 
 
 def python_query_3(world: World):
-    return ((o1, o2) for o1 in world.organizations for o2 in o1.is_part_of)
+    yield from ((o1, o2) for o1 in world.organizations for o2 in o1.is_part_of)
 
 
 q3 = PythonQuery(sparql_queries.q3, python_query_3)
 
 
 def python_query_4(world: World):
-    return (p.age for p in world.persons if p.age)
+    yield from (p.age for p in world.persons if p.age)
 
 
 q4 = PythonQuery(sparql_queries.q4, python_query_4)
 
 
 def python_query_5(world: World):
-    return (p for p in world.persons if isinstance(p.is_crazy_about, Cricket))
+    yield from (p for p in world.persons if isinstance(p.is_crazy_about, Cricket))
 
 
 q5 = PythonQuery(sparql_queries.q5, python_query_5)
 
 
 def python_query_6(world: World):
-    return (p for p in world.persons if p in p.knows)
+    yield from (p for p in world.persons if p in p.knows)
 
 
 q6 = PythonQuery(sparql_queries.q6, python_query_6)
 
 
 def python_query_7(world: World):
-    return (
+    yield from (
         (u, p)
         for u in world.organizations
         if isinstance(u, University)
@@ -104,7 +87,7 @@ q7 = PythonQuery(sparql_queries.q7, python_query_7)
 
 
 def python_query_8(world: World):
-    return (
+    yield from (
         (o1, o2)
         for o1 in world.organizations
         if isinstance(o1, Organization)
@@ -116,7 +99,7 @@ q8 = PythonQuery(sparql_queries.q8, python_query_8)
 
 
 def python_query_9(world: World):
-    return (
+    yield from (
         (o1, c)
         for o1 in world.organizations
         if isinstance(o1, Organization)
@@ -129,7 +112,7 @@ q9 = PythonQuery(sparql_queries.q9, python_query_9)
 
 
 def python_query_10(world: World):
-    return (
+    yield from (
         (p1, p2)
         for p1 in world.persons
         if isinstance(p1, Person)
@@ -141,7 +124,7 @@ q10 = PythonQuery(sparql_queries.q10, python_query_10)
 
 
 def python_query_11(world: World):
-    return (
+    yield from (
         (p1, p2)
         for p1 in world.persons
         if isinstance(p1, Person)
@@ -153,14 +136,14 @@ q11 = PythonQuery(sparql_queries.q11, python_query_11)
 
 
 def python_query_12(world: World):
-    return (p for p in world.persons if isinstance(p, Person))
+    yield from (p for p in world.persons if isinstance(p, Person))
 
 
 q12 = PythonQuery(sparql_queries.q12, python_query_12)
 
 
 def python_query_13(world: World):
-    return (
+    yield from (
         c
         for c in world.organizations
         if isinstance(c, College) and all(p.gender == "female" for p in c.members)
@@ -171,14 +154,14 @@ q13 = PythonQuery(sparql_queries.q13, python_query_13)
 
 
 def python_query_14(world: World):
-    return (p for p in world.persons if len(p.takes_course) == 1)
+    yield from (p for p in world.persons if len(p.takes_course) == 1)
 
 
 q14 = PythonQuery(sparql_queries.q14, python_query_14)
 
 
 def python_query_15(world: World):
-    return (
+    yield from (
         o
         for o in world.organizations
         if isinstance(o, Organization) and o.head is not None
@@ -189,7 +172,7 @@ q15 = PythonQuery(sparql_queries.q15, python_query_15)
 
 
 def python_query_16(world: World):
-    return (
+    yield from (
         o.head
         for o in world.organizations
         if isinstance(o, Organization) and o.head is not None
@@ -199,63 +182,58 @@ def python_query_16(world: World):
 q16 = PythonQuery(sparql_queries.q16, python_query_16)
 
 
-@symbolic_function
-def is_undergraduate_student(person: Person) -> bool:
-    return len(person.enrolled_in) == 1 and isinstance(
-        person.enrolled_in[0], UndergraduateProgram
+def python_query_17(world: World):
+    yield from (
+        p
+        for p in world.persons
+        if len(p.enrolled_in) == 1
+        and isinstance(p.enrolled_in[0], UndergraduateProgram)
     )
 
 
-def eql17(world: World):
-    p = variable(Person, world.persons)
-    return an(entity(p).where(is_undergraduate_student(p)))
+q17 = PythonQuery(sparql_queries.q17, python_query_17)
 
 
-q17 = PythonQuery(sparql_queries.q17, eql17)
+def python_query_18(world: World):
+    yield from (p for p in world.persons if len(p.hobbies) >= 3)
 
 
-@symbolic_function
-def length(x) -> int:
-    return len(x)
+q18 = PythonQuery(sparql_queries.q18, python_query_18)
 
 
-def eql18(world: World):
-    p = variable(Person, world.persons)
-    return an(entity(p).where(length(p.hobbies) >= 3))
+def python_query_19(world: World):
+    seen_persons = set()
+    for c in world.courses:
+        for p in c.teachers:
+            if p not in seen_persons:
+                yield p
+                seen_persons.add(p)
 
 
-q18 = PythonQuery(sparql_queries.q18, eql18)
+q19 = PythonQuery(sparql_queries.q19, python_query_19)
 
 
-def eql19(world: World):
-    c = variable(Course, world.courses)
-    p = variable_from(c.teachers)
-    return an(entity(p).distinct())
+def python_query_20(world: World):
+    yield from ((p1, p2) for p1 in world.persons for p2 in p1.has_same_hometown_as)
 
 
-q19 = PythonQuery(sparql_queries.q19, eql19)
-
-
-def eql20(world: World):
-    p1 = variable(Person, world.persons)
-    p2 = variable_from(p1.has_same_hometown_as)
-    return an(set_of(p1, p2))
-
-
-q20 = PythonQuery(sparql_queries.q20, eql20)
+q20 = PythonQuery(sparql_queries.q20, python_query_20)
 
 
 def python_query_21(world: World):
-    p = variable(Person, world.persons)
-    c = variable_from(p.takes_course)
-    return an(entity(p).where(exists(p, HasType(c.topic, Engineering))))
+    yield from (
+        p
+        for p in world.persons
+        if isinstance(p, Person)
+        and any(isinstance(c.topic, Engineering) for c in p.takes_course)
+    )
 
 
 q21 = PythonQuery(sparql_queries.q21, python_query_21)
 
 
 def python_query_22(world: World):
-    return (
+    yield from (
         (p, sc)
         for p in world.persons
         if isinstance(p, Person)
