@@ -157,6 +157,7 @@ def load_instances_for_owl2bench_with_predicates() -> OwlInstancesRegistry:
     from .owl2bench import (
         owl2bench_with_predicates,
         owl2bench_with_predicates_properties,
+        owl2bench_with_predicates_base,
     )
 
     folder_path = Path(
@@ -171,6 +172,7 @@ def load_instances_for_owl2bench_with_predicates() -> OwlInstancesRegistry:
     files = [f.name for f in folder_path.iterdir() if f.is_file()]
     registry = OwlLoader.load_multi_file_instances(
         [os.path.join(folder_path, file) for file in files],
+        base_module=owl2bench_with_predicates_base,
         classes_module=owl2bench_with_predicates,
         properties_module=owl2bench_with_predicates_properties,
     )

@@ -868,6 +868,7 @@ class OwlLoader:
     @staticmethod
     def load_multi_file_instances(
         owl_paths: Iterable[str],
+        base_module: Union[str, ModuleType],
         classes_module: Union[str, ModuleType],
         properties_module: Union[str, ModuleType],
     ) -> OwlInstancesRegistry:
@@ -875,6 +876,7 @@ class OwlLoader:
 
         Args:
             owl_paths: Iterable of OWL file paths.
+            base_module: Module containing base classes.
             classes_module: Module containing model classes.
             properties_module: Module containing property descriptors.
 
@@ -882,7 +884,7 @@ class OwlLoader:
             The populated OwlInstancesRegistry.
         """
         combined_registry = OwlInstancesRegistry()
-        model_modules = [classes_module, properties_module]
+        model_modules = [base_module, classes_module, properties_module]
         symbol_graph = OwlLoader.create_symbol_graph(model_modules)
 
         for path in owl_paths:
