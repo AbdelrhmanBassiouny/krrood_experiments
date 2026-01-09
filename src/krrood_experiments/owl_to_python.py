@@ -144,7 +144,7 @@ class OntologyInfo:
     class_descriptions: Dict[str, ClassInfo] = field(default_factory=dict)
     original_properties: Dict[str, PropertyInfo] = field(default_factory=dict)
     predefined_data_types: Optional[Dict[str, Dict[str, str]]] = None
-    ontology_label: str = "Ontology"
+    ontology_label: str = "Thing"
     role_cls_name: str = Role.__name__
     _properties: Optional[Dict[str, PropertyInfo]] = None
     property_restrictions: Dict[str, Dict[str, set]] = field(default_factory=dict)
@@ -168,8 +168,8 @@ class OntologyInfo:
         base_cls_name = NamingRegistry.to_pascal_case(
             re.sub(r"\W+", " ", self.ontology_label).strip()
         )
-        if not base_cls_name.endswith("Ontology"):
-            base_cls_name += "Ontology"
+        if not base_cls_name.endswith("Thing"):
+            base_cls_name += "Thing"
         return base_cls_name
 
     @cached_property
@@ -1862,7 +1862,7 @@ class OwlToPythonConverter:
             break
 
         if not self.ontology_label:
-            self.ontology_label = "Ontology"
+            self.ontology_label = "Thing"
 
         all_class_subjects = set(self.graph.subjects(RDF.type, OWL.Class))
 
