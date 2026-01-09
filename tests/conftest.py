@@ -1,6 +1,5 @@
 import os.path
 import runpy
-import sys
 
 import SPARQLWrapper
 import pytest

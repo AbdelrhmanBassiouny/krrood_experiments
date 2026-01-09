@@ -1,12 +1,7 @@
-import textwrap
-from pathlib import Path
-import warnings
-
 import pytest
-import rdflib
 from SPARQLWrapper import SPARQLWrapper, JSON
 
-from owl2bench.loader import WorldLoader, OntologyLoadError
+from owl2bench.loader import WorldLoader
 from owl2bench.model.base import (
     Person,
     Organization,
@@ -16,7 +11,7 @@ from owl2bench.model.base import (
     Interest,
 )
 from owl2bench.model.organizations import University, College, Department, ResearchGroup
-
+from owl2bench.model.interests import Cricket
 
 @pytest.fixture(scope="session")
 def sparql_wrapper():
@@ -272,6 +267,42 @@ def test_get_interests(sparql_wrapper):
                 assert isinstance(interest, Interest)
 
     assert any_hobbies, "No person hobbies found in the loaded data"
+
+
+def test_t20_cricket_interest_exists(sparql_wrapper):
+
+
+    # We manually add a Cricket individual to the graph for this test
+    # because the base ontology has Cricket as a class, and Cricket as an individual
+    # of type Cricket.
+    loader = WorldLoader(sparql_wrapper)
+
+    # We use a mocked or intercepted graph if we wanted to be pure,
+    # but here we just check if it IS there after parse.
+    # The previous issue description said:
+    # 'Why is the loader parsing the interest 'http://benchmark/OWL2Bench#T20Cricket' as Sports and not as Cricket?'
+    # This implies Cricket should be a CLASS in the model that the individual http://benchmark/OWL2Bench#T20Cricket
+    # is an instance of (or should be mapped to).
+
+    loader.parse()
+    interests = loader.world.interests
+
+    # Find the specific interest by its identifier
+    t20_interest = next(
+        (
+            i
+            for i in interests
+            if i.identifier == "http://benchmark/OWL2Bench#T20Cricket"
+        ),
+        None,
+    )
+
+    assert (
+        t20_interest is not None
+    ), "Interest http://benchmark/OWL2Bench#T20Cricket not found in loaded interests"
+    assert isinstance(
+        t20_interest, Cricket
+    ), f"Interest Cricket should be an instance of Cricket class, but got {type(t20_interest)}"
 
 
 def test_organizations_match_graphdb(sparql_wrapper):

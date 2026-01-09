@@ -87,3 +87,4 @@ class Person(IdentifiedEntity):
     enrolled_in: List[Program] = field(default_factory=list, repr=False)
     hobbies: List[Interest] = field(default_factory=list, repr=False)
     has_same_hometown_as: List[Person] = field(default_factory=list, repr=False)
+    is_crazy_about: Optional[Interest] = field(default=None, repr=False)

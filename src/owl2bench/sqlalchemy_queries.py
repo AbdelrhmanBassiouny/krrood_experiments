@@ -37,6 +37,14 @@ sqlalchemy_q4 = select(PersonDAO.age).where(
 )
 q4 = SQLAlchemyQuery(sparql_queries.q4, sqlalchemy_q4)
 
+CricketAlias = aliased(CricketDAO, flat=True)
+
+sqlalchemy_q5 = select(PersonDAO).join(
+    CricketAlias, PersonDAO.is_crazy_about_id == CricketAlias.database_id
+)
+q5 = SQLAlchemyQuery(sparql_queries.q5, sqlalchemy_q5)
+
+
 sqlalchemy_q6 = select(persondao_knows_association).where(
     persondao_knows_association.c.source_persondao_id
     == persondao_knows_association.c.target_persondao_id
@@ -64,7 +72,10 @@ sqlalchemy_q12 = select(PersonDAO)
 q12 = SQLAlchemyQuery(sparql_queries.q12, sqlalchemy_q12)
 
 sqlalchemy_q13 = select(CollegeDAO).filter(
-    ~CollegeDAO.members.any(PersonDAO.gender != "female")
+    CollegeDAO.members.any(),  # Must have at least one member
+    ~CollegeDAO.members.any(
+        PersonDAO.gender != "female"
+    ),  # None of them are non-female
 )
 q13 = SQLAlchemyQuery(sparql_queries.q13, sqlalchemy_q13)
 
@@ -141,6 +152,7 @@ all_queries = [
     q2,
     q3,
     q4,
+    q5,
     q6,
     q7,
     q8,
