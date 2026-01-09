@@ -255,6 +255,12 @@ class OwlLoader:
             if result:
                 instance.final_sorted_types = result
         self._create_explicit_instances(from_anonymous_instances=True)
+        # sort registry instances by reverse mro
+        # for uri, instances in copy(self.registry._by_uri).items():
+        #     classes = [type(inst) for inst in instances]
+        #     sorted_classes = sort_classes_by_role_aware_inheritance_path_length(classes).reverse()
+        #     sorted_indices =
+        #     sorted_instances = [instances[i] for i in [classes.index(sc) for sc in sorted_classes]]
         self._assign_all_properties()
         return self.registry
 
@@ -279,6 +285,13 @@ class OwlLoader:
                 if ABC in dom.__bases__:
                     continue
                 inferred_types.add(dom)
+        # pred_subjects = self.obj_pred_subj_map[instance.uri]
+        # for pred, subjects in pred_subjects.items():
+        #     ranges = PropertyDescriptor.all_ranges[
+        #         self.metadata.get_descriptor_base(pred)
+        #     ]
+        #     ranges = ranges - {self.metadata.ontology_base_class}
+        #     inferred_types.update(ranges)
         return inferred_types
 
     def _create_anonymous_instances_with_explicit_types(self):
@@ -427,19 +440,21 @@ class OwlLoader:
 
     def _assign_all_properties(self):
         """Iterates through all triples in the graph and assigns properties to instances."""
-        for s, p, o in self.graph:
-            if p in [RDF.type, RDFS.subClassOf, OWL.equivalentClass] or not isinstance(
-                s, URIRef
-            ):
-                continue
+        for o, ps in self.obj_pred_subj_map.items():
+            for predicate_name, subjects in ps.items():
+                for anonymous_subject in subjects:
+                    # if p in [RDF.type, RDFS.subClassOf, OWL.equivalentClass, OWL.inverseOf] or not isinstance(
+                    #     s, URIRef
+                    # ):
+                    #     continue
 
-            subj_roles = self._get_subject_roles(s)
-            if not subj_roles:
-                continue
+                    subject_roles = self._get_subject_roles(anonymous_subject.uri)
+                    if not subject_roles:
+                        continue
 
-            subj = subj_roles[0]
-            predicate_name = to_snake(local_name(p))
-            self._assign_property(subj, predicate_name, o)
+                    subject = subject_roles[0]
+                    # predicate_name = to_snake(local_name(p))
+                    self._assign_property(subject, predicate_name, o)
 
     def _assign_property(
         self,
@@ -787,10 +802,19 @@ class OwlLoader:
         instances_of_role_taker_type = symbol_graph.get_instances_of_type(
             role_taker_association.target.clazz
         )
-        role_taker = next(
-            (inst for inst in instances_of_role_taker_type if inst.uri == str(uri_ref)),
-            None,
-        )
+        try:
+            role_taker = next(
+                (
+                    inst
+                    for inst in instances_of_role_taker_type
+                    if inst.uri == str(uri_ref)
+                ),
+                None,
+            )
+        except AttributeError as e:
+            import pdbpp
+
+            pdbpp.set_trace()
         if role_taker:
             return role_taker_association, role_taker
 

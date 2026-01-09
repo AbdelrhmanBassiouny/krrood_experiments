@@ -25,13 +25,14 @@
     <owl:ObjectProperty rdf:about="http://benchmark/OWL2Bench#roleFor">
         <rdfs:label>is a role for</rdfs:label>
         <rdfs:domain rdf:resource="http://benchmark/OWL2Bench#Role"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#TransitiveProperty"/>
     </owl:ObjectProperty>
 
-    <owl:ObjectProperty rdf:about="http://benchmark/OWL2Bench#playsRole">
+    <!--<owl:ObjectProperty rdf:about="http://benchmark/OWL2Bench#playsRole">
         <rdfs:label>plays a role of</rdfs:label>
         <rdfs:range rdf:resource="http://benchmark/OWL2Bench#Role"/>
         <owl:inverseOf rdf:resource="http://benchmark/OWL2Bench#roleFor"/>
-    </owl:ObjectProperty>
+    </owl:ObjectProperty>-->
 
     <!-- http://benchmark/OWL2Bench#dislikes -->
 

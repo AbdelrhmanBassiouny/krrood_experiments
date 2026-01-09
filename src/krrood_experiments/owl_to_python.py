@@ -30,6 +30,7 @@ from krrood.ontomatic.property_descriptor.mixins import (
     ASymmetricProperty,
     ReflexiveProperty,
     IrreflexiveProperty,
+    RoleForMixin,
 )
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
 from rdflib.namespace import RDF, RDFS, OWL, XSD
@@ -1511,7 +1512,7 @@ class CodeGenerator:
         Attach properties without declared domains to the ontology base class.
         """
         for p in self.onto.properties.values():
-            if p.field_name == "plays_role" or p.declared_domains or p.domains:
+            if p.declared_domains or p.domains:
                 continue
             p.declared_domains = [self.onto.base_cls_name]
             base_class_info = self.onto.classes[self.onto.base_cls_name]
@@ -1709,6 +1710,10 @@ class CodeGenerator:
                     self.onto.properties[dj_prop_name].descriptor_name
                 )
 
+        if "roleFor" in self.onto.properties:
+            self.onto.properties["roleFor"].base_descriptors.append(
+                RoleForMixin.__name__
+            )
         render_props = {k: asdict(v) for k, v in self.onto.properties.items()}
         render_stubs = {k: asdict(v) for k, v in stubs_classes.items()}
         for c in render_stubs.values():

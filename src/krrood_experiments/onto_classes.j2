@@ -74,6 +74,11 @@ class {{ cls.name }}({% if cls.base_classes %}{{ ', '.join(cls.base_classes) }}{
 # Descriptor assignments
 {% for cls_name in classes_order %}
 {% set cls = classes[cls_name] %}
+{% if cls.role_taker|length > 0 %}
+{% if cls.add_role_taker %}
+{{ cls.name }}.{{ cls.role_taker.field_name }} = RoleFor({{ cls.name }}, '{{ cls.role_taker.field_name }}')
+{% endif %}
+{% endif %}
 {% for prop_name in cls.declared_properties %}
 {% set prop = properties[prop_name] %}
 {% if prop.type == 'ObjectProperty' %}
