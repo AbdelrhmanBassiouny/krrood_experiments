@@ -1,9 +1,15 @@
 from typing_extensions import Dict, List, Set, Union
+from ripple_down_rules.datastructures.case import Case
+from krrood_experiments.owl_instances_loader import OwlLoader
 from krrood.class_diagrams.utils import Role, nearest_common_ancestor
 from krrood.entity_query_language.entity import has_solution
 from krrood_experiments.utils import AnonymousClass, get_most_specific_types, get_non_class_attribute_names_of_instance
 from krrood_experiments.owl_instances_loader import OwlLoader
+from krrood.class_diagrams.utils import Role, nearest_common_ancestor, role_aware_nearest_common_ancestor
 from abc import ABC
+from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
+from krrood_experiments.utils import AnonymousClass, get_most_specific_types, get_non_class_attribute_names_of_instance
+from krrood.entity_query_language.entity import has_solution
 from ripple_down_rules import *
 
 
@@ -15,7 +21,7 @@ def conditions_20100493747705403503239541007013585584(case) -> bool:
                     return len(instance.types) == 1 and not bool(
                         get_non_class_attribute_names_of_instance(instance)
                     )
-    
+
                 return (
                     conditions_for_owl_loader_infer_most_appropriate_types_for_anonymous_instance(
                         **case
@@ -49,7 +55,7 @@ def conditions_178686770575922948619403589971234626498(case) -> bool:
                             for it in inferred_types
                         )
                     )
-    
+
                 return (
                     conditions_for_owl_loader_infer_most_appropriate_types_for_anonymous_instance(
                         **case
@@ -70,7 +76,7 @@ def conditions_39422379577793614665216170177046282573(case) -> bool:
                 ) -> bool:
                     """Get conditions on whether it's possible to conclude a value for owl_loader_infer_most_appropriate_types_for_anonymous_instance.output_  of type ."""
                     return not bool(case.output_)
-    
+
                 return (
                     conditions_for_owl_loader_infer_most_appropriate_types_for_anonymous_instance(
                         **case
@@ -96,6 +102,25 @@ def conclusion_39422379577793614665216170177046282573(case) -> List[type]:
         final_types = non_contesting_types.union(set(types_with_satisfied_axioms))
         most_specific_types = get_most_specific_types(final_types)
         return most_specific_types
+    return owl_loader_infer_most_appropriate_types_for_anonymous_instance(**case)
+
+
+def conditions_199871154586794138198665296345684269309(case) -> bool:
+    def conditions_for_owl_loader_infer_most_appropriate_types_for_anonymous_instance(self_: OwlLoader, instance: AnonymousClass, **kwargs) -> bool:
+        """Get conditions on whether it's possible to conclude a value for owl_loader_infer_most_appropriate_types_for_anonymous_instance.output_  of type ."""
+        output = kwargs['output_']
+        return len(output) == 0
+    return conditions_for_owl_loader_infer_most_appropriate_types_for_anonymous_instance(**case)
+
+
+def conclusion_199871154586794138198665296345684269309(case) -> List[type]:
+    def owl_loader_infer_most_appropriate_types_for_anonymous_instance(self_: OwlLoader, instance: AnonymousClass, **kwargs) -> List[type]:
+        """Get possible value(s) for owl_loader_infer_most_appropriate_types_for_anonymous_instance.output_  of type ."""
+        pred_subjects = self_.obj_pred_subj_map[instance.uri]
+        ranges = set()
+        for pred, subjects in pred_subjects.items():
+            ranges.update(PropertyDescriptor.all_ranges[self_.metadata.get_descriptor_base(pred)])
+        return role_aware_nearest_common_ancestor(ranges)
     return owl_loader_infer_most_appropriate_types_for_anonymous_instance(**case)
 
 

@@ -896,3 +896,6 @@ class OwlLoader:
                 registry=combined_registry,
             )
         return combined_registry
+
+    def __hash__(self):
+        return hash(id(self))
