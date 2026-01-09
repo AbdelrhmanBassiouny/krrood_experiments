@@ -212,6 +212,9 @@ class OwlLoader:
     anonymous_instances_by_type: Dict[Type, Set[AnonymousClass]] = field(
         default_factory=lambda: defaultdict(set)
     )
+    obj_pred_subj_map: Dict[URIRef, Dict[str, Set[AnonymousClass]]] = field(
+        default_factory=lambda: defaultdict(lambda: defaultdict(set))
+    )
 
     @dataclass
     class Case:
@@ -333,6 +336,7 @@ class OwlLoader:
                     setattr(instance, field_name, {obj_inst})
                 else:
                     getattr(instance, field_name).add(obj_inst)
+                self.obj_pred_subj_map[obj][field_name].add(instance)
 
     def _create_explicit_instances(self, from_anonymous_instances: bool = False):
         """Creates instances for all subjects with an explicit rdf:type in the graph."""
