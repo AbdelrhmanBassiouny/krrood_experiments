@@ -45,7 +45,7 @@ def get_eql_queries(
     # 1 (No joining, just filtration of graduate students through taking a certain course)
     p = variable(Person, domain=None)
     p2 = variable_from(p.knows)
-    q1 = a(set_of(p, p2).where(contains(p2.knows, p2)))
+    q1 = a(set_of(p, p2).where(contains(p2.knows, p)))
     q1 = QueryWithSelectables(q1, {"X": p, "Y": p2})
 
     eql_queries = [q1]
@@ -63,6 +63,9 @@ def process_value_for_owl2bench_answer_comparison(value: Any):
 
 if __name__ == "__main__":
     registry = load_instances_for_owl2bench_with_predicates()
+    import pdbpp
+
+    pdbpp.set_trace()
     start_time = time.time()
     queries_with_selectables = get_eql_queries(registry)
     counts, results, times = evaluate_eql(queries_with_selectables)

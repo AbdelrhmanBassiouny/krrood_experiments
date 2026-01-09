@@ -10,7 +10,7 @@ from typing_extensions import Optional, Set, TypeVar, Type, Any, Union
 
 from krrood.entity_query_language.predicate import Symbol
 from krrood.ontomatic.property_descriptor.mixins import IsBaseClass
-
+from krrood.class_diagrams.utils import Role
 
 @dataclass(eq=False)
 class OWL2BenchThing(Symbol, IsBaseClass):

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Set, Type, List
 
-from krrood.class_diagrams.utils import Role, issubclass_or_role
 from krrood.entity_query_language.entity import variable
 from krrood.entity_query_language.symbolic import Variable
+from krrood.class_diagrams.utils import issubclass_or_role
 from krrood.utils import inheritance_path_length
 from rdflib import URIRef
 from typing_extensions import Type, Set, List, Iterable

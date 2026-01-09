@@ -17,7 +17,8 @@ HasDisjointProperties,
 SymmetricProperty,
 ASymmetricProperty,
 ReflexiveProperty,
-IrreflexiveProperty
+IrreflexiveProperty,
+RoleForMixin
 )
 
 
@@ -284,26 +285,13 @@ class OrgPublication(PropertyDescriptor):
 
 
 @dataclass(eq=False)
-class PlaysRole(PropertyDescriptor, HasInverseProperty):
-    """plays a role of"""
-
-    @classmethod
-    def get_inverse(cls) -> Type[RoleFor]:
-        return RoleFor
-
-
-@dataclass(eq=False)
 class PublicationResearch(PropertyDescriptor):
     """PublicationResearch"""
 
 
 @dataclass(eq=False)
-class RoleFor(PropertyDescriptor, HasInverseProperty):
+class RoleFor(PropertyDescriptor, TransitiveProperty, RoleForMixin):
     """is a role for"""
-
-    @classmethod
-    def get_inverse(cls) -> Type[PlaysRole]:
-        return PlaysRole
 
 
 @dataclass(eq=False)
