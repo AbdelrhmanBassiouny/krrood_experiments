@@ -16,6 +16,7 @@ from krrood.entity_query_language.symbol_graph import SymbolGraph
 from krrood.ontomatic.property_descriptor.attribute_introspector import (
     DescriptorAwareIntrospector,
 )
+from krrood.ontomatic.property_descriptor.mixins import IsBaseClass
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
 from krrood.ormatic.utils import classes_of_module
 from rdflib import RDF, URIRef, Literal, OWL, RDFS
@@ -128,6 +129,7 @@ class ModelMetadata:
         self.descriptor_by_name: Dict[str, Type] = {}
         self.symbol_graph = symbol_graph
         self._collect(model_modules)
+        self.ontology_base_class: Optional[Type] = None
 
     def _collect(self, model_modules: Union[ModuleType, Iterable[ModuleType]]):
         """Orchestrates the collection of metadata from the model modules.
@@ -159,6 +161,8 @@ class ModelMetadata:
             # Collect model classes (dataclasses used to represent OWL classes)
             if isinstance(obj, type) and is_dataclass(obj):
                 self.class_by_name[attr_name] = obj
+                if IsBaseClass in obj.__bases__:
+                    self.ontology_base_class = obj
 
             # Collect descriptor classes available in the module for quick lookup by name
             if (

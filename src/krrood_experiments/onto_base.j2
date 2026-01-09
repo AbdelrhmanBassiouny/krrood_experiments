@@ -6,11 +6,10 @@ Generated using custom converter
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from abc import ABC
 from typing_extensions import Optional, Set, TypeVar, Type, Any, Union
 
 from krrood.entity_query_language.predicate import Symbol
-from krrood.ontomatic.mixins import IsBaseClass, IsUnknownClass
+from krrood.ontomatic.property_descriptor.mixins import IsBaseClass
 
 
 @dataclass(eq=False)
@@ -37,12 +36,6 @@ class {{ cls.name }}({{ ', '.join(cls.base_classes) }}, IsBaseClass):
 
     def __hash__(self):
         return hash(id(self))
-
-
-@dataclass(eq=False)
-class {{ cls.name }}UnknownType({{ cls.name }}, IsUnknownClass):
-    """A special class to represent unknown types of {{ cls.name }}."""
-    ...
 
 
 T = TypeVar('T', bound={{ cls.name }})
