@@ -6,7 +6,7 @@ Generated using custom converter
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing_extensions import Type, List
+from typing_extensions import Type, List, Optional
 
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
 from krrood.ontomatic.property_descriptor.mixins import (
@@ -38,14 +38,18 @@ class {{ prop.descriptor_name }}({{ ', '.join(prop.base_descriptors) }}):
 
     {% set inverse = properties[prop.inverse_of].descriptor_name %}
     @classmethod
-    def get_inverse(cls) -> Type[{{ inverse }}]:
-        return {{ inverse }}
+    def get_inverse(cls) -> Optional[Type[{{ inverse }}]]:
+        if cls is {{ prop.descriptor_name }}:
+            return {{ inverse }}
+        return None
     {% endif %}
     {% if prop.equivalent_properties|length > 0 %}
 
     @classmethod
     def get_equivalent_properties(cls) -> List[Type[PropertyDescriptor]]:
-        return [{{ ', '.join(prop.equivalent_properties_descriptor_names) }}]
+        if cls is {{ prop.descriptor_name }}:
+            return [{{ ', '.join(prop.equivalent_properties_descriptor_names) }}]
+        return []
     {% endif %}
     {% if prop.disjoint_properties|length > 0 %}
 

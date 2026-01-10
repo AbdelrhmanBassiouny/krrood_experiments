@@ -336,7 +336,7 @@ class OwlLoader:
     def _assign_all_properties_to_instance(self, instance: AnonymousClass):
         """Iterates through all properties of all instances and assigns properties to the instances."""
         for p, o in self.graph.predicate_objects(subject=instance.uri):
-            if p in [RDF.type, RDFS.subClassOf, OWL.equivalentClass]:
+            if p in [RDF.type, RDFS.subClassOf, OWL.equivalentClass, OWL.disjointWith]:
                 continue
             field_name = to_snake(local_name(p))
             obj = o
@@ -674,7 +674,12 @@ class OwlLoader:
         if not base_desc:
             raise ValueError(f"Could not find descriptor for {snake}")
 
-        new_role_class = self._find_best_role_class(base_desc, obj, snake)
+        try:
+            new_role_class = self._find_best_role_class(base_desc, obj, snake)
+        except ValueError:
+            import pdbpp
+
+            pdbpp.set_trace()
         new_role = self._get_or_create_role_instance(subj, new_role_class)
 
         if hasattr(new_role, snake) and self._assign_to_attribute(new_role, snake, obj):
@@ -686,14 +691,14 @@ class OwlLoader:
     def _find_best_role_class(
         base_desc: Type[PropertyDescriptor],
         obj: Any,
-        snake: str,
+        predicate_name: str,
     ) -> Type:
         """Determines the most appropriate role class for a given descriptor and object.
 
         Args:
             base_desc: The base PropertyDescriptor class.
             obj: The object instance.
-            snake: The snake_case name of the predicate.
+            predicate_name: The snake_case name of the predicate.
 
         Returns:
             The selected role class.
@@ -707,14 +712,15 @@ class OwlLoader:
 
         o_type = type(obj)
         wrapped_field_types = {
-            pr: getattr(pr, snake).range
+            pr: getattr(pr, predicate_name).range
             for pr in possible_roles
-            if hasattr(pr, snake) and issubclass(o_type, getattr(pr, snake).range)
+            if hasattr(pr, predicate_name)
+            and issubclass_or_role(o_type, getattr(pr, predicate_name).range)
         }
 
         if not wrapped_field_types:
             raise ValueError(
-                f"Could not determine role for {obj} ({o_type}) and predicate {snake} ({base_desc})"
+                f"Could not determine role for {obj} ({o_type}) and predicate {predicate_name} ({base_desc})"
             )
 
         # choose the nearest wrapped field type
@@ -727,7 +733,7 @@ class OwlLoader:
 
         if chosen_role is None:
             raise ValueError(
-                f"Could not determine role for {obj} ({o_type}) and predicate {snake} ({base_desc})"
+                f"Could not determine role for {obj} ({o_type}) and predicate {predicate_name} ({base_desc})"
             )
         return chosen_role
 

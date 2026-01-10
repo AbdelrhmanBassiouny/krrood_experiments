@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Optional, TypeVar, Iterable, Any
 
-from krrood.entity_query_language.predicate import Symbol, Predicate, predicate
+from krrood.entity_query_language.predicate import Symbol, Predicate, symbolic_function
 
 # Type variable for the base role
 TFacultyRole = TypeVar("TFacultyRole", bound="FacultyMember")
@@ -12,7 +12,7 @@ TStudentRole = TypeVar("TStudentRole", bound="Student")
 TProfessorRole = TypeVar("TProfessorRole", bound="Professor")
 
 
-@predicate
+@symbolic_function
 def exists(value: Iterable[Symbol]) -> bool:
     return any(value)
 

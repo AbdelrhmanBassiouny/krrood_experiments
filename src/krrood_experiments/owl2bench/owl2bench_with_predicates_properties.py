@@ -6,7 +6,7 @@ Generated using custom converter
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing_extensions import Type, List
+from typing_extensions import Type, List, Optional
 
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
 from krrood.ontomatic.property_descriptor.mixins import (
@@ -42,8 +42,10 @@ class EvaluatedBy(PropertyDescriptor, HasInverseProperty):
     """EvaluatedBy"""
 
     @classmethod
-    def get_inverse(cls) -> Type[Evaluates]:
-        return Evaluates
+    def get_inverse(cls) -> Optional[Type[Evaluates]]:
+        if cls is EvaluatedBy:
+            return Evaluates
+        return None
 
 
 @dataclass(eq=False)
@@ -51,8 +53,10 @@ class Evaluates(PropertyDescriptor, HasInverseProperty):
     """Evaluates"""
 
     @classmethod
-    def get_inverse(cls) -> Type[EvaluatedBy]:
-        return EvaluatedBy
+    def get_inverse(cls) -> Optional[Type[EvaluatedBy]]:
+        if cls is Evaluates:
+            return EvaluatedBy
+        return None
 
 
 @dataclass(eq=False)
@@ -61,7 +65,9 @@ class HasAdvisor(PropertyDescriptor, HasEquivalentProperties):
 
     @classmethod
     def get_equivalent_properties(cls) -> List[Type[PropertyDescriptor]]:
-        return [IsAdvisedBy]
+        if cls is HasAdvisor:
+            return [IsAdvisedBy]
+        return []
 
 
 @dataclass(eq=False)
@@ -69,8 +75,10 @@ class HasAlumnus(PropertyDescriptor, HasInverseProperty):
     """HasAlumnus"""
 
     @classmethod
-    def get_inverse(cls) -> Type[HasDegreeFrom]:
-        return HasDegreeFrom
+    def get_inverse(cls) -> Optional[Type[HasDegreeFrom]]:
+        if cls is HasAlumnus:
+            return HasDegreeFrom
+        return None
 
 
 @dataclass(eq=False)
@@ -97,8 +105,10 @@ class HasDean(PropertyDescriptor, HasInverseProperty):
     """HasDean"""
 
     @classmethod
-    def get_inverse(cls) -> Type[IsDeanOf]:
-        return IsDeanOf
+    def get_inverse(cls) -> Optional[Type[IsDeanOf]]:
+        if cls is HasDean:
+            return IsDeanOf
+        return None
 
 
 @dataclass(eq=False)
@@ -106,8 +116,10 @@ class HasDegreeFrom(PropertyDescriptor, HasInverseProperty):
     """HasDegreeFrom"""
 
     @classmethod
-    def get_inverse(cls) -> Type[HasAlumnus]:
-        return HasAlumnus
+    def get_inverse(cls) -> Optional[Type[HasAlumnus]]:
+        if cls is HasDegreeFrom:
+            return HasAlumnus
+        return None
 
 
 @dataclass(eq=False)
@@ -129,8 +141,10 @@ class HasMember(PropertyDescriptor, HasInverseProperty):
     """HasMember"""
 
     @classmethod
-    def get_inverse(cls) -> Type[IsMemberOf]:
-        return IsMemberOf
+    def get_inverse(cls) -> Optional[Type[IsMemberOf]]:
+        if cls is HasMember:
+            return IsMemberOf
+        return None
 
 
 @dataclass(eq=False)
@@ -138,12 +152,16 @@ class HasPart(PropertyDescriptor, TransitiveProperty, HasInverseProperty, HasEqu
     """HasPart"""
 
     @classmethod
-    def get_inverse(cls) -> Type[IsPartOf]:
-        return IsPartOf
+    def get_inverse(cls) -> Optional[Type[IsPartOf]]:
+        if cls is HasPart:
+            return IsPartOf
+        return None
 
     @classmethod
     def get_equivalent_properties(cls) -> List[Type[PropertyDescriptor]]:
-        return [HasSubOrganization]
+        if cls is HasPart:
+            return [HasSubOrganization]
+        return []
 
 
 @dataclass(eq=False)
@@ -161,12 +179,16 @@ class HasSubOrganization(PropertyDescriptor, TransitiveProperty, HasInversePrope
     """HasSubOrganization"""
 
     @classmethod
-    def get_inverse(cls) -> Type[IsSubOrganizationOf]:
-        return IsSubOrganizationOf
+    def get_inverse(cls) -> Optional[Type[IsSubOrganizationOf]]:
+        if cls is HasSubOrganization:
+            return IsSubOrganizationOf
+        return None
 
     @classmethod
     def get_equivalent_properties(cls) -> List[Type[PropertyDescriptor]]:
-        return [HasPart]
+        if cls is HasSubOrganization:
+            return [HasPart]
+        return []
 
 
 @dataclass(eq=False)
@@ -180,7 +202,9 @@ class IsAdvisedBy(PropertyDescriptor, HasEquivalentProperties):
 
     @classmethod
     def get_equivalent_properties(cls) -> List[Type[PropertyDescriptor]]:
-        return [HasAdvisor]
+        if cls is IsAdvisedBy:
+            return [HasAdvisor]
+        return []
 
 
 @dataclass(eq=False)
@@ -198,8 +222,10 @@ class IsDeanOf(PropertyDescriptor, HasInverseProperty):
     """IsDeanOf"""
 
     @classmethod
-    def get_inverse(cls) -> Type[HasDean]:
-        return HasDean
+    def get_inverse(cls) -> Optional[Type[HasDean]]:
+        if cls is IsDeanOf:
+            return HasDean
+        return None
 
 
 @dataclass(eq=False)
@@ -207,8 +233,10 @@ class IsMemberOf(PropertyDescriptor, HasInverseProperty):
     """IsMemberOf"""
 
     @classmethod
-    def get_inverse(cls) -> Type[HasMember]:
-        return HasMember
+    def get_inverse(cls) -> Optional[Type[HasMember]]:
+        if cls is IsMemberOf:
+            return HasMember
+        return None
 
 
 @dataclass(eq=False)
@@ -216,12 +244,16 @@ class IsPartOf(PropertyDescriptor, TransitiveProperty, HasInverseProperty, HasEq
     """IsPartOf"""
 
     @classmethod
-    def get_inverse(cls) -> Type[HasPart]:
-        return HasPart
+    def get_inverse(cls) -> Optional[Type[HasPart]]:
+        if cls is IsPartOf:
+            return HasPart
+        return None
 
     @classmethod
     def get_equivalent_properties(cls) -> List[Type[PropertyDescriptor]]:
-        return [IsSubOrganizationOf]
+        if cls is IsPartOf:
+            return [IsSubOrganizationOf]
+        return []
 
 
 @dataclass(eq=False)
@@ -229,8 +261,10 @@ class IsStudentOf(PropertyDescriptor, HasInverseProperty):
     """IsStudentOf"""
 
     @classmethod
-    def get_inverse(cls) -> Type[HasStudent]:
-        return HasStudent
+    def get_inverse(cls) -> Optional[Type[HasStudent]]:
+        if cls is IsStudentOf:
+            return HasStudent
+        return None
 
 
 @dataclass(eq=False)
@@ -238,12 +272,16 @@ class IsSubOrganizationOf(PropertyDescriptor, TransitiveProperty, HasInverseProp
     """IsSubOrganizationOf"""
 
     @classmethod
-    def get_inverse(cls) -> Type[HasSubOrganization]:
-        return HasSubOrganization
+    def get_inverse(cls) -> Optional[Type[HasSubOrganization]]:
+        if cls is IsSubOrganizationOf:
+            return HasSubOrganization
+        return None
 
     @classmethod
     def get_equivalent_properties(cls) -> List[Type[PropertyDescriptor]]:
-        return [IsPartOf]
+        if cls is IsSubOrganizationOf:
+            return [IsPartOf]
+        return []
 
 
 @dataclass(eq=False)
@@ -251,8 +289,10 @@ class IsTaughtBy(PropertyDescriptor, HasInverseProperty):
     """IsTaughtBy"""
 
     @classmethod
-    def get_inverse(cls) -> Type[TeachesCourse]:
-        return TeachesCourse
+    def get_inverse(cls) -> Optional[Type[TeachesCourse]]:
+        if cls is IsTaughtBy:
+            return TeachesCourse
+        return None
 
 
 @dataclass(eq=False)
@@ -304,8 +344,10 @@ class WorksFor(PropertyDescriptor, HasInverseProperty):
     """WorksFor"""
 
     @classmethod
-    def get_inverse(cls) -> Type[HasEmployee]:
-        return HasEmployee
+    def get_inverse(cls) -> Optional[Type[HasEmployee]]:
+        if cls is WorksFor:
+            return HasEmployee
+        return None
 
 
 @dataclass(eq=False)
@@ -318,8 +360,10 @@ class HasCollege(HasSubOrganization, HasInverseProperty):
     """HasCollege"""
 
     @classmethod
-    def get_inverse(cls) -> Type[IsCollegeOf]:
-        return IsCollegeOf
+    def get_inverse(cls) -> Optional[Type[IsCollegeOf]]:
+        if cls is HasCollege:
+            return IsCollegeOf
+        return None
 
 
 @dataclass(eq=False)
@@ -332,8 +376,10 @@ class HasDepartment(HasSubOrganization, HasInverseProperty):
     """HasDepartment"""
 
     @classmethod
-    def get_inverse(cls) -> Type[IsDepartmentOf]:
-        return IsDepartmentOf
+    def get_inverse(cls) -> Optional[Type[IsDepartmentOf]]:
+        if cls is HasDepartment:
+            return IsDepartmentOf
+        return None
 
 
 @dataclass(eq=False)
@@ -346,8 +392,10 @@ class HasEmployee(HasMember, HasInverseProperty):
     """HasEmployee"""
 
     @classmethod
-    def get_inverse(cls) -> Type[WorksFor]:
-        return WorksFor
+    def get_inverse(cls) -> Optional[Type[WorksFor]]:
+        if cls is HasEmployee:
+            return WorksFor
+        return None
 
 
 @dataclass(eq=False)
@@ -375,8 +423,10 @@ class HasResearchGroup(HasSubOrganization, HasInverseProperty):
     """HasResearchGroup"""
 
     @classmethod
-    def get_inverse(cls) -> Type[IsResearchGroupOf]:
-        return IsResearchGroupOf
+    def get_inverse(cls) -> Optional[Type[IsResearchGroupOf]]:
+        if cls is HasResearchGroup:
+            return IsResearchGroupOf
+        return None
 
 
 @dataclass(eq=False)
@@ -389,8 +439,10 @@ class HasStudent(HasMember, HasInverseProperty):
     """HasStudent"""
 
     @classmethod
-    def get_inverse(cls) -> Type[IsStudentOf]:
-        return IsStudentOf
+    def get_inverse(cls) -> Optional[Type[IsStudentOf]]:
+        if cls is HasStudent:
+            return IsStudentOf
+        return None
 
 
 @dataclass(eq=False)
@@ -413,8 +465,10 @@ class IsCollegeOf(IsSubOrganizationOf, HasInverseProperty):
     """IsCollegeOf"""
 
     @classmethod
-    def get_inverse(cls) -> Type[HasCollege]:
-        return HasCollege
+    def get_inverse(cls) -> Optional[Type[HasCollege]]:
+        if cls is IsCollegeOf:
+            return HasCollege
+        return None
 
 
 @dataclass(eq=False)
@@ -422,8 +476,10 @@ class IsDepartmentOf(IsSubOrganizationOf, HasInverseProperty):
     """IsDepartmentOf"""
 
     @classmethod
-    def get_inverse(cls) -> Type[HasDepartment]:
-        return HasDepartment
+    def get_inverse(cls) -> Optional[Type[HasDepartment]]:
+        if cls is IsDepartmentOf:
+            return HasDepartment
+        return None
 
 
 @dataclass(eq=False)
@@ -431,8 +487,10 @@ class IsFacultyOf(WorksFor, HasInverseProperty):
     """IsFacultyOf"""
 
     @classmethod
-    def get_inverse(cls) -> Type[HasFaculty]:
-        return HasFaculty
+    def get_inverse(cls) -> Optional[Type[HasFaculty]]:
+        if cls is IsFacultyOf:
+            return HasFaculty
+        return None
 
 
 @dataclass(eq=False)
@@ -440,8 +498,10 @@ class IsResearchAssistantOf(WorksFor, HasInverseProperty):
     """IsResearchAssistantOf"""
 
     @classmethod
-    def get_inverse(cls) -> Type[HasResearchAssistant]:
-        return HasResearchAssistant
+    def get_inverse(cls) -> Optional[Type[HasResearchAssistant]]:
+        if cls is IsResearchAssistantOf:
+            return HasResearchAssistant
+        return None
 
 
 @dataclass(eq=False)
@@ -449,8 +509,10 @@ class IsResearchGroupOf(IsSubOrganizationOf, HasInverseProperty):
     """IsResearchGroupOf"""
 
     @classmethod
-    def get_inverse(cls) -> Type[HasResearchGroup]:
-        return HasResearchGroup
+    def get_inverse(cls) -> Optional[Type[HasResearchGroup]]:
+        if cls is IsResearchGroupOf:
+            return HasResearchGroup
+        return None
 
 
 @dataclass(eq=False)
@@ -468,8 +530,10 @@ class TeachesCourse(HasWork, HasInverseProperty):
     """TeachesCourse"""
 
     @classmethod
-    def get_inverse(cls) -> Type[IsTaughtBy]:
-        return IsTaughtBy
+    def get_inverse(cls) -> Optional[Type[IsTaughtBy]]:
+        if cls is TeachesCourse:
+            return IsTaughtBy
+        return None
 
 
 @dataclass(eq=False)
@@ -477,8 +541,10 @@ class HasFaculty(HasEmployee, HasInverseProperty):
     """HasFaculty"""
 
     @classmethod
-    def get_inverse(cls) -> Type[IsFacultyOf]:
-        return IsFacultyOf
+    def get_inverse(cls) -> Optional[Type[IsFacultyOf]]:
+        if cls is HasFaculty:
+            return IsFacultyOf
+        return None
 
 
 @dataclass(eq=False)
@@ -486,8 +552,10 @@ class HasResearchAssistant(HasEmployee, HasInverseProperty):
     """HasResearchAssistant"""
 
     @classmethod
-    def get_inverse(cls) -> Type[IsResearchAssistantOf]:
-        return IsResearchAssistantOf
+    def get_inverse(cls) -> Optional[Type[IsResearchAssistantOf]]:
+        if cls is HasResearchAssistant:
+            return IsResearchAssistantOf
+        return None
 
 
 @dataclass(eq=False)
@@ -520,8 +588,10 @@ class IsLecturerOf(IsFacultyOf, HasInverseProperty):
     """IsLecturerOf"""
 
     @classmethod
-    def get_inverse(cls) -> Type[HasLecturer]:
-        return HasLecturer
+    def get_inverse(cls) -> Optional[Type[HasLecturer]]:
+        if cls is IsLecturerOf:
+            return HasLecturer
+        return None
 
 
 @dataclass(eq=False)
@@ -534,8 +604,10 @@ class IsPostDocOf(IsFacultyOf, HasInverseProperty):
     """IsPostDocOf"""
 
     @classmethod
-    def get_inverse(cls) -> Type[HasPostDoc]:
-        return HasPostDoc
+    def get_inverse(cls) -> Optional[Type[HasPostDoc]]:
+        if cls is IsPostDocOf:
+            return HasPostDoc
+        return None
 
 
 @dataclass(eq=False)
@@ -543,8 +615,10 @@ class IsProfessorOf(IsFacultyOf, HasInverseProperty):
     """IsProfessorOf"""
 
     @classmethod
-    def get_inverse(cls) -> Type[HasProfessor]:
-        return HasProfessor
+    def get_inverse(cls) -> Optional[Type[HasProfessor]]:
+        if cls is IsProfessorOf:
+            return HasProfessor
+        return None
 
 
 @dataclass(eq=False)
@@ -567,8 +641,10 @@ class HasLecturer(HasFaculty, HasInverseProperty):
     """HasLecturer"""
 
     @classmethod
-    def get_inverse(cls) -> Type[IsLecturerOf]:
-        return IsLecturerOf
+    def get_inverse(cls) -> Optional[Type[IsLecturerOf]]:
+        if cls is HasLecturer:
+            return IsLecturerOf
+        return None
 
 
 @dataclass(eq=False)
@@ -581,8 +657,10 @@ class HasPostDoc(HasFaculty, HasInverseProperty):
     """HasPostDoc"""
 
     @classmethod
-    def get_inverse(cls) -> Type[IsPostDocOf]:
-        return IsPostDocOf
+    def get_inverse(cls) -> Optional[Type[IsPostDocOf]]:
+        if cls is HasPostDoc:
+            return IsPostDocOf
+        return None
 
 
 @dataclass(eq=False)
@@ -590,8 +668,10 @@ class HasProfessor(HasFaculty, HasInverseProperty):
     """HasProfessor"""
 
     @classmethod
-    def get_inverse(cls) -> Type[IsProfessorOf]:
-        return IsProfessorOf
+    def get_inverse(cls) -> Optional[Type[IsProfessorOf]]:
+        if cls is HasProfessor:
+            return IsProfessorOf
+        return None
 
 
 @dataclass(eq=False)
@@ -604,8 +684,10 @@ class IsAssistantProfessorOf(IsProfessorOf, HasInverseProperty):
     """IsAssistantProfessorOf"""
 
     @classmethod
-    def get_inverse(cls) -> Type[HasAssistantProfessor]:
-        return HasAssistantProfessor
+    def get_inverse(cls) -> Optional[Type[HasAssistantProfessor]]:
+        if cls is IsAssistantProfessorOf:
+            return HasAssistantProfessor
+        return None
 
 
 @dataclass(eq=False)
@@ -613,8 +695,10 @@ class IsAssociateProfessorOf(IsProfessorOf, HasInverseProperty):
     """IsAssociateProfessorOf"""
 
     @classmethod
-    def get_inverse(cls) -> Type[HasAssociateProfessor]:
-        return HasAssociateProfessor
+    def get_inverse(cls) -> Optional[Type[HasAssociateProfessor]]:
+        if cls is IsAssociateProfessorOf:
+            return HasAssociateProfessor
+        return None
 
 
 @dataclass(eq=False)
@@ -622,8 +706,10 @@ class IsFullProfessorOf(IsProfessorOf, HasInverseProperty):
     """IsFullProfessorOf"""
 
     @classmethod
-    def get_inverse(cls) -> Type[HasFullProfessor]:
-        return HasFullProfessor
+    def get_inverse(cls) -> Optional[Type[HasFullProfessor]]:
+        if cls is IsFullProfessorOf:
+            return HasFullProfessor
+        return None
 
 
 @dataclass(eq=False)
@@ -631,8 +717,10 @@ class IsVisitingProfessorOf(IsProfessorOf, HasInverseProperty):
     """IsVisitingProfessorOf"""
 
     @classmethod
-    def get_inverse(cls) -> Type[HasVisitingProfessor]:
-        return HasVisitingProfessor
+    def get_inverse(cls) -> Optional[Type[HasVisitingProfessor]]:
+        if cls is IsVisitingProfessorOf:
+            return HasVisitingProfessor
+        return None
 
 
 @dataclass(eq=False)
@@ -640,8 +728,10 @@ class HasAssistantProfessor(HasProfessor, HasInverseProperty):
     """HasAssistantProfessor"""
 
     @classmethod
-    def get_inverse(cls) -> Type[IsAssistantProfessorOf]:
-        return IsAssistantProfessorOf
+    def get_inverse(cls) -> Optional[Type[IsAssistantProfessorOf]]:
+        if cls is HasAssistantProfessor:
+            return IsAssistantProfessorOf
+        return None
 
 
 @dataclass(eq=False)
@@ -649,8 +739,10 @@ class HasAssociateProfessor(HasProfessor, HasInverseProperty):
     """HasAssociateProfessor"""
 
     @classmethod
-    def get_inverse(cls) -> Type[IsAssociateProfessorOf]:
-        return IsAssociateProfessorOf
+    def get_inverse(cls) -> Optional[Type[IsAssociateProfessorOf]]:
+        if cls is HasAssociateProfessor:
+            return IsAssociateProfessorOf
+        return None
 
 
 @dataclass(eq=False)
@@ -658,8 +750,10 @@ class HasFullProfessor(HasProfessor, HasInverseProperty):
     """HasFullProfessor"""
 
     @classmethod
-    def get_inverse(cls) -> Type[IsFullProfessorOf]:
-        return IsFullProfessorOf
+    def get_inverse(cls) -> Optional[Type[IsFullProfessorOf]]:
+        if cls is HasFullProfessor:
+            return IsFullProfessorOf
+        return None
 
 
 @dataclass(eq=False)
@@ -667,8 +761,10 @@ class HasVisitingProfessor(HasProfessor, HasInverseProperty):
     """HasVisitingProfessor"""
 
     @classmethod
-    def get_inverse(cls) -> Type[IsVisitingProfessorOf]:
-        return IsVisitingProfessorOf
+    def get_inverse(cls) -> Optional[Type[IsVisitingProfessorOf]]:
+        if cls is HasVisitingProfessor:
+            return IsVisitingProfessorOf
+        return None
 
 
 @dataclass(eq=False)
@@ -676,8 +772,10 @@ class IsHeadOf(IsFullProfessorOf, HasInverseProperty):
     """IsHeadOf"""
 
     @classmethod
-    def get_inverse(cls) -> Type[HasHead]:
-        return HasHead
+    def get_inverse(cls) -> Optional[Type[HasHead]]:
+        if cls is IsHeadOf:
+            return HasHead
+        return None
 
 
 @dataclass(eq=False)
@@ -685,7 +783,9 @@ class HasHead(HasFullProfessor, HasInverseProperty):
     """HasHead"""
 
     @classmethod
-    def get_inverse(cls) -> Type[IsHeadOf]:
-        return IsHeadOf
+    def get_inverse(cls) -> Optional[Type[IsHeadOf]]:
+        if cls is HasHead:
+            return IsHeadOf
+        return None
 
 
