@@ -6,7 +6,7 @@ Generated using custom converter
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing_extensions import Type, List, Optional
+from typing_extensions import Type, List, Optional, Tuple
 
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
 from krrood.ontomatic.property_descriptor.mixins import (
@@ -18,7 +18,8 @@ SymmetricProperty,
 ASymmetricProperty,
 ReflexiveProperty,
 IrreflexiveProperty,
-RoleForMixin
+RoleForMixin,
+HasChainAxioms
 )
 
 
@@ -56,6 +57,18 @@ class {{ prop.descriptor_name }}({{ ', '.join(prop.base_descriptors) }}):
     @classmethod
     def get_disjoint_properties(cls) -> List[Type[PropertyDescriptor]]:
         return [{{ ', '.join(prop.disjoint_properties_descriptor_names) }}]
+    {% endif %}
+    {% if prop.chain_axioms|length > 0 %}
+
+    @classmethod
+    def get_chain_axioms(cls) -> List[Tuple[Type[PropertyDescriptor], ...]]:
+        if cls is {{ prop.descriptor_name }}:
+            return [
+                {% for chain in prop.chain_axioms %}
+                ({{ chain | join(', ') }}),
+                {% endfor %}
+            ]
+        return []
     {% endif %}
 
 

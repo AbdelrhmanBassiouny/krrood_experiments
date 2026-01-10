@@ -31,6 +31,7 @@ from krrood.ontomatic.property_descriptor.mixins import (
     ReflexiveProperty,
     IrreflexiveProperty,
     RoleForMixin,
+    HasChainAxioms,
 )
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
 from rdflib.namespace import RDF, RDFS, OWL, XSD
@@ -134,6 +135,7 @@ class PropertyInfo:
     base_descriptors: List[str] = field(default_factory=list)
     equivalent_properties_descriptor_names: List[str] = field(default_factory=list)
     disjoint_properties_descriptor_names: List[str] = field(default_factory=list)
+    chain_axioms: List[List[str]] = field(default_factory=list)
 
 
 @dataclass
@@ -775,7 +777,33 @@ class InferenceEngine:
         self._infer_properties_data_from_restrictions()
         self._propagate_types()
         self._finalize_properties()
+        self._add_property_chain_axioms()
         self._create_specialized_properties()
+
+    def _add_property_chain_axioms(self):
+        """
+        Add property chain axioms to properties based on owl:propertyChainAxiom.
+        """
+        for prop_name, prop_info in self.onto.properties.items():
+            prop_uri = rdflib.URIRef(prop_info.uri)
+            for chain in self.onto.graph.objects(prop_uri, OWL.propertyChainAxiom):
+                items = []
+                node = chain
+                while node and node != RDF.nil:
+                    first = self.onto.graph.value(node, RDF.first)
+                    if first:
+                        name = NamingRegistry.uri_to_python_name(first)
+                        if name not in self.onto.properties:
+                            raise ValueError(
+                                f"Property chain axiom references unknown property {name}"
+                            )
+                        items.append(self.onto.properties[name].descriptor_name)
+                    node = self.onto.graph.value(node, RDF.rest)
+                if items:
+                    prop_info.chain_axioms.append(items)
+        for prop_name, prop_info in self.onto.properties.items():
+            if prop_info.chain_axioms:
+                prop_info.base_descriptors.append(HasChainAxioms.__name__)
 
     def _infer_properties_data_from_restrictions(self):
         """
