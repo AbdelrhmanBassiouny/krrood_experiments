@@ -6,7 +6,7 @@ Generated using custom converter
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing_extensions import Type, List, Optional
+from typing_extensions import Type, List, Optional, Tuple
 
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
 from krrood.ontomatic.property_descriptor.mixins import (
@@ -18,7 +18,8 @@ SymmetricProperty,
 ASymmetricProperty,
 ReflexiveProperty,
 IrreflexiveProperty,
-RoleForMixin
+RoleForMixin,
+HasChainAxioms
 )
 
 
@@ -238,6 +239,15 @@ class IsMemberOf(PropertyDescriptor, HasInverseProperty):
             return HasMember
         return None
 
+    @classmethod
+    def get_chain_axioms(cls) -> List[Tuple[Type[PropertyDescriptor], ...]]:
+        if cls is IsMemberOf:
+            return [
+                (EnrollIn, IsPartOf),
+                (WorksFor, IsPartOf),
+            ]
+        return []
+
 
 @dataclass(eq=False)
 class IsPartOf(PropertyDescriptor, TransitiveProperty, HasInverseProperty, HasEquivalentProperties):
@@ -265,6 +275,14 @@ class IsStudentOf(PropertyDescriptor, HasInverseProperty):
         if cls is IsStudentOf:
             return HasStudent
         return None
+
+    @classmethod
+    def get_chain_axioms(cls) -> List[Tuple[Type[PropertyDescriptor], ...]]:
+        if cls is IsStudentOf:
+            return [
+                (EnrollIn, IsSubOrganizationOf),
+            ]
+        return []
 
 
 @dataclass(eq=False)
@@ -348,6 +366,14 @@ class WorksFor(PropertyDescriptor, HasInverseProperty):
         if cls is WorksFor:
             return HasEmployee
         return None
+
+    @classmethod
+    def get_chain_axioms(cls) -> List[Tuple[Type[PropertyDescriptor], ...]]:
+        if cls is WorksFor:
+            return [
+                (WorksFor, IsSubOrganizationOf),
+            ]
+        return []
 
 
 @dataclass(eq=False)
