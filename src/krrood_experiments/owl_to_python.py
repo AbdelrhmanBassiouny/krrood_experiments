@@ -801,9 +801,6 @@ class InferenceEngine:
                     node = self.onto.graph.value(node, RDF.rest)
                 if items:
                     prop_info.chain_axioms.append(items)
-        for prop_name, prop_info in self.onto.properties.items():
-            if prop_info.chain_axioms:
-                prop_info.base_descriptors.append(HasChainAxioms.__name__)
 
     def _infer_properties_data_from_restrictions(self):
         """
@@ -1742,6 +1739,9 @@ class CodeGenerator:
             self.onto.properties["roleFor"].base_descriptors.append(
                 RoleForMixin.__name__
             )
+        for prop_name, prop_info in self.onto.properties.items():
+            if prop_info.chain_axioms:
+                prop_info.base_descriptors.append(HasChainAxioms.__name__)
         render_props = {k: asdict(v) for k, v in self.onto.properties.items()}
         render_stubs = {k: asdict(v) for k, v in stubs_classes.items()}
         for c in render_stubs.values():
