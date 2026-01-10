@@ -1,7 +1,7 @@
-from typing_extensions import Dict, Optional, Set, Union
+from ripple_down_rules.helpers import get_an_updated_case_copy, update_case_and_conclusions_with_rule_output
 from ripple_down_rules.utils import copy_case, make_set
 from ripple_down_rules.datastructures.case import Case, create_case
-from ripple_down_rules.helpers import get_an_updated_case_copy, update_case_and_conclusions_with_rule_output
+from typing_extensions import Dict, Optional, Set, Union
 from .owl_loader_infer_most_appropriate_types_for_anonymous_instance_output__mcrdr_defs import *
 
 
@@ -31,4 +31,10 @@ def classify(case: Dict, **kwargs) -> Set[type]:
 
     if conditions_199871154586794138198665296345684269309(case):
         update_case_and_conclusions_with_rule_output(case, conclusions, conclusion_199871154586794138198665296345684269309(case),attribute_name, conclusion_type, mutually_exclusive)
+
+    if conditions_308052122250742423873206453845882804138(case):
+        update_case_and_conclusions_with_rule_output(case, conclusions, conclusion_308052122250742423873206453845882804138(case),attribute_name, conclusion_type, mutually_exclusive)
+
+    if conditions_156662505516608460529403101557922300371(case):
+        update_case_and_conclusions_with_rule_output(case, conclusions, conclusion_156662505516608460529403101557922300371(case),attribute_name, conclusion_type, mutually_exclusive)
     return conclusions

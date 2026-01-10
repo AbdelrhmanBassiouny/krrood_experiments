@@ -35,6 +35,7 @@ from krrood_experiments.owl2bench.owl2bench_with_predicates import (
     Chair,
     AssociateProfessor,
     ResearchGroup,
+    Organization,
 )
 from krrood_experiments.owl_instances_loader import OwlInstancesRegistry
 
@@ -43,10 +44,9 @@ def get_eql_queries(
     registry_: Optional[OwlInstancesRegistry] = None,
 ) -> List[QueryWithSelectables]:
     # 1 (No joining, just filtration of graduate students through taking a certain course)
-    p = variable(Person, domain=None)
-    p2 = variable_from(p.knows)
-    q1 = a(set_of(p, p2).where(contains(p2.knows, p)))
-    q1 = QueryWithSelectables(q1, {"X": p, "Y": p2})
+    o1 = variable(Organization, domain=None)
+    p = variable_from(o1.has_member)
+    q1 = an(entity(p))
 
     eql_queries = [q1]
     return eql_queries

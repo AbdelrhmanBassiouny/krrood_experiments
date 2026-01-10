@@ -10,6 +10,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union, Clas
 
 import rdflib
 from krrood.class_diagrams.class_diagram import Association, ClassDiagram
+from krrood.class_diagrams.utils import issubclass_or_role
 from krrood.entity_query_language.entity import has_solution
 from krrood.entity_query_language.predicate import Symbol
 from krrood.entity_query_language.symbol_graph import SymbolGraph
@@ -128,8 +129,8 @@ class ModelMetadata:
         self.class_by_name: Dict[str, Type] = {}
         self.descriptor_by_name: Dict[str, Type] = {}
         self.symbol_graph = symbol_graph
-        self._collect(model_modules)
         self.ontology_base_class: Optional[Type] = None
+        self._collect(model_modules)
 
     def _collect(self, model_modules: Union[ModuleType, Iterable[ModuleType]]):
         """Orchestrates the collection of metadata from the model modules.
@@ -451,8 +452,15 @@ class OwlLoader:
                     subject_roles = self._get_subject_roles(anonymous_subject.uri)
                     if not subject_roles:
                         continue
-
                     subject = subject_roles[0]
+                    # if predicate_name == "is_taught_by" and any(
+                    #     c in [n.__class__.__name__ for n in self.registry.resolve(o)]
+                    #     for c in ["Man", "Woman", "PeopleWithHobby"]
+                    # ):
+                    #     import pdbpp
+                    #
+                    #     pdbpp.set_trace()
+
                     # predicate_name = to_snake(local_name(p))
                     self._assign_property(subject, predicate_name, o)
 
@@ -472,7 +480,7 @@ class OwlLoader:
         if isinstance(obj_uri, Literal):
             self._assign_data_property(subj, field_name, obj_uri)
         else:
-            self._assign_object_property(subj, field_name, field_name, obj_uri)
+            self._assign_object_property(subj, field_name, obj_uri)
 
     def _get_subject_roles(self, subject_uri: URIRef) -> Optional[List[Any]]:
         """Resolves or ensures instances for a given subject URI.
@@ -573,8 +581,7 @@ class OwlLoader:
     def _assign_object_property(
         self,
         subj: Any,
-        field_name: Optional[str],
-        snake: str,
+        field_name: str,
         obj_node: Union[URIRef, Literal],
     ):
         """Assigns an object property by resolving the object node and finding the correct attribute.
@@ -582,19 +589,31 @@ class OwlLoader:
         Args:
             subj: The subject instance.
             field_name: The determined field name on the subject.
-            snake: The snake_case name of the predicate.
             obj_node: The RDF node of the object.
         """
         obj_roles = (
             self._ensure_instance(obj_node) if isinstance(obj_node, URIRef) else None
         )
-        obj = obj_roles[0] if obj_roles else None
-        if isinstance(obj, AnonymousClass):
-            if self._assign_to_attribute(subj, field_name, obj):
-                return
-            raise ValueError(
-                f"Could not assign {obj} to {subj} through field ({snake})"
-            )
+        descriptor_base = self.metadata.get_descriptor_base(field_name)
+        obj = None
+        for obj_role in obj_roles or []:
+            if issubclass_or_role(
+                obj_role.__class__,
+                tuple(PropertyDescriptor.all_ranges[descriptor_base]),
+            ):
+                obj = obj_role
+                break
+        if obj is None:
+            import pdbpp
+
+            pdbpp.set_trace()
+            raise ValueError(f"Could not find object for {subj}.{field_name}")
+        # if isinstance(obj, AnonymousClass):
+        #     if self._assign_to_attribute(subj, field_name, obj):
+        #         return
+        #     raise ValueError(
+        #         f"Could not assign {obj} to {subj} through field ({field_name})"
+        #     )
         matched_obj = None
         # Look for the super, and the inverse properties of the current property,
         # and try to assign their values as well. So call self._assign_object_property()
@@ -617,7 +636,7 @@ class OwlLoader:
             if self._assign_to_attribute(subj, field_name, obj):
                 return
 
-        self._handle_descriptor_based_property(subj, snake, obj)
+        self._handle_descriptor_based_property(subj, field_name, obj)
 
     def _assign_to_attribute(self, target: Any, attr_name: str, value: Any) -> bool:
         """Assigns a value to an attribute, or adds to it if it's a collection.
@@ -860,6 +879,7 @@ class OwlLoader:
     @staticmethod
     def load_instances(
         owl_path: str,
+        base_module: Union[str, ModuleType],
         classes_module: Union[str, ModuleType],
         properties_module: Union[str, ModuleType],
         symbol_graph: Optional[SymbolGraph] = None,
@@ -869,6 +889,7 @@ class OwlLoader:
 
         Args:
             owl_path: Path to the OWL file.
+            base_module: Module containing base classes.
             classes_module: Module containing model classes.
             properties_module: Module containing property descriptors.
             symbol_graph: Optional existing SymbolGraph.
@@ -877,7 +898,7 @@ class OwlLoader:
         Returns:
             The populated OwlInstancesRegistry.
         """
-        model_modules = [classes_module, properties_module]
+        model_modules = [base_module, classes_module, properties_module]
         if not symbol_graph:
             symbol_graph = OwlLoader.create_symbol_graph(model_modules)
 
@@ -918,6 +939,7 @@ class OwlLoader:
         for path in owl_paths:
             OwlLoader.load_instances(
                 path,
+                base_module,
                 classes_module,
                 properties_module,
                 symbol_graph=symbol_graph,
