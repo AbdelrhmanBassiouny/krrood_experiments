@@ -11,6 +11,7 @@ from typing import List, Any, Tuple, TYPE_CHECKING
 from krrood.entity_query_language.symbolic import An, UnificationDict
 from owlrl import DeductiveClosure, OWLRL_Semantics
 from rdflib import Graph
+from typing_extensions import Dict
 
 from .owl_instances_loader import (
     OwlLoader,
@@ -121,17 +122,17 @@ def evaluate_sparql(rdf_graph: Graph, sparql_queries: List[str]):
 
 def evaluate_eql(
     eql_queries: List[QueryWithSelectables],
-) -> Tuple[List[int], List[List[Any]], List[float]]:
+) -> Tuple[List[int], Dict[int, List[Any]], List[float]]:
     """Load instances and evaluate 14 EQL queries, returning counts per query."""
     counts: List[int] = []
-    results: List[List[Any]] = []
+    results: Dict[int, List[Any]] = {}
     times: List[float] = []
     for i, q in enumerate(eql_queries):
         start_time = time.time()
         result = list(q.evaluate())
         times.append(time.time() - start_time)
         counts.append(len(result))
-        results.append(result)
+        results[q.id_] = result
     return counts, results, times
 
 
@@ -152,8 +153,11 @@ def load_instances_for_lubm_with_predicates() -> OwlInstancesRegistry:
     return registry
 
 
-def load_instances_for_owl2bench_with_predicates() -> OwlInstancesRegistry:
+def load_instances_for_owl2bench_with_predicates(
+    reasoned: bool = False,
+) -> OwlInstancesRegistry:
     """Load instances from the given path and add them to the given model module."""
+    suffix = ".owl" if not reasoned else ".rdf"
     from .owl2bench import (
         owl2bench_with_predicates,
         owl2bench_with_predicates_properties,
@@ -169,7 +173,9 @@ def load_instances_for_owl2bench_with_predicates() -> OwlInstancesRegistry:
         "resources",
         "refactored_ontologies",
     )
-    files = [f.name for f in folder_path.iterdir() if f.is_file()]
+    files = [
+        f.name for f in folder_path.iterdir() if f.is_file() and f.suffix == suffix
+    ]
     registry = OwlLoader.load_multi_file_instances(
         [os.path.join(folder_path, file) for file in files],
         base_module=owl2bench_with_predicates_base,
@@ -217,6 +223,10 @@ class QueryWithSelectables:
     selectables: dict
     """
     A dictionary mapping variable names to selectables.
+    """
+    id_: int = 0
+    """
+    The query id.
     """
 
     def evaluate(self):
