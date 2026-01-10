@@ -230,7 +230,7 @@ class IsDeanOf(PropertyDescriptor, HasInverseProperty):
 
 
 @dataclass(eq=False)
-class IsMemberOf(PropertyDescriptor, HasInverseProperty):
+class IsMemberOf(PropertyDescriptor, HasInverseProperty, HasChainAxioms):
     """IsMemberOf"""
 
     @classmethod
@@ -267,7 +267,7 @@ class IsPartOf(PropertyDescriptor, TransitiveProperty, HasInverseProperty, HasEq
 
 
 @dataclass(eq=False)
-class IsStudentOf(PropertyDescriptor, HasInverseProperty):
+class IsStudentOf(PropertyDescriptor, HasInverseProperty, HasChainAxioms):
     """IsStudentOf"""
 
     @classmethod
@@ -358,7 +358,7 @@ class TakesCourse(PropertyDescriptor):
 
 
 @dataclass(eq=False)
-class WorksFor(PropertyDescriptor, HasInverseProperty):
+class WorksFor(PropertyDescriptor, HasInverseProperty, HasChainAxioms):
     """WorksFor"""
 
     @classmethod
