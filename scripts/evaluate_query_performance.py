@@ -10,12 +10,12 @@ from krrood.ormatic.utils import create_engine, drop_database
 from sqlalchemy.orm import sessionmaker
 
 from owl2bench.orm.ormatic_interface import Base, WorldDAO
-from loader import WorldLoader
-import sqlalchemy_queries
+from owl2bench.loader import WorldLoader
+import owl2bench.sqlalchemy_queries
 from owl2bench.sparql_queries import OWLProfile
 import owl2bench.sparql_queries
 import owl2bench.eql_queries
-from performance_utils import Backend, QueryTiming, LatexPerformanceExporter
+from owl2bench.performance_utils import Backend, QueryTiming, LatexPerformanceExporter
 
 
 def evaluate_queries(iterations_per_query: int = 10):
@@ -60,7 +60,9 @@ def evaluate_queries(iterations_per_query: int = 10):
 
         # Find the corresponding sqlalchemy query
         sqlalchemy_query = [
-            q for q in sqlalchemy_queries.all_queries if q.sparql_query == sparql_query
+            q
+            for q in owl2bench.sqlalchemy_queries.all_queries
+            if q.sparql_query == sparql_query
         ][0]
 
         # Find the corresponding eql query
@@ -145,4 +147,4 @@ def evaluate_queries(iterations_per_query: int = 10):
 
 
 if __name__ == "__main__":
-    evaluate_queries()
+    evaluate_queries(1)
