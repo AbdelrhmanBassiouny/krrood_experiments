@@ -219,5 +219,4 @@ def evaluate_loading(iterations: int = 1):
 
 
 if __name__ == "__main__":
-    print(reason_reasoned_rdflib())
-    # evaluate_loading()
+    evaluate_loading()
