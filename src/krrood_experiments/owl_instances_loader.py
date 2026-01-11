@@ -216,6 +216,9 @@ class OwlLoader:
     obj_pred_subj_map: Dict[URIRef, Dict[str, Set[AnonymousClass]]] = field(
         default_factory=lambda: defaultdict(lambda: defaultdict(set))
     )
+    literals: Dict[URIRef, Dict[str, Literal]] = field(
+        default_factory=lambda: defaultdict(dict)
+    )
 
     @dataclass
     class Case:
@@ -341,9 +344,10 @@ class OwlLoader:
             field_name = to_snake(local_name(p))
             obj = o
             if isinstance(obj, Literal):
-                self._assign_data_property(
+                if self._assign_data_property(
                     instance, field_name, obj, must_have_attr=False
-                )
+                ):
+                    self.literals[instance.uri][field_name] = obj
             else:
                 obj_inst = self.anonymous_instances.get(obj)
                 if not hasattr(instance, field_name):
@@ -444,25 +448,17 @@ class OwlLoader:
         for o, ps in self.obj_pred_subj_map.items():
             for predicate_name, subjects in ps.items():
                 for anonymous_subject in subjects:
-                    # if p in [RDF.type, RDFS.subClassOf, OWL.equivalentClass, OWL.inverseOf] or not isinstance(
-                    #     s, URIRef
-                    # ):
-                    #     continue
-
                     subject_roles = self._get_subject_roles(anonymous_subject.uri)
                     if not subject_roles:
                         continue
                     subject = subject_roles[0]
-                    # if predicate_name == "is_taught_by" and any(
-                    #     c in [n.__class__.__name__ for n in self.registry.resolve(o)]
-                    #     for c in ["Man", "Woman", "PeopleWithHobby"]
-                    # ):
-                    #     import pdbpp
-                    #
-                    #     pdbpp.set_trace()
-
-                    # predicate_name = to_snake(local_name(p))
                     self._assign_property(subject, predicate_name, o)
+        for anonymous_subject, literal_p_o in self.literals.items():
+            for literal_p, literal_v in literal_p_o.items():
+                subject_roles = self._get_subject_roles(anonymous_subject)
+                if not subject_roles:
+                    continue
+                self._assign_property(subject_roles[0], literal_p, literal_v)
 
     def _assign_property(
         self,
@@ -522,7 +518,7 @@ class OwlLoader:
         field_name: Optional[str],
         literal: Literal,
         must_have_attr: bool = True,
-    ):
+    ) -> bool:
         """Assigns a data property to an instance, coercing the literal value if possible.
 
         Args:
@@ -530,6 +526,8 @@ class OwlLoader:
             field_name: The determined field name on the subject.
             literal: The RDF literal value.
             must_have_attr: Whether the subject must have the attribute before assigning.
+        Returns:
+            True if the property was assigned successfully, False otherwise.
         """
         if field_name and (not must_have_attr or hasattr(subj, field_name)):
             # Coerce to field annotated type
@@ -539,6 +537,8 @@ class OwlLoader:
                 ftypes = {}
             coerced = self._coerce_literal(literal, ftypes.get(field_name))
             setattr(subj, field_name, coerced)
+            return True
+        return False
 
     def _get_matching_role(
         self, roles: Optional[List[Any]], target_type: Type
