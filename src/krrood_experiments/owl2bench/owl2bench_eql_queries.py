@@ -165,6 +165,15 @@ def get_eql_queries(
     return eql_queries
 
 
+def q10_python_equivalent(registry: Callable[[type], Iterable]):
+    results = []
+    for p1 in registry(Person):
+        for p2 in p1.has_collaboration_with:
+            results.append({"x": p1, "y": p2})
+    print(f"Q10 results count: {len(results)}")
+    return results
+
+
 def process_value_for_owl2bench_answer_comparison(value: Any):
     if hasattr(value, "uri"):
         return value.uri
@@ -186,6 +195,16 @@ if __name__ == "__main__":
             if cls not in registry._by_class:
                 continue
             yield from registry._by_class[clazz]
+
+    start_time = time.time()
+    q10_python_equivalent(instances_for_class)
+    end_time = time.time()
+    print(f"Q10 Python equivalent time: {end_time - start_time} seconds")
+
+    start_time = time.time()
+    q10_python_equivalent(instances_for_class)
+    end_time = time.time()
+    print(f"Q10 Python equivalent time: {end_time - start_time} seconds")
 
     start_time = time.time()
     queries_with_selectables = get_eql_queries(instances_for_class)
