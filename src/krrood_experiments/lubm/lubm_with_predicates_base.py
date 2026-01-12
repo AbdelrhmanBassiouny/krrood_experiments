@@ -6,14 +6,14 @@ Generated using custom converter
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from abc import ABC
 from typing_extensions import Optional, Set, TypeVar, Type, Any, Union
 
 from krrood.entity_query_language.predicate import Symbol
-
+from krrood.ontomatic.property_descriptor.mixins import IsBaseClass
+from krrood.class_diagrams.utils import Role
 
 @dataclass(eq=False)
-class UnivBenchOntology(Symbol, ABC):
+class UnivBenchOntologyThing(Symbol, IsBaseClass):
     """Base class for Univ-bench Ontology"""
     # name
     name: Optional[str] = field(kw_only=True, default=None)
@@ -28,4 +28,4 @@ class UnivBenchOntology(Symbol, ABC):
         return hash(id(self))
 
 
-T = TypeVar('T', bound=UnivBenchOntology)
+T = TypeVar('T', bound=UnivBenchOntologyThing)

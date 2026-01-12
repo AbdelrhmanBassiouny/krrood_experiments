@@ -7,14 +7,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, fields, Field
 from functools import lru_cache
+from typing_extensions import Tuple
 
 from krrood.class_diagrams.utils import Role
+from krrood.entity_query_language.entity import contains, ConditionType, variable_from
+from krrood.entity_query_language.predicate import HasAttribute, IsSubClassOf
+from ..utils import AnonymousClass, get_super_axiom_and_candidate_var
 from .lubm_with_predicates_properties import *
 from .lubm_with_predicates_base import *
 
 # Generated classes
 @dataclass(eq=False)
-class Organization(UnivBenchOntology):
+class Organization(UnivBenchOntologyThing):
     """organization"""
     # is affiliated with
     affiliate_of: Set[Person] = field(kw_only=True, default_factory=set)
@@ -29,7 +33,7 @@ class Organization(UnivBenchOntology):
 
 
 @dataclass(eq=False)
-class Person(UnivBenchOntology):
+class Person(UnivBenchOntologyThing):
     """person"""
     # is being advised by
     advisor: Set[Professor] = field(kw_only=True, default_factory=set)
@@ -54,7 +58,7 @@ class Person(UnivBenchOntology):
 
 
 @dataclass(eq=False)
-class Publication(UnivBenchOntology):
+class Publication(UnivBenchOntologyThing):
     """publication"""
     # was written by
     publication_author: Set[Person] = field(kw_only=True, default_factory=set)
@@ -65,14 +69,14 @@ class Publication(UnivBenchOntology):
 
 
 @dataclass(eq=False)
-class Schedule(UnivBenchOntology):
+class Schedule(UnivBenchOntologyThing):
     """schedule"""
     # lists as a course
     listed_course: Set[Course] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
-class Work(UnivBenchOntology):
+class Work(UnivBenchOntologyThing):
     """Work"""
     ...
 
@@ -119,6 +123,13 @@ class Employee(Role[Person], Symbol):
     @lru_cache(maxsize=None)
     def role_taker_field(cls) -> Field:
         return next(iter(f for f in fields(cls) if f.name == "person"))
+
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(Employee, cls, candidate)
+        return (HasAttribute(candidate_var, 'works_for'),
+				IsSubClassOf(variable_from(candidate_var.works_for.types), Organization)
+        )
 
 
 @dataclass(eq=False)
@@ -180,6 +191,13 @@ class Student(Role[Person], Symbol):
     def role_taker_field(cls) -> Field:
         return next(iter(f for f in fields(cls) if f.name == "person"))
 
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(Student, cls, candidate)
+        return (HasAttribute(candidate_var, 'takes_course'),
+				IsSubClassOf(variable_from(candidate_var.takes_course.types), Course)
+        )
+
 
 @dataclass(eq=False)
 class TeachingAssistant(Role[Person], Symbol):
@@ -193,6 +211,13 @@ class TeachingAssistant(Role[Person], Symbol):
     @lru_cache(maxsize=None)
     def role_taker_field(cls) -> Field:
         return next(iter(f for f in fields(cls) if f.name == "person"))
+
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(TeachingAssistant, cls, candidate)
+        return (HasAttribute(candidate_var, 'teaching_assistant_of'),
+				IsSubClassOf(variable_from(candidate_var.teaching_assistant_of.types), Course)
+        )
 
 
 @dataclass(eq=False)
@@ -226,6 +251,13 @@ class Director(Employee):
     # is the head of
     head_of: Set[Program] = field(kw_only=True, default_factory=set)
 
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(Director, cls, candidate)
+        return (HasAttribute(candidate_var, 'head_of'),
+				IsSubClassOf(variable_from(candidate_var.head_of.types), Program)
+        )
+
 
 @dataclass(eq=False)
 class Faculty(Employee):
@@ -246,6 +278,13 @@ class GraduateStudent(Student):
     # is taking
     takes_course: Set[GraduateCourse] = field(kw_only=True, default_factory=set)
 
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(GraduateStudent, cls, candidate)
+        return (HasAttribute(candidate_var, 'takes_course'),
+				IsSubClassOf(variable_from(candidate_var.takes_course.types), GraduateCourse)
+        )
+
 
 @dataclass(eq=False)
 class JournalArticle(Article):
@@ -258,6 +297,13 @@ class ResearchAssistant(Employee):
     """university research assistant"""
     # Works For
     works_for: Set[ResearchGroup] = field(kw_only=True, default_factory=set)
+
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(ResearchAssistant, cls, candidate)
+        return (HasAttribute(candidate_var, 'works_for'),
+				IsSubClassOf(variable_from(candidate_var.works_for.types), ResearchGroup)
+        )
 
 
 @dataclass(eq=False)
@@ -347,6 +393,13 @@ class Chair(Role[Professor], Symbol):
     def role_taker_field(cls) -> Field:
         return next(iter(f for f in fields(cls) if f.name == "professor"))
 
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(Chair, cls, candidate)
+        return (HasAttribute(candidate_var, 'head_of'),
+				IsSubClassOf(variable_from(candidate_var.head_of.types), Department)
+        )
+
 
 @dataclass(eq=False)
 class Dean(Role[Professor], Symbol):
@@ -360,6 +413,13 @@ class Dean(Role[Professor], Symbol):
     @lru_cache(maxsize=None)
     def role_taker_field(cls) -> Field:
         return next(iter(f for f in fields(cls) if f.name == "professor"))
+
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(Dean, cls, candidate)
+        return (HasAttribute(candidate_var, 'head_of'),
+				IsSubClassOf(variable_from(candidate_var.head_of.types), College)
+        )
 
 
 @dataclass(eq=False)
@@ -397,15 +457,24 @@ Person.undergraduate_degree_from = UndergraduateDegreeFrom(Person, 'undergraduat
 Publication.publication_author = PublicationAuthor(Publication, 'publication_author')
 Publication.publication_research = PublicationResearch(Publication, 'publication_research')
 Schedule.listed_course = ListedCourse(Schedule, 'listed_course')
+Employee.person = RoleFor(Employee, 'person')
 Employee.works_for = WorksFor(Employee, 'works_for')
 ResearchGroup.research_project = ResearchProject(ResearchGroup, 'research_project')
 Software.software_documentation = SoftwareDocumentation(Software, 'software_documentation')
+Student.person = RoleFor(Student, 'person')
 Student.takes_course = TakesCourse(Student, 'takes_course')
+TeachingAssistant.person = RoleFor(TeachingAssistant, 'person')
 TeachingAssistant.teaching_assistant_of = TeachingAssistantOf(TeachingAssistant, 'teaching_assistant_of')
 University.has_alumnus = HasAlumnus(University, 'has_alumnus')
 Director.head_of = HeadOf(Director, 'head_of')
 Faculty.teacher_of = TeacherOf(Faculty, 'teacher_of')
 GraduateStudent.takes_course = TakesCourse(GraduateStudent, 'takes_course')
 ResearchAssistant.works_for = WorksFor(ResearchAssistant, 'works_for')
+Lecturer.faculty = RoleFor(Lecturer, 'faculty')
+PostDoc.faculty = RoleFor(PostDoc, 'faculty')
+Professor.faculty = RoleFor(Professor, 'faculty')
+Chair.professor = RoleFor(Chair, 'professor')
 Chair.head_of = HeadOf(Chair, 'head_of')
+Dean.professor = RoleFor(Dean, 'professor')
 Dean.head_of = HeadOf(Dean, 'head_of')
+VisitingProfessor.professor = RoleFor(VisitingProfessor, 'professor')

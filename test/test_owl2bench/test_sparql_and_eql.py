@@ -3,6 +3,8 @@ import pytest
 import krrood_experiments.owl2bench.eql_queries as eql_queries
 import SPARQLWrapper
 
+from krrood_experiments.helpers import load_instances_for_owl2bench_with_predicates
+
 
 @pytest.mark.skip(reason="Requires local GraphDB instance with OWL2Bench data loaded")
 @pytest.mark.parametrize(
@@ -28,3 +30,10 @@ def test_query(eql_query_obj):
     # eql_result_len = len(eql_result)
     # assert sparql_result_len == eql_result_len
     print(sparql_result_len)
+
+
+def test_reasoning():
+    registry = load_instances_for_owl2bench_with_predicates()
+
+    # queries_with_selectables = eql_queries.get_eql_queries(instances_for_class)
+    # assert len(queries_with_selectables) == len(eql_queries.all_queries)
