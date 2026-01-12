@@ -7,6 +7,7 @@ from typing import List
 
 import SPARQLWrapper
 import rdflib
+from krrood.class_diagrams.utils import Role
 from krrood.entity_query_language.entity import (
     entity,
     variable,
@@ -52,6 +53,7 @@ from krrood_experiments.owl2bench.owl2bench_with_predicates import (
     Faculty,
     Engineering,
 )
+from krrood_experiments.owl2bench.owl2bench_with_predicates_base import OWL2BenchThing
 from krrood_experiments.owl_instances_loader import OwlInstancesRegistry
 
 print(sys.getrecursionlimit())
@@ -158,7 +160,7 @@ def get_eql_queries(
         q11,
         q12,
         q19,
-        # q20,
+        q20,
         # q21,
         # q22,
     ]
@@ -190,16 +192,8 @@ if __name__ == "__main__":
     print(f"Loading time: {loading_time} seconds")
 
     def instances_for_class(cls):
-        all_classes = [cls] + recursive_subclasses(cls)
-        for clazz in all_classes:
-            if cls not in registry._by_class:
-                continue
-            yield from registry._by_class[clazz]
-
-    start_time = time.time()
-    q10_python_equivalent(instances_for_class)
-    end_time = time.time()
-    print(f"Q10 Python equivalent time: {end_time - start_time} seconds")
+        for instance in SymbolGraph().get_instances_of_type(cls):
+            yield instance
 
     start_time = time.time()
     q10_python_equivalent(instances_for_class)
