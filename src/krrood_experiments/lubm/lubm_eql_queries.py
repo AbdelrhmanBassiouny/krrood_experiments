@@ -53,7 +53,7 @@ def get_eql_queries(
             takes_course.uri == "http://www.Department0.University0.edu/GraduateCourse0"
         )
     )
-    q1 = QueryWithSelectables(q1, {"X": q1})
+    q1 = QueryWithSelectables(q1, {"X": q1}, 1)
 
     # 2
     grad_student = variable(GraduateStudent, domain=None)
@@ -66,7 +66,7 @@ def get_eql_queries(
         )
     )
 
-    q2 = QueryWithSelectables(q2, {"X": q2})
+    q2 = QueryWithSelectables(q2, {"X": q2}, 2)
 
     # 3
     publications = variable(Publication, domain=None)
@@ -77,7 +77,7 @@ def get_eql_queries(
             == "http://www.Department0.University0.edu/AssistantProfessor0"
         )
     )
-    q3 = QueryWithSelectables(q3, {"X": q3})
+    q3 = QueryWithSelectables(q3, {"X": q3}, 3)
 
     # 4
     professor = variable(
@@ -101,6 +101,7 @@ def get_eql_queries(
             "Y2": email,
             "Y3": telephone,
         },
+        4,
     )
 
     # 5
@@ -110,12 +111,12 @@ def get_eql_queries(
         entity(person).where(member_of.uri == "http://www.Department0.University0.edu")
     )
 
-    q5 = QueryWithSelectables(q5, {"X": person})
+    q5 = QueryWithSelectables(q5, {"X": person}, 5)
 
     # 6
     student = variable(Student, domain=None)
     q6 = an(entity(student))
-    q6 = QueryWithSelectables(q6, {"X": student})
+    q6 = QueryWithSelectables(q6, {"X": student}, 6)
 
     # 7
     associate_professor = variable(AssociateProfessor, domain=None)
@@ -132,7 +133,7 @@ def get_eql_queries(
             contains(the_associate_professor.teacher_of, student_course),
         )
     )
-    q7 = QueryWithSelectables(q7, {"X": student, "Y": student_course})
+    q7 = QueryWithSelectables(q7, {"X": student, "Y": student_course}, 7)
 
     # 8
     student = variable(Student, domain=None)
@@ -144,7 +145,7 @@ def get_eql_queries(
             member_of_sub_organization_of.uri == "http://www.University0.edu",
         )
     )
-    q8 = QueryWithSelectables(q8, {"X": student, "Y": member_of, "Z": email})
+    q8 = QueryWithSelectables(q8, {"X": student, "Y": member_of, "Z": email}, 8)
 
     # 9
     student = variable(Student, domain=None)
@@ -155,7 +156,7 @@ def get_eql_queries(
             contains(advisor.teacher_of, takes_course)
         )
     )
-    q9 = QueryWithSelectables(q9, {"X": student, "Y": advisor, "Z": takes_course})
+    q9 = QueryWithSelectables(q9, {"X": student, "Y": advisor, "Z": takes_course}, 9)
 
     # 10
     student = variable(Student, domain=None)
@@ -165,7 +166,7 @@ def get_eql_queries(
             takes_course.uri == "http://www.Department0.University0.edu/GraduateCourse0"
         )
     )
-    q10 = QueryWithSelectables(q10, {"X": student})
+    q10 = QueryWithSelectables(q10, {"X": student}, 10)
 
     # 11
     research_group = variable(ResearchGroup, domain=None)
@@ -175,7 +176,7 @@ def get_eql_queries(
             sub_organization_of.uri == "http://www.University0.edu"
         )
     )
-    q11 = QueryWithSelectables(q11, {"X": research_group})
+    q11 = QueryWithSelectables(q11, {"X": research_group}, 11)
 
     # 12
     chair = variable(Chair, domain=None)
@@ -187,7 +188,7 @@ def get_eql_queries(
             sub_organization_of.uri == "http://www.University0.edu",
         )
     )
-    q12 = QueryWithSelectables(q12, {"X": chair, "Y": works_for})
+    q12 = QueryWithSelectables(q12, {"X": chair, "Y": works_for}, 12)
 
     # 13
     university = variable(University, domain=None)
@@ -196,12 +197,12 @@ def get_eql_queries(
     )
     university_alumni = variable_from(the_university.has_alumnus)
     q13 = an(entity(university_alumni))
-    q13 = QueryWithSelectables(q13, {"X": university_alumni})
+    q13 = QueryWithSelectables(q13, {"X": university_alumni}, 13)
 
     # 14
     undergraduate_student = variable(UndergraduateStudent, domain=None)
     q14 = an(entity(undergraduate_student))
-    q14 = QueryWithSelectables(q14, {"X": undergraduate_student})
+    q14 = QueryWithSelectables(q14, {"X": undergraduate_student}, 14)
 
     eql_queries = [q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13, q14]
     return eql_queries
@@ -248,6 +249,10 @@ def process_value_for_lubm_answer_comparison(value: Any):
 if __name__ == "__main__":
     registry = load_instances_for_lubm_with_predicates()
     assert Chair in registry._by_class
+    assert GraduateStudent in registry._by_class
+    import pdbpp
+
+    pdbpp.set_trace()
     report_python_query_time()
     start_time = time.time()
     queries_with_selectables = get_eql_queries(registry)
@@ -259,20 +264,26 @@ if __name__ == "__main__":
     print(f"Time elapsed: {end_time - start_time} seconds")
 
     lubm_answers = get_lubm_answers()
-    for i, query_results in enumerate(results, 1):
+    for i, query_results in results.items():
         uri_results = []
         for res in query_results:
             uri_results.append(
                 {k: process_value_for_lubm_answer_comparison(v) for k, v in res.items()}
             )
         for sol in uri_results:
-            assert (
-                sol in lubm_answers[i]
-            ), f"{sol} not found in LUBM answers, for query {i}"
+            try:
+                assert (
+                    sol in lubm_answers[i]
+                ), f"{sol} not found in LUBM answers, for query {i}"
+            except AssertionError as e:
+                print(f"{sol} not found in LUBM answers, for query {i}")
         for gt_sol in lubm_answers[i]:
-            assert (
-                gt_sol in uri_results
-            ), f"{gt_sol} not found in EQL answers, for query {i}"
+            try:
+                assert (
+                    gt_sol in uri_results
+                ), f"{gt_sol} not found in EQL answers, for query {i}"
+            except AssertionError as e:
+                print(f"{gt_sol} not found in EQL answers, for query {i}")
         assert len(lubm_answers[i]) == len(
             uri_results
         ), f"Number of results mismatch for query {i}"

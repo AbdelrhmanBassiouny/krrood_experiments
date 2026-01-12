@@ -6,7 +6,7 @@ Generated using custom converter
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing_extensions import Type, List
+from typing_extensions import Type, List, Optional, Tuple
 
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
 from krrood.ontomatic.property_descriptor.mixins import (
@@ -17,151 +17,148 @@ HasDisjointProperties,
 SymmetricProperty,
 ASymmetricProperty,
 ReflexiveProperty,
-IrreflexiveProperty
+IrreflexiveProperty,
+RoleForMixin,
+HasChainAxioms
 )
 
 
 # Property descriptor classes (object properties)
-@dataclass
+@dataclass(eq=False)
 class Advisor(PropertyDescriptor):
     """is being advised by"""
 
 
-@dataclass
+@dataclass(eq=False)
 class AffiliateOf(PropertyDescriptor):
     """is affiliated with"""
 
 
-@dataclass
+@dataclass(eq=False)
 class AffiliatedOrganizationOf(PropertyDescriptor):
     """is affiliated with"""
 
 
-@dataclass
+@dataclass(eq=False)
 class DegreeFrom(PropertyDescriptor, HasInverseProperty):
     """has a degree from"""
 
     @classmethod
-    def get_inverse(cls) -> Type[HasAlumnus]:
-        return HasAlumnus
+    def get_inverse(cls) -> Optional[Type[HasAlumnus]]:
+        if cls is DegreeFrom:
+            return HasAlumnus
+        return None
 
 
-@dataclass
+@dataclass(eq=False)
 class HasAlumnus(PropertyDescriptor, HasInverseProperty):
     """has as an alumnus"""
 
     @classmethod
-    def get_inverse(cls) -> Type[DegreeFrom]:
-        return DegreeFrom
+    def get_inverse(cls) -> Optional[Type[DegreeFrom]]:
+        if cls is HasAlumnus:
+            return DegreeFrom
+        return None
 
 
-@dataclass
+@dataclass(eq=False)
 class ListedCourse(PropertyDescriptor):
     """lists as a course"""
 
 
-@dataclass
+@dataclass(eq=False)
 class Member(PropertyDescriptor, HasInverseProperty):
     """has as a member"""
 
     @classmethod
-    def get_inverse(cls) -> Type[MemberOf]:
-        return MemberOf
+    def get_inverse(cls) -> Optional[Type[MemberOf]]:
+        if cls is Member:
+            return MemberOf
+        return None
 
 
-@dataclass
+@dataclass(eq=False)
 class MemberOf(PropertyDescriptor, HasInverseProperty):
     """member of"""
 
     @classmethod
-    def get_inverse(cls) -> Type[Member]:
-        return Member
+    def get_inverse(cls) -> Optional[Type[Member]]:
+        if cls is MemberOf:
+            return Member
+        return None
 
 
-@dataclass
+@dataclass(eq=False)
 class OrgPublication(PropertyDescriptor):
     """publishes"""
 
 
-@dataclass
-class PlaysRole(PropertyDescriptor, HasInverseProperty):
-    """plays a role of"""
-
-    @classmethod
-    def get_inverse(cls) -> Type[RoleFor]:
-        return RoleFor
-
-
-@dataclass
+@dataclass(eq=False)
 class PublicationAuthor(PropertyDescriptor):
     """was written by"""
 
 
-@dataclass
+@dataclass(eq=False)
 class PublicationResearch(PropertyDescriptor):
     """is about"""
 
 
-@dataclass
+@dataclass(eq=False)
 class ResearchProject(PropertyDescriptor):
     """has as a research project"""
 
 
-@dataclass
-class RoleFor(PropertyDescriptor, HasInverseProperty):
+@dataclass(eq=False)
+class RoleFor(PropertyDescriptor, RoleForMixin):
     """is a role for"""
 
-    @classmethod
-    def get_inverse(cls) -> Type[PlaysRole]:
-        return PlaysRole
 
-
-@dataclass
+@dataclass(eq=False)
 class SoftwareDocumentation(PropertyDescriptor):
     """is documented in"""
 
 
-@dataclass
+@dataclass(eq=False)
 class SubOrganizationOf(PropertyDescriptor, TransitiveProperty):
     """is part of"""
 
 
-@dataclass
+@dataclass(eq=False)
 class TakesCourse(PropertyDescriptor):
     """is taking"""
 
 
-@dataclass
+@dataclass(eq=False)
 class TeacherOf(PropertyDescriptor):
     """teaches"""
 
 
-@dataclass
+@dataclass(eq=False)
 class TeachingAssistantOf(PropertyDescriptor):
     """is a teaching assistant for"""
 
 
-@dataclass
+@dataclass(eq=False)
 class DoctoralDegreeFrom(DegreeFrom):
     """has a doctoral degree from"""
 
 
-@dataclass
+@dataclass(eq=False)
 class MastersDegreeFrom(DegreeFrom):
     """has a masters degree from"""
 
 
-@dataclass
+@dataclass(eq=False)
 class UndergraduateDegreeFrom(DegreeFrom):
     """has an undergraduate degree from"""
 
 
-@dataclass
+@dataclass(eq=False)
 class WorksFor(MemberOf):
     """Works For"""
 
 
-@dataclass
+@dataclass(eq=False)
 class HeadOf(WorksFor):
     """is the head of"""
 

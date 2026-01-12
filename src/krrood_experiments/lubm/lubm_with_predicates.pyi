@@ -11,7 +11,7 @@ from .lubm_with_predicates_base import *
 
 # Generated classes
 @dataclass(eq=False)
-class UnivBenchOntology(Symbol, ABC):
+class UnivBenchOntologyThing(Symbol):
     """Base class for Univ-bench Ontology"""
     # name
     name: Optional[str] = field(kw_only=True, default=None)
@@ -25,7 +25,7 @@ class UnivBenchOntology(Symbol, ABC):
 
 
 @dataclass(eq=False)
-class Organization(UnivBenchOntology):
+class Organization(UnivBenchOntologyThing):
     """organization"""
     # is affiliated with
     affiliate_of: Set[Person] = field(default_factory=set)
@@ -41,7 +41,7 @@ class Organization(UnivBenchOntology):
 
 
 @dataclass(eq=False)
-class PersonMixinProtocol(UnivBenchOntology):
+class PersonMixinProtocol(UnivBenchOntologyThing):
     """person"""
     # is being advised by
     advisor: Set[Professor]
@@ -71,7 +71,7 @@ class Person(PersonMixinProtocol):
 
 
 @dataclass(eq=False)
-class Publication(UnivBenchOntology):
+class Publication(UnivBenchOntologyThing):
     """publication"""
     # was written by
     publication_author: Set[Person] = field(default_factory=set)
@@ -83,7 +83,7 @@ class Publication(UnivBenchOntology):
 
 
 @dataclass(eq=False)
-class Schedule(UnivBenchOntology):
+class Schedule(UnivBenchOntologyThing):
     """schedule"""
     # lists as a course
     listed_course: Set[Course] = field(default_factory=set)
@@ -91,7 +91,7 @@ class Schedule(UnivBenchOntology):
 
 
 @dataclass(eq=False)
-class Work(UnivBenchOntology):
+class Work(UnivBenchOntologyThing):
     """Work"""
     ...
 

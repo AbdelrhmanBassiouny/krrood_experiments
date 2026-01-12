@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os.path
 from abc import ABC
 from collections import defaultdict
@@ -10,7 +11,12 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union, Clas
 
 import rdflib
 from krrood.class_diagrams.class_diagram import Association, ClassDiagram
-from krrood.class_diagrams.utils import issubclass_or_role
+from krrood.class_diagrams.utils import (
+    issubclass_or_role,
+    nearest_common_ancestor,
+    Role,
+    role_aware_nearest_common_ancestor,
+)
 from krrood.entity_query_language.entity import has_solution
 from krrood.entity_query_language.predicate import Symbol
 from krrood.entity_query_language.symbol_graph import SymbolGraph
@@ -28,7 +34,16 @@ from krrood_experiments.utils import (
     get_non_class_attribute_names_of_instance,
     not_none_inheritance_path_length,
     AnonymousClass,
+    get_most_specific_types,
 )
+
+logger = logging.Logger("owl_loader")
+logger.setLevel(logging.DEBUG)
+
+# Handler
+handler = logging.StreamHandler()
+handler.setLevel(logging.INFO)  # <-- this filters out DEBUG messages
+logger.addHandler(handler)
 
 
 class OwlInstancesRegistry:
@@ -214,7 +229,7 @@ class OwlLoader:
         default_factory=lambda: defaultdict(set)
     )
     obj_pred_subj_map: Dict[URIRef, Dict[str, Set[AnonymousClass]]] = field(
-        default_factory=lambda: defaultdict(lambda: defaultdict(set))
+        default_factory=lambda: defaultdict(lambda: defaultdict(list))
     )
     literals: Dict[URIRef, Dict[str, Literal]] = field(
         default_factory=lambda: defaultdict(dict)
@@ -228,7 +243,14 @@ class OwlLoader:
 
     @staticmethod
     def ask_now(case: Case):
-        return not case.output_
+        # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D2OS3"
+        # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C3D0AP1"
+        return Symbol in case.output_
+        # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0WC0D3FP8"
+        # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C2D1L8"
+        # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D0FP8"
+        # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D0FP4"
+        # return not bool(case.output_)
 
     metadata: ModelMetadata = field(init=False)
     _type_rdr: ClassVar[RDRDecorator] = RDRDecorator(
@@ -237,7 +259,7 @@ class OwlLoader:
         False,
         fit=False,
         update_existing_rules=False,
-        # ask_now=ask_now,
+        ask_now=ask_now,
         use_generated_classifier=True,
         regenerate_model=False,
     )
@@ -257,14 +279,10 @@ class OwlLoader:
         for instance in copy(self.anonymous_instances).values():
             result = self.infer_most_appropriate_types_for_anonymous_instance(instance)
             if result:
-                instance.final_sorted_types = result
-        self._create_explicit_instances(from_anonymous_instances=True)
-        # sort registry instances by reverse mro
-        # for uri, instances in copy(self.registry._by_uri).items():
-        #     classes = [type(inst) for inst in instances]
-        #     sorted_classes = sort_classes_by_role_aware_inheritance_path_length(classes).reverse()
-        #     sorted_indices =
-        #     sorted_instances = [instances[i] for i in [classes.index(sc) for sc in sorted_classes]]
+                instance.final_sorted_types = list(
+                    sorted(result, key=lambda t: t.__name__)
+                )
+        self._create_explicit_instances()
         self._assign_all_properties()
         return self.registry
 
@@ -285,51 +303,44 @@ class OwlLoader:
         descriptors = [d for d in descriptors if d is not None]
         inferred_types = set()
         for d in descriptors:
-            for dom in d.all_domains[d]:
-                if ABC in dom.__bases__:
-                    continue
-                inferred_types.add(dom)
-        # pred_subjects = self.obj_pred_subj_map[instance.uri]
-        # for pred, subjects in pred_subjects.items():
-        #     ranges = PropertyDescriptor.all_ranges[
-        #         self.metadata.get_descriptor_base(pred)
-        #     ]
-        #     ranges = ranges - {self.metadata.ontology_base_class}
-        #     inferred_types.update(ranges)
-        return inferred_types
+            nca = role_aware_nearest_common_ancestor(d.all_domains[d])
+            if nca not in [object, None, ABC, Symbol, Role]:
+                inferred_types.add(nca)
+        pred_subjects = self.obj_pred_subj_map[instance.uri]
+        for pred in pred_subjects.keys():
+            ranges = PropertyDescriptor.all_ranges[
+                self.metadata.get_descriptor_base(pred)
+            ]
+            nca = role_aware_nearest_common_ancestor(ranges)
+            if nca not in [object, None, ABC, Symbol, Role]:
+                inferred_types.add(nca)
+        filtered_types = set(get_most_specific_types(inferred_types))
+        return filtered_types
 
     def _create_anonymous_instances_with_explicit_types(self):
         """Creates instances for all anonymous subjects in the graph."""
-        for s, _, o_class in self.graph.triples((None, RDF.type, None)):
+        for s in self.graph.subjects(RDF.type, OWL.NamedIndividual, unique=True):
+            ac = AnonymousClass(s)
+            self.anonymous_instances[s] = ac
+            for o_class in self.graph.objects(s, RDF.type):
+                py_cls = self.metadata.get_python_class(o_class)
+                if py_cls:
+                    ac.add_type(py_cls)
+                    self.anonymous_instances_by_type[py_cls].add(ac)
+        for s, o_class in self.graph.subject_objects(RDF.type):
             if not isinstance(s, URIRef):
                 continue
-            py_cls = self.metadata.get_python_class(o_class)
-            if py_cls is None:
-                continue
-            if o_class in [
-                OWL.SymmetricProperty,
-                OWL.DatatypeProperty,
-                OWL.ObjectProperty,
-                OWL.IrreflexiveProperty,
-                OWL.AsymmetricProperty,
-                OWL.TransitiveProperty,
-                OWL.InverseFunctionalProperty,
-                OWL.Class,
-            ]:
-                continue
-
-            if s not in self.anonymous_instances:
-                ac = AnonymousClass(s, {py_cls})
-                self.anonymous_instances[s] = ac
-            else:
-                ac = self.anonymous_instances[s]
-                ac.add_type(py_cls)
-            self.anonymous_instances_by_type[py_cls].add(ac)
-        for s in self.graph.subjects(RDF.type, OWL.NamedIndividual):
             if s in self.anonymous_instances:
                 continue
-            ac = AnonymousClass(s, set())
-            self.anonymous_instances[s] = ac
+            if o_class in [OWL.Class, RDFS.Class, OWL.Ontology]:
+                continue
+            self.anonymous_instances[s] = AnonymousClass(s)
+            py_cls = self.metadata.get_python_class(o_class)
+            if py_cls:
+                self.anonymous_instances[s].add_type(py_cls)
+                self.anonymous_instances_by_type[py_cls].add(
+                    self.anonymous_instances[s]
+                )
 
     def _assign_all_properties_to_all_instances(self):
         """Iterates through all properties of all instances and assigns properties to the instances."""
@@ -338,57 +349,37 @@ class OwlLoader:
 
     def _assign_all_properties_to_instance(self, instance: AnonymousClass):
         """Iterates through all properties of all instances and assigns properties to the instances."""
-        for p, o in self.graph.predicate_objects(subject=instance.uri):
+        for p, o in self.graph.predicate_objects(subject=instance.uri, unique=True):
             if p in [RDF.type, RDFS.subClassOf, OWL.equivalentClass, OWL.disjointWith]:
                 continue
             field_name = to_snake(local_name(p))
             obj = o
             if isinstance(obj, Literal):
                 if self._assign_data_property(
-                    instance, field_name, obj, must_have_attr=False
+                    [instance], field_name, obj, must_have_attr=False
                 ):
                     self.literals[instance.uri][field_name] = obj
             else:
                 obj_inst = self.anonymous_instances.get(obj)
                 if not hasattr(instance, field_name):
-                    setattr(instance, field_name, {obj_inst})
+                    setattr(instance, field_name, [obj_inst])
                 else:
-                    getattr(instance, field_name).add(obj_inst)
-                self.obj_pred_subj_map[obj][field_name].add(instance)
+                    getattr(instance, field_name).append(obj_inst)
+                if (
+                    obj not in self.obj_pred_subj_map
+                    or field_name not in self.obj_pred_subj_map[obj]
+                    or instance not in self.obj_pred_subj_map[obj][field_name]
+                ):
+                    self.obj_pred_subj_map[obj][field_name].append(instance)
 
-    def _create_explicit_instances(self, from_anonymous_instances: bool = False):
+    def _create_explicit_instances(self):
         """Creates instances for all subjects with an explicit rdf:type in the graph."""
-        if from_anonymous_instances:
-            so_iterator = (
-                (s, o_class)
-                for s, ai in self.anonymous_instances.items()
-                for o_class in ai.final_sorted_types
-            )
-        else:
-            so_iterator = (
-                (s, o) for s, _, o in self.graph.triples((None, RDF.type, None))
-            )
-        for s, o_class in so_iterator:
-            if not isinstance(s, URIRef):
-                continue
-            py_cls = (
-                o_class
-                if isinstance(o_class, type)
-                else self.metadata.get_python_class(o_class)
-            )
-            if py_cls is None:
-                continue
-            if o_class in [
-                OWL.SymmetricProperty,
-                OWL.DatatypeProperty,
-                OWL.ObjectProperty,
-                OWL.IrreflexiveProperty,
-                OWL.AsymmetricProperty,
-                OWL.TransitiveProperty,
-                OWL.InverseFunctionalProperty,
-                OWL.Class,
-            ]:
-                continue
+        so_iterator = (
+            (s, o_class)
+            for s, ai in self.anonymous_instances.items()
+            for o_class in ai.final_sorted_types
+        )
+        for s, py_cls in so_iterator:
             existing_roles = self.registry.resolve(s)
             kwargs = self._get_common_role_taker_kwargs(existing_roles, py_cls)
             self.registry.get_or_create_for(s, py_cls, self.symbol_graph, **kwargs)
@@ -445,38 +436,46 @@ class OwlLoader:
 
     def _assign_all_properties(self):
         """Iterates through all triples in the graph and assigns properties to instances."""
-        for o, ps in self.obj_pred_subj_map.items():
-            for predicate_name, subjects in ps.items():
-                for anonymous_subject in subjects:
-                    subject_roles = self._get_subject_roles(anonymous_subject.uri)
-                    if not subject_roles:
-                        continue
-                    subject = subject_roles[0]
-                    self._assign_property(subject, predicate_name, o)
+        for anonymous_subject in self.anonymous_instances.values():
+            for p, o in self.graph.predicate_objects(
+                anonymous_subject.uri, unique=True
+            ):
+                if p in [
+                    RDF.type,
+                    OWL.disjointWith,
+                ]:
+                    continue
+                predicate_name = to_snake(local_name(p))
+                subject_roles = self._get_subject_roles(anonymous_subject.uri)
+                if not subject_roles:
+                    raise ValueError(
+                        f"Could not find subject roles for {anonymous_subject}"
+                    )
+                self._assign_property(subject_roles, predicate_name, o)
         for anonymous_subject, literal_p_o in self.literals.items():
             for literal_p, literal_v in literal_p_o.items():
                 subject_roles = self._get_subject_roles(anonymous_subject)
                 if not subject_roles:
                     continue
-                self._assign_property(subject_roles[0], literal_p, literal_v)
+                self._assign_property(subject_roles, literal_p, literal_v)
 
     def _assign_property(
         self,
-        subj: Any,
+        subj_roles: List[Symbol],
         field_name: str,
         obj_uri: Union[URIRef, Literal],
     ):
         """Assigns a property to an instance based on the predicate name and object URI. It handles both data and
          object properties.
         Args:
-            subj: The subject instance.
+            subj_roles: The subject instances.
             field_name: name of the field to assign the property to.
             obj_uri: The RDF node of the object.
         """
         if isinstance(obj_uri, Literal):
-            self._assign_data_property(subj, field_name, obj_uri)
+            self._assign_data_property(subj_roles, field_name, obj_uri)
         else:
-            self._assign_object_property(subj, field_name, obj_uri)
+            self._assign_object_property(subj_roles, field_name, obj_uri)
 
     def _get_subject_roles(self, subject_uri: URIRef) -> Optional[List[Any]]:
         """Resolves or ensures instances for a given subject URI.
@@ -514,7 +513,7 @@ class OwlLoader:
 
     def _assign_data_property(
         self,
-        subj: Any,
+        subj_roles: List[Symbol],
         field_name: Optional[str],
         literal: Literal,
         must_have_attr: bool = True,
@@ -522,14 +521,22 @@ class OwlLoader:
         """Assigns a data property to an instance, coercing the literal value if possible.
 
         Args:
-            subj: The subject instance.
+            subj_roles: The subject instances.
             field_name: The determined field name on the subject.
             literal: The RDF literal value.
             must_have_attr: Whether the subject must have the attribute before assigning.
         Returns:
             True if the property was assigned successfully, False otherwise.
         """
-        if field_name and (not must_have_attr or hasattr(subj, field_name)):
+        if not field_name:
+            return False
+        if len(subj_roles) == 1:
+            subj = subj_roles[0]
+        else:
+            subj = [
+                s for s in subj_roles if not must_have_attr or hasattr(s, field_name)
+            ][0]
+        if not must_have_attr or hasattr(subj, field_name):
             # Coerce to field annotated type
             try:
                 ftypes = {f.name: f.type for f in fields(type(subj))}
@@ -580,17 +587,22 @@ class OwlLoader:
 
     def _assign_object_property(
         self,
-        subj: Any,
+        subj_roles: List[Symbol],
         field_name: str,
         obj_node: Union[URIRef, Literal],
     ):
         """Assigns an object property by resolving the object node and finding the correct attribute.
 
         Args:
-            subj: The subject instance.
+            subj_roles: The subject instances.
             field_name: The determined field name on the subject.
             obj_node: The RDF node of the object.
         """
+        subj = None
+        if len(subj_roles) == 1:
+            subj = subj_roles[0]
+        if len(subj_roles) > 1:
+            subj = [s for s in subj_roles if hasattr(s, field_name)][0]
         obj_roles = (
             self._ensure_instance(obj_node) if isinstance(obj_node, URIRef) else None
         )
@@ -604,39 +616,17 @@ class OwlLoader:
                 obj = obj_role
                 break
         if obj is None:
-            import pdbpp
+            raise ValueError(f"Could not find object for {subj_roles}.{field_name}")
 
-            pdbpp.set_trace()
-            raise ValueError(f"Could not find object for {subj}.{field_name}")
-        # if isinstance(obj, AnonymousClass):
-        #     if self._assign_to_attribute(subj, field_name, obj):
-        #         return
-        #     raise ValueError(
-        #         f"Could not assign {obj} to {subj} through field ({field_name})"
-        #     )
         matched_obj = None
         # Look for the super, and the inverse properties of the current property,
         # and try to assign their values as well. So call self._assign_object_property()
-        if field_name and hasattr(subj, field_name):
-            class_diagram = self.symbol_graph.class_diagram
-            try:
-                subj_wrapped_field = (
-                    assoc.field
-                    for assoc in class_diagram.associations
-                    if assoc.field.public_name == field_name
-                ).__next__()
-
-                req_obj_type = subj_wrapped_field.type_endpoint
-                matched_obj = self._get_matching_role(obj_roles, req_obj_type)
-            except StopIteration:
-                pass
-
+        if subj and field_name and hasattr(subj, field_name):
             obj = matched_obj or obj
-
             if self._assign_to_attribute(subj, field_name, obj):
                 return
 
-        self._handle_descriptor_based_property(subj, field_name, obj)
+        self._handle_descriptor_based_property(subj_roles, field_name, obj)
 
     def _assign_to_attribute(self, target: Any, attr_name: str, value: Any) -> bool:
         """Assigns a value to an attribute, or adds to it if it's a collection.
@@ -654,12 +644,17 @@ class OwlLoader:
 
         attr_val = getattr(target, attr_name, None)
         if hasattr(attr_val, "add"):
+            logger.info(
+                f"[OwlLoader] Assigning property {attr_name} to {target.uri} with object {value.uri}"
+            )
             attr_val.add(value)
         else:
             setattr(target, attr_name, value)
         return True
 
-    def _handle_descriptor_based_property(self, subj: Any, snake: str, obj: Any):
+    def _handle_descriptor_based_property(
+        self, subj_roles: List[Symbol], snake: str, obj: Any
+    ):
         """Handles properties that require creating a new role based on a PropertyDescriptor.
 
         Args:
@@ -680,12 +675,12 @@ class OwlLoader:
             import pdbpp
 
             pdbpp.set_trace()
-        new_role = self._get_or_create_role_instance(subj, new_role_class)
+        new_role = self._get_or_create_role_instance(subj_roles, new_role_class)
 
         if hasattr(new_role, snake) and self._assign_to_attribute(new_role, snake, obj):
             return
 
-        raise ValueError(f"Could not assign {obj} to {subj} ({snake})")
+        raise ValueError(f"Could not assign {obj} to {subj_roles} ({snake})")
 
     @staticmethod
     def _find_best_role_class(
@@ -737,7 +732,9 @@ class OwlLoader:
             )
         return chosen_role
 
-    def _get_or_create_role_instance(self, subj: Any, role_class: Type) -> Any:
+    def _get_or_create_role_instance(
+        self, existing_roles: List[Symbol], role_class: Type
+    ) -> Any:
         """Retrieves an existing role instance for the subject or creates a new one.
 
         Args:
@@ -747,21 +744,21 @@ class OwlLoader:
         Returns:
             The role instance.
         """
-        s_uri = subj.uri
-        existing_roles = self.registry.resolve(s_uri)
-        if existing_roles:
-            for er in existing_roles:
-                if type(er) is role_class:
-                    return er
+        # s_uri = subj.uri
+        # existing_roles = self.registry.resolve(s_uri)
+        # if existing_roles:
+        #     for er in existing_roles:
+        #         if type(er) is role_class:
+        #             return er
 
-        kwargs = self._get_common_role_taker_kwargs([subj], role_class)
-        role_taker_inst = next(iter(kwargs.values()), None) if kwargs else None
-
-        if role_taker_inst is None:
-            uri = s_uri
-        else:
-            uri = getattr(role_taker_inst, "uri", s_uri)
-
+        kwargs = self._get_common_role_taker_kwargs(existing_roles, role_class)
+        # role_taker_inst = next(iter(kwargs.values()), None) if kwargs else None
+        #
+        # if role_taker_inst is None:
+        #     uri = s_uri
+        # else:
+        #     uri = getattr(role_taker_inst, "uri", s_uri)
+        uri = existing_roles[0].uri
         return self.registry.get_or_create_for(
             URIRef(uri) if isinstance(uri, str) else uri,
             role_class,

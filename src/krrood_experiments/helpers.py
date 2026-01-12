@@ -138,7 +138,11 @@ def evaluate_eql(
 
 def load_instances_for_lubm_with_predicates() -> OwlInstancesRegistry:
     """Load instances from the given path and add them to the given model module."""
-    from .lubm import lubm_with_predicates, lubm_with_predicates_properties
+    from .lubm import (
+        lubm_with_predicates,
+        lubm_with_predicates_properties,
+        lubm_with_predicates_base,
+    )
 
     folder_path = Path(
         f"{dirname(__file__)}", "", "..", "..", "lubm", "resources", "instances"
@@ -147,6 +151,7 @@ def load_instances_for_lubm_with_predicates() -> OwlInstancesRegistry:
     files.sort(key=lambda x: int(x.split("_")[1].split(".")[0]))
     registry = OwlLoader.load_multi_file_instances(
         [os.path.join(folder_path, file) for file in files],
+        base_module=lubm_with_predicates_base,
         classes_module=lubm_with_predicates,
         properties_module=lubm_with_predicates_properties,
     )

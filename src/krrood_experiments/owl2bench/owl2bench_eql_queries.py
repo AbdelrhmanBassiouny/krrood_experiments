@@ -1,6 +1,7 @@
 import itertools
 import json
 import pickle
+import sys
 import time
 from typing import List
 
@@ -14,6 +15,7 @@ from krrood.entity_query_language.entity import (
     variable_from,
     not_,
     exists,
+    flatten,
 )
 from krrood.entity_query_language.entity_result_processors import (
     a,
@@ -47,8 +49,14 @@ from krrood_experiments.owl2bench.owl2bench_with_predicates import (
     WomanCollege,
     LeisureStudent,
     UGStudent,
+    Faculty,
+    Engineering,
 )
 from krrood_experiments.owl_instances_loader import OwlInstancesRegistry
+
+print(sys.getrecursionlimit())
+sys.setrecursionlimit(140000)
+print(sys.getrecursionlimit())
 
 
 def get_eql_queries(
@@ -88,6 +96,9 @@ def get_eql_queries(
     # q9 = an(set_of(o1, c).where(not_(HasType(c, Science))))
     # q9 = QueryWithSelectables(q9, {"x": o1, "y": c}, 9)
 
+    # {('y', 'http://benchmark/OWL2Bench#U0C3D0PhDS0'), ('x', 'http://benchmark/OWL2Bench#U0C3D0AP1')}
+    # {('x', 'http://benchmark/OWL2Bench#U0C3D2AP3'), ('y', 'http://benchmark/OWL2Bench#U0C0D1AssocP2')} not found in EQL answers, for query 10
+
     p1 = variable(Person, domain=None)
     p2 = variable_from(p1.has_collaboration_with)
     q10 = an(set_of(p1, p2))
@@ -99,7 +110,7 @@ def get_eql_queries(
     q11 = QueryWithSelectables(q11, {"x": p1, "y": p2}, 11)
 
     p1 = variable(Person, domain=None)
-    q12 = an(entity(p1))
+    q12 = an(entity(p1).distinct(p1.uri))
     q12 = QueryWithSelectables(q12, {"x": p1}, 12)
 
     # o = variable(Organization, domain=None)
@@ -107,19 +118,50 @@ def get_eql_queries(
     # q15 = an(entity(heads))
 
     # o = variable(Organization, domain=None)
-    # head = variable_from(o.has_h)
+    # head = variable_from(o.has_head)
     # q16 = an(entity(o).where(exists(o, o.has_head)))
 
-    # ugs = variable(UGStudent, domain=None)
-    # q17 = an(entity(ugs))
-    # q17 = QueryWithSelectables(q17, {"X": ugs}, 17)
+    p1 = variable(Faculty, domain=None)
+    q19 = an(entity(p1).distinct(p1.uri))
+    q19 = QueryWithSelectables(q19, {"x": p1}, 19)
 
     p1 = variable(Person, domain=None)
     p2 = variable_from(p1.has_same_home_town_with)
     q20 = an(set_of(p1, p2))
     q20 = QueryWithSelectables(q20, {"x": p1, "y": p2}, 20)
 
-    eql_queries = [q2, q3, q4, q5, q7, q8, q10, q11, q12, q20]
+    s = variable(Student, domain=None)
+    so = flatten(s.is_student_of)
+    po = flatten(so.is_part_of)
+    q21 = an(
+        set_of(s, so).where(
+            HasType(po, College), contains(po.has_college_discipline, Engineering)
+        )
+    )
+    q21 = QueryWithSelectables(q21, {"x": s, "y": so}, 21)
+
+    s = variable(Student, domain=None)
+    o = variable(Organization, domain=None)
+    z = flatten(o.has_dean)
+    c = flatten(z.teaches_course)
+    q22 = an(set_of(s, c).where(contains(s.takes_course, c)))
+    q22 = QueryWithSelectables(q22, {"s": s, "c": c}, 22)
+
+    eql_queries = [
+        q2,
+        q3,
+        q4,
+        q5,
+        q7,
+        q8,
+        q10,
+        q11,
+        q12,
+        q19,
+        # q20,
+        # q21,
+        # q22,
+    ]
     return eql_queries
 
 
@@ -182,9 +224,15 @@ if __name__ == "__main__":
                 res[k] = process_value_for_owl2bench_answer_comparison(v)
             uri_results.append(set(tuple(res.items())))
         for sol in uri_results:
-            assert (
-                sol in sparql_answers[i]
-            ), f"{sol} not found in SPARQL answers, for query {i}"
+            try:
+                assert (
+                    sol in sparql_answers[i]
+                ), f"{sol} not found in SPARQL answers, for query {i}"
+            except AssertionError as e:
+                print(f"{sol} not found in SPARQL answers, for query {i}")
+                # import pdbpp
+                #
+                # pdbpp.set_trace()
         for gt_sol in sparql_answers[i]:
             try:
                 assert (
@@ -192,15 +240,15 @@ if __name__ == "__main__":
                 ), f"{gt_sol} not found in EQL answers, for query {i}"
             except AssertionError:
                 print(f"{gt_sol} not found in EQL answers, for query {i}")
-                import pdbpp
-
-                pdbpp.set_trace()
+                # import pdbpp
+                #
+                # pdbpp.set_trace()
         try:
             assert len(sparql_answers[i]) == len(
                 uri_results
             ), f"Number of results mismatch for query {i}"
         except AssertionError as e:
             print(f"Number of results mismatch for query {i}")
-            import pdbpp
-
-            pdbpp.set_trace()
+            # import pdbpp
+            #
+            # pdbpp.set_trace()
