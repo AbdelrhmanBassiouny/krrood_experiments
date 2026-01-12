@@ -854,9 +854,29 @@ class InferenceEngine:
         Propagates domains, ranges, and handles restrictions and inverses.
         """
         self._infer_properties_data_from_restrictions()
-        property_rdr = GeneralRDR(save_dir="./rdrs", model_name="property_inference")
 
-        def ask_now(case: PropertyInfo):
+        for prop_name, prop_info in self.onto.properties.items():
+            if prop_name == "roleFor":
+                continue
+            if prop_info.type == PropertyType.DATA_PROPERTY:
+                continue
+            self.property_rdr.classify(prop_info, modify_case=True)
+
+        self._finalize_properties()
+        self._add_property_chain_axioms()
+        self._create_specialized_properties()
+
+    @cached_property
+    def property_rdr(self):
+        return GeneralRDR(save_dir="./rdrs", model_name="property_inference")
+
+    def fit_property_rdr(self):
+        def ask_now_domain(case: PropertyInfo):
+            # return case.name == "hasAdvisor"
+            return False
+
+        def ask_now_range(case: PropertyInfo):
+            # return case.name == "hasAdvisor"
             return False
 
         for prop_name, prop_info in self.onto.properties.items():
@@ -872,21 +892,20 @@ class InferenceEngine:
             # answer = classifier(prop_info)
             domain_case_query = CaseQuery(prop_info, "domains", (str,), False)
             prop_info.onto = self.onto
-            property_rdr.fit_case(
-                domain_case_query, update_existing_rules=False, ask_now=ask_now
+            domains = self.property_rdr.fit_case(
+                domain_case_query, update_existing_rules=False, ask_now=ask_now_domain
             )
-            prop_info.domains = list(set(prop_info.domains))
+            prop_info.domains = list(domains["domains"])
         for prop_name, prop_info in self.onto.properties.items():
             if prop_name == "roleFor":
                 continue
             if prop_info.type == PropertyType.DATA_PROPERTY:
                 continue
             range_case_query = CaseQuery(prop_info, "ranges", (str,), False)
-            property_rdr.fit_case(range_case_query, update_existing_rules=False)
-        # self._propagate_types()
-        self._finalize_properties()
-        self._add_property_chain_axioms()
-        self._create_specialized_properties()
+            ranges = self.property_rdr.fit_case(
+                range_case_query, update_existing_rules=False, ask_now=ask_now_range
+            )
+            prop_info.ranges = list(ranges["ranges"])
 
     def _add_property_chain_axioms(self):
         """
@@ -1132,10 +1151,14 @@ class InferenceEngine:
         Update PropertyInfo objects with inferred domain and range information.
         """
         for name, info in self.onto.properties.items():
-            info.domains = sorted(self.property_maps.dom_map[name])
-            info.ranges = sorted(self.property_maps.rng_map[name])
-            info.range_uris = list(self.property_maps.rng_uri_map[name])
-            info.declared_domains = sorted(self.property_maps.declared_dom_map[name])
+            # info.domains = sorted(self.property_maps.dom_map[name])
+            # info.ranges = sorted(self.property_maps.rng_map[name])
+            info.domains = sorted(info.domains)
+            info.ranges = sorted(info.ranges)
+            info.range_uris = [
+                self.onto.classes[r].uri for r in info.ranges if r in self.onto.classes
+            ]
+            info.declared_domains = copy(info.domains)
 
     def _create_specialized_properties(self):
         """
