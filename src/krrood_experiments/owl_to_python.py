@@ -17,6 +17,7 @@ from symtable import Symbol
 from typing import Dict, List, Optional, Any, Set, ClassVar
 
 import rdflib
+from ripple_down_rules import CaseQuery
 from jinja2 import Environment, FileSystemLoader
 from jinja2.ext import loopcontrols
 from krrood import logger
@@ -35,6 +36,7 @@ from krrood.ontomatic.property_descriptor.mixins import (
 )
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
 from rdflib.namespace import RDF, RDFS, OWL, XSD
+from ripple_down_rules import GeneralRDR
 from sqlalchemy.util import OrderedSet
 from typing_extensions import Tuple
 
@@ -95,6 +97,22 @@ class ClassInfo:
     role_taker: Optional[RoleTakerInfo] = None
     declared_properties: List[str] = field(default_factory=list)
     axioms: List[str] = field(default_factory=list)
+    onto: Optional[OntologyInfo] = field(default=None, repr=False)
+
+    def __deepcopy__(self, memo):
+        # Custom deepcopy to avoid copying the ontology reference
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            if k == "onto":
+                setattr(result, k, self.onto)
+            else:
+                setattr(result, k, deepcopy(v, memo))
+        return result
+
+    def __hash__(self):
+        return hash(id(self))
 
 
 @dataclass
@@ -136,6 +154,61 @@ class PropertyInfo:
     equivalent_properties_descriptor_names: List[str] = field(default_factory=list)
     disjoint_properties_descriptor_names: List[str] = field(default_factory=list)
     chain_axioms: List[List[str]] = field(default_factory=list)
+    onto: Optional[OntologyInfo] = field(default=None, repr=False)
+    _sorted_superproperties: List[str] = field(default_factory=list, init=False)
+    _all_superproperties: List[str] = field(default_factory=list, init=False)
+
+    @property
+    def sorted_superproperties(self):
+        """
+        Get superproperties sorted by inheritance path length (shortest first).
+        """
+        if not self._sorted_superproperties and self.onto:
+            self._sorted_superproperties = InferenceEngine.topological_order(
+                {sp: self.onto.properties[sp] for sp in self.ancestors},
+                dep_key="superproperties",
+            )
+        return self._sorted_superproperties
+
+    @property
+    def ancestors(self):
+        """
+        Compute full ancestor sets for each class (transitive closure).
+        """
+        if self._all_superproperties:
+            return self._all_superproperties
+        if not self.onto:
+            return []
+        # Compute full ancestor sets for each class (transitive closure)
+        name_to_bases = {
+            name: set(info.superproperties)
+            for name, info in self.onto.properties.items()
+        }
+        ancestors = set()
+        stack = list(self.superproperties)
+        while stack:
+            base = stack.pop()
+            if base in ancestors:
+                continue
+            ancestors.add(base)
+            stack.extend(name_to_bases.get(base, []))
+        self._all_superproperties = sorted(ancestors)
+        return self._all_superproperties
+
+    def __deepcopy__(self, memo):
+        # Custom deepcopy to avoid copying the ontology reference
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            if k == "onto":
+                setattr(result, k, self.onto)
+            else:
+                setattr(result, k, deepcopy(v, memo))
+        return result
+
+    def __hash__(self):
+        return hash(id(self))
 
 
 @dataclass
@@ -151,6 +224,12 @@ class OntologyInfo:
     role_cls_name: str = Role.__name__
     _properties: Optional[Dict[str, PropertyInfo]] = None
     property_restrictions: Dict[str, Dict[str, set]] = field(default_factory=dict)
+
+    def __post_init__(self):
+        for prop_info in self.original_properties.values():
+            prop_info.onto = self
+        for cls_info in self.classes.values():
+            cls_info.onto = self
 
     def description_for(self, description_name: str) -> Optional[str]:
         for cls_name, cls_info in self.class_descriptions.items():
@@ -775,7 +854,36 @@ class InferenceEngine:
         Propagates domains, ranges, and handles restrictions and inverses.
         """
         self._infer_properties_data_from_restrictions()
-        self._propagate_types()
+        property_rdr = GeneralRDR(save_dir="./rdrs", model_name="property_inference")
+
+        def ask_now(case: PropertyInfo):
+            return False
+
+        for prop_name, prop_info in self.onto.properties.items():
+            if prop_name == "roleFor":
+                continue
+            if prop_info.type == PropertyType.DATA_PROPERTY:
+                continue
+            # classifier = property_rdr.get_rdr_classifier_from_python_file(
+            #     "./rdrs/property_inference"
+            # )
+            # if ask_now(prop_info):
+            #     pass
+            # answer = classifier(prop_info)
+            domain_case_query = CaseQuery(prop_info, "domains", (str,), False)
+            prop_info.onto = self.onto
+            property_rdr.fit_case(
+                domain_case_query, update_existing_rules=False, ask_now=ask_now
+            )
+            prop_info.domains = list(set(prop_info.domains))
+        for prop_name, prop_info in self.onto.properties.items():
+            if prop_name == "roleFor":
+                continue
+            if prop_info.type == PropertyType.DATA_PROPERTY:
+                continue
+            range_case_query = CaseQuery(prop_info, "ranges", (str,), False)
+            property_rdr.fit_case(range_case_query, update_existing_rules=False)
+        # self._propagate_types()
         self._finalize_properties()
         self._add_property_chain_axioms()
         self._create_specialized_properties()
@@ -1719,7 +1827,8 @@ class CodeGenerator:
         # topological_order might still have 'Role' name if it was in the items keys
         # We need to filter the order as well
         classes_order = [c for c in classes_order if c != Role.__name__]
-
+        for cls_info in self.onto.classes.values():
+            cls_info.onto = None
         render_classes = {k: asdict(v) for k, v in self.onto.classes.items()}
         for c in render_classes.values():
             if c["role_taker"] is None:
@@ -1742,6 +1851,11 @@ class CodeGenerator:
         for prop_name, prop_info in self.onto.properties.items():
             if prop_info.chain_axioms:
                 prop_info.base_descriptors.append(HasChainAxioms.__name__)
+
+        for prop_info in self.onto.properties.values():
+            prop_info.onto = None
+        for stubs_info in stubs_classes.values():
+            stubs_info.onto = None
         render_props = {k: asdict(v) for k, v in self.onto.properties.items()}
         render_stubs = {k: asdict(v) for k, v in stubs_classes.items()}
         for c in render_stubs.values():
@@ -1991,5 +2105,5 @@ if __name__ == "__main__":
         generate_owl2bench_with_predicates,
     )
 
-    generate_lubm_with_predicates(clean=True)
+    # generate_lubm_with_predicates(clean=True)
     generate_owl2bench_with_predicates(clean=True)

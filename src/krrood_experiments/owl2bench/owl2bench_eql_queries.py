@@ -54,6 +54,9 @@ from krrood_experiments.owl2bench.owl2bench_with_predicates import (
     Engineering,
 )
 from krrood_experiments.owl2bench.owl2bench_with_predicates_base import OWL2BenchThing
+from krrood_experiments.owl2bench.owl2bench_with_predicates_properties import (
+    HasSameHomeTownWith,
+)
 from krrood_experiments.owl_instances_loader import OwlInstancesRegistry
 
 print(sys.getrecursionlimit())
@@ -115,13 +118,13 @@ def get_eql_queries(
     q12 = an(entity(p1).distinct(p1.uri))
     q12 = QueryWithSelectables(q12, {"x": p1}, 12)
 
-    # o = variable(Organization, domain=None)
-    # heads = variable_from(o.has_head)
-    # q15 = an(entity(heads))
+    o = variable(Organization, domain=None)
+    heads = variable_from(o.has_head)
+    q15 = an(entity(heads))
 
-    # o = variable(Organization, domain=None)
-    # head = variable_from(o.has_head)
-    # q16 = an(entity(o).where(exists(o, o.has_head)))
+    o = variable(Organization, domain=None)
+    head = variable_from(o.has_head)
+    q16 = an(entity(o).where(exists(o, o.has_head)))
 
     p1 = variable(Faculty, domain=None)
     q19 = an(entity(p1).distinct(p1.uri))
@@ -159,6 +162,8 @@ def get_eql_queries(
         q10,
         q11,
         q12,
+        q15,
+        q16,
         q19,
         q20,
         # q21,
@@ -195,6 +200,10 @@ if __name__ == "__main__":
         for instance in SymbolGraph().get_instances_of_type(cls):
             yield instance
 
+    SymbolGraph().to_dot(
+        "./owl2bench_symbol_graph.svg",
+        graph=SymbolGraph().descriptor_subgraph(HasSameHomeTownWith),
+    )
     start_time = time.time()
     q10_python_equivalent(instances_for_class)
     end_time = time.time()
