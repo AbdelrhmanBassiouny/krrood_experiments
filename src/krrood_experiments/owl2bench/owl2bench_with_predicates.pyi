@@ -21,8 +21,25 @@ class OWL2BenchThing(Symbol):
     has_research_interest: Optional[Any] = field(kw_only=True, default=None)
     # URI of the ontology element - The unique resource identifier (URI) of the ontology element.
     uri: Optional[str] = field(kw_only=True, default=None)
+    has_advisor: Set[OWL2BenchThing] = field(default_factory=set)
+    has_employee: Set[OWL2BenchThing] = field(default_factory=set)
+    has_head: Set[OWL2BenchThing] = field(default_factory=set)
     has_same_home_town_with: Set[OWL2BenchThing] = field(default_factory=set)
+    has_women_college: Set[OWL2BenchThing] = field(default_factory=set)
     is_affiliate_of: Set[OWL2BenchThing] = field(default_factory=set)
+    is_assistant_professor_of: Set[OWL2BenchThing] = field(default_factory=set)
+    is_associate_professor_of: Set[OWL2BenchThing] = field(default_factory=set)
+    is_clerical_staff_of: Set[OWL2BenchThing] = field(default_factory=set)
+    is_full_professor_of: Set[OWL2BenchThing] = field(default_factory=set)
+    is_lecturer_of: Set[OWL2BenchThing] = field(default_factory=set)
+    is_other_staff_of: Set[OWL2BenchThing] = field(default_factory=set)
+    is_post_doc_of: Set[OWL2BenchThing] = field(default_factory=set)
+    is_professor_of: Set[OWL2BenchThing] = field(default_factory=set)
+    is_research_assistant_of: Set[OWL2BenchThing] = field(default_factory=set)
+    is_supporting_staff_of: Set[OWL2BenchThing] = field(default_factory=set)
+    is_system_staff_of: Set[OWL2BenchThing] = field(default_factory=set)
+    is_visiting_professor_of: Set[OWL2BenchThing] = field(default_factory=set)
+    is_women_college_of: Set[OWL2BenchThing] = field(default_factory=set)
     knows: Set[OWL2BenchThing] = field(default_factory=set)
 
 
@@ -75,7 +92,6 @@ class Organization(OWL2BenchThing):
 class PersonMixinProtocol(OWL2BenchThing):
     dislikes: Set[Interest]
     evaluated_by: Set[EvaluationCommittee]
-    has_advisor: Set[Professor]
     has_age: Optional[Any]
     has_collaboration_with: Set[Person]
     has_degree_from: Set[University]
@@ -145,7 +161,6 @@ class College(Organization):
     has_department: Set[Department] = field(default_factory=set)
     has_head: Set[Dean] = field(default_factory=set)
     is_college_of: Set[University] = field(default_factory=set)
-    is_women_college_of: Set[University] = field(default_factory=set)
 
 
 
@@ -182,10 +197,6 @@ class ElectiveCourse(Course):
 @dataclass(eq=False)
 class Employee(PersonMixinProtocol, Symbol):
     has_work: Set[Work] = field(default_factory=set)
-    is_clerical_staff_of: Set[Organization] = field(default_factory=set)
-    is_other_staff_of: Set[Organization] = field(default_factory=set)
-    is_supporting_staff_of: Set[Organization] = field(default_factory=set)
-    is_system_staff_of: Set[Organization] = field(default_factory=set)
     works_for: Set[Organization] = field(default_factory=set)
 
 
@@ -382,7 +393,6 @@ class University(Organization):
     has_alumnus: Set[Person] = field(default_factory=set)
     has_college: Set[College] = field(default_factory=set)
     has_research_group: Set[ResearchGroup] = field(default_factory=set)
-    has_women_college: Set[College] = field(default_factory=set)
 
 
 
@@ -741,7 +751,7 @@ class Religions(HumanitiesAndSocial):
 
 @dataclass(eq=False)
 class ResearchAssistant(Employee):
-    is_research_assistant_of: Set[ResearchGroup] = field(default_factory=set)
+    ...
 
 
 
@@ -862,7 +872,6 @@ class ClericalStaff(SupportingStaff):
 
 @dataclass(eq=False)
 class Lecturer(FacultyMixinProtocol, Symbol):
-    is_lecturer_of: Set[Department] = field(default_factory=set)
 
 
 
@@ -874,13 +883,12 @@ class OtherStaff(SupportingStaff):
 
 @dataclass(eq=False)
 class PostDoc(Faculty):
-    is_post_doc_of: Set[Department] = field(default_factory=set)
+    ...
 
 
 
 @dataclass(eq=False)
 class ProfessorMixinProtocol(Faculty):
-    is_professor_of: Set[Department]
     tenured: Optional[bool]
 
 
@@ -903,19 +911,19 @@ class T20CricketFan(SportsFan):
 
 @dataclass(eq=False)
 class AssistantProfessor(Professor):
-    is_assistant_professor_of: Set[Department] = field(default_factory=set)
+    ...
 
 
 
 @dataclass(eq=False)
 class AssociateProfessor(Professor):
-    is_associate_professor_of: Set[Department] = field(default_factory=set)
+    ...
 
 
 
 @dataclass(eq=False)
 class FullProfessorMixinProtocol(Professor):
-    is_full_professor_of: Set[Department]
+    ...
 
 
 @dataclass(eq=False)
@@ -925,7 +933,6 @@ class FullProfessor(FullProfessorMixinProtocol):
 
 @dataclass(eq=False)
 class VisitingProfessor(ProfessorMixinProtocol, Symbol):
-    is_visiting_professor_of: Set[Department] = field(default_factory=set)
 
 
 

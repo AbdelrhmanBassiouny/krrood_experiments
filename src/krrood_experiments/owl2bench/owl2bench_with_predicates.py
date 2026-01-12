@@ -74,7 +74,6 @@ class Organization(OWL2BenchThing):
 class Person(OWL2BenchThing):
     dislikes: Set[Interest] = field(kw_only=True, default_factory=set)
     evaluated_by: Set[EvaluationCommittee] = field(kw_only=True, default_factory=set)
-    has_advisor: Set[Professor] = field(kw_only=True, default_factory=set)
     has_age: Optional[Any] = field(kw_only=True, default=None)
     has_collaboration_with: Set[Person] = field(kw_only=True, default_factory=set)
     has_degree_from: Set[University] = field(kw_only=True, default_factory=set)
@@ -140,7 +139,6 @@ class College(Organization):
     has_department: Set[Department] = field(kw_only=True, default_factory=set)
     has_head: Set[Dean] = field(kw_only=True, default_factory=set)
     is_college_of: Set[University] = field(kw_only=True, default_factory=set)
-    is_women_college_of: Set[University] = field(kw_only=True, default_factory=set)
 
     @classmethod
     def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
@@ -190,10 +188,6 @@ class Employee(Role[Person], Symbol):
     # Role taker
     person: Person
     has_work: Set[Work] = field(kw_only=True, default_factory=set)
-    is_clerical_staff_of: Set[Organization] = field(kw_only=True, default_factory=set)
-    is_other_staff_of: Set[Organization] = field(kw_only=True, default_factory=set)
-    is_supporting_staff_of: Set[Organization] = field(kw_only=True, default_factory=set)
-    is_system_staff_of: Set[Organization] = field(kw_only=True, default_factory=set)
     works_for: Set[Organization] = field(kw_only=True, default_factory=set)
 
     @classmethod
@@ -396,7 +390,6 @@ class University(Organization):
     has_alumnus: Set[Person] = field(kw_only=True, default_factory=set)
     has_college: Set[College] = field(kw_only=True, default_factory=set)
     has_research_group: Set[ResearchGroup] = field(kw_only=True, default_factory=set)
-    has_women_college: Set[College] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
@@ -720,7 +713,7 @@ class Religions(HumanitiesAndSocial):
 
 @dataclass(eq=False)
 class ResearchAssistant(Employee):
-    is_research_assistant_of: Set[ResearchGroup] = field(kw_only=True, default_factory=set)
+    ...
 
 
 @dataclass(eq=False)
@@ -886,7 +879,6 @@ class ClericalStaff(SupportingStaff):
 class Lecturer(Role[Faculty], Symbol):
     # Role taker
     faculty: Faculty
-    is_lecturer_of: Set[Department] = field(kw_only=True, default_factory=set)
 
     @classmethod
     @lru_cache(maxsize=None)
@@ -901,12 +893,11 @@ class OtherStaff(SupportingStaff):
 
 @dataclass(eq=False)
 class PostDoc(Faculty):
-    is_post_doc_of: Set[Department] = field(kw_only=True, default_factory=set)
+    ...
 
 
 @dataclass(eq=False)
 class Professor(Faculty):
-    is_professor_of: Set[Department] = field(kw_only=True, default_factory=set)
     tenured: Optional[bool] = field(kw_only=True, default=None)
 
 
@@ -929,24 +920,23 @@ class T20CricketFan(SportsFan):
 
 @dataclass(eq=False)
 class AssistantProfessor(Professor):
-    is_assistant_professor_of: Set[Department] = field(kw_only=True, default_factory=set)
+    ...
 
 
 @dataclass(eq=False)
 class AssociateProfessor(Professor):
-    is_associate_professor_of: Set[Department] = field(kw_only=True, default_factory=set)
+    ...
 
 
 @dataclass(eq=False)
 class FullProfessor(Professor):
-    is_full_professor_of: Set[Department] = field(kw_only=True, default_factory=set)
+    ...
 
 
 @dataclass(eq=False)
 class VisitingProfessor(Role[Professor], Symbol):
     # Role taker
     professor: Professor
-    is_visiting_professor_of: Set[Department] = field(kw_only=True, default_factory=set)
 
     @classmethod
     @lru_cache(maxsize=None)
@@ -1014,8 +1004,25 @@ class Director(Role[FullProfessor], Symbol):
 
 
 # Descriptor assignments
+OWL2BenchThing.has_advisor = HasAdvisor(OWL2BenchThing, 'has_advisor')
+OWL2BenchThing.has_employee = HasEmployee(OWL2BenchThing, 'has_employee')
+OWL2BenchThing.has_head = HasHead(OWL2BenchThing, 'has_head')
 OWL2BenchThing.has_same_home_town_with = HasSameHomeTownWith(OWL2BenchThing, 'has_same_home_town_with')
+OWL2BenchThing.has_women_college = HasWomenCollege(OWL2BenchThing, 'has_women_college')
 OWL2BenchThing.is_affiliate_of = IsAffiliateOf(OWL2BenchThing, 'is_affiliate_of')
+OWL2BenchThing.is_assistant_professor_of = IsAssistantProfessorOf(OWL2BenchThing, 'is_assistant_professor_of')
+OWL2BenchThing.is_associate_professor_of = IsAssociateProfessorOf(OWL2BenchThing, 'is_associate_professor_of')
+OWL2BenchThing.is_clerical_staff_of = IsClericalStaffOf(OWL2BenchThing, 'is_clerical_staff_of')
+OWL2BenchThing.is_full_professor_of = IsFullProfessorOf(OWL2BenchThing, 'is_full_professor_of')
+OWL2BenchThing.is_lecturer_of = IsLecturerOf(OWL2BenchThing, 'is_lecturer_of')
+OWL2BenchThing.is_other_staff_of = IsOtherStaffOf(OWL2BenchThing, 'is_other_staff_of')
+OWL2BenchThing.is_post_doc_of = IsPostDocOf(OWL2BenchThing, 'is_post_doc_of')
+OWL2BenchThing.is_professor_of = IsProfessorOf(OWL2BenchThing, 'is_professor_of')
+OWL2BenchThing.is_research_assistant_of = IsResearchAssistantOf(OWL2BenchThing, 'is_research_assistant_of')
+OWL2BenchThing.is_supporting_staff_of = IsSupportingStaffOf(OWL2BenchThing, 'is_supporting_staff_of')
+OWL2BenchThing.is_system_staff_of = IsSystemStaffOf(OWL2BenchThing, 'is_system_staff_of')
+OWL2BenchThing.is_visiting_professor_of = IsVisitingProfessorOf(OWL2BenchThing, 'is_visiting_professor_of')
+OWL2BenchThing.is_women_college_of = IsWomenCollegeOf(OWL2BenchThing, 'is_women_college_of')
 OWL2BenchThing.knows = Knows(OWL2BenchThing, 'knows')
 Course.is_taught_by = IsTaughtBy(Course, 'is_taught_by')
 EvaluationCommittee.evaluates = Evaluates(EvaluationCommittee, 'evaluates')
@@ -1036,7 +1043,6 @@ Organization.is_sub_organization_of = IsSubOrganizationOf(Organization, 'is_sub_
 Organization.org_publication = OrgPublication(Organization, 'org_publication')
 Person.dislikes = Dislikes(Person, 'dislikes')
 Person.evaluated_by = EvaluatedBy(Person, 'evaluated_by')
-Person.has_advisor = HasAdvisor(Person, 'has_advisor')
 Person.has_collaboration_with = HasCollaborationWith(Person, 'has_collaboration_with')
 Person.has_degree_from = HasDegreeFrom(Person, 'has_degree_from')
 Person.has_doctoral_degree_from = HasDoctoralDegreeFrom(Person, 'has_doctoral_degree_from')
@@ -1056,7 +1062,6 @@ College.has_college_discipline = HasCollegeDiscipline(College, 'has_college_disc
 College.has_department = HasDepartment(College, 'has_department')
 College.has_head = HasHead(College, 'has_head')
 College.is_college_of = IsCollegeOf(College, 'is_college_of')
-College.is_women_college_of = IsWomenCollegeOf(College, 'is_women_college_of')
 Department.has_assistant_professor = HasAssistantProfessor(Department, 'has_assistant_professor')
 Department.has_associate_professor = HasAssociateProfessor(Department, 'has_associate_professor')
 Department.has_clerical_staff = HasClericalStaff(Department, 'has_clerical_staff')
@@ -1078,10 +1083,6 @@ Department.is_department_of = IsDepartmentOf(Department, 'is_department_of')
 Department.offer_course = OfferCourse(Department, 'offer_course')
 Employee.person = RoleFor(Employee, 'person')
 Employee.has_work = HasWork(Employee, 'has_work')
-Employee.is_clerical_staff_of = IsClericalStaffOf(Employee, 'is_clerical_staff_of')
-Employee.is_other_staff_of = IsOtherStaffOf(Employee, 'is_other_staff_of')
-Employee.is_supporting_staff_of = IsSupportingStaffOf(Employee, 'is_supporting_staff_of')
-Employee.is_system_staff_of = IsSystemStaffOf(Employee, 'is_system_staff_of')
 Employee.works_for = WorksFor(Employee, 'works_for')
 PeopleWithHobby.person = RoleFor(PeopleWithHobby, 'person')
 PeopleWithHobby.likes = Likes(PeopleWithHobby, 'likes')
@@ -1096,13 +1097,11 @@ Student.takes_course = TakesCourse(Student, 'takes_course')
 University.has_alumnus = HasAlumnus(University, 'has_alumnus')
 University.has_college = HasCollege(University, 'has_college')
 University.has_research_group = HasResearchGroup(University, 'has_research_group')
-University.has_women_college = HasWomenCollege(University, 'has_women_college')
 Woman.is_student_of = IsStudentOf(Woman, 'is_student_of')
 Faculty.is_faculty_of = IsFacultyOf(Faculty, 'is_faculty_of')
 Faculty.teaches_course = TeachesCourse(Faculty, 'teaches_course')
 PGStudent.enroll_for = EnrollFor(PGStudent, 'enroll_for')
 PhDStudent.enroll_for = EnrollFor(PhDStudent, 'enroll_for')
-ResearchAssistant.is_research_assistant_of = IsResearchAssistantOf(ResearchAssistant, 'is_research_assistant_of')
 ScienceStudent.has_major = HasMajor(ScienceStudent, 'has_major')
 SportsFan.is_crazy_about = IsCrazyAbout(SportsFan, 'is_crazy_about')
 SportsLover.loves = Loves(SportsLover, 'loves')
@@ -1113,15 +1112,8 @@ WomanCollege.has_student = HasStudent(WomanCollege, 'has_student')
 BasketBallFan.is_crazy_about = IsCrazyAbout(BasketBallFan, 'is_crazy_about')
 BasketBallLover.loves = Loves(BasketBallLover, 'loves')
 Lecturer.faculty = RoleFor(Lecturer, 'faculty')
-Lecturer.is_lecturer_of = IsLecturerOf(Lecturer, 'is_lecturer_of')
-PostDoc.is_post_doc_of = IsPostDocOf(PostDoc, 'is_post_doc_of')
-Professor.is_professor_of = IsProfessorOf(Professor, 'is_professor_of')
 T20CricketFan.is_crazy_about = IsCrazyAbout(T20CricketFan, 'is_crazy_about')
-AssistantProfessor.is_assistant_professor_of = IsAssistantProfessorOf(AssistantProfessor, 'is_assistant_professor_of')
-AssociateProfessor.is_associate_professor_of = IsAssociateProfessorOf(AssociateProfessor, 'is_associate_professor_of')
-FullProfessor.is_full_professor_of = IsFullProfessorOf(FullProfessor, 'is_full_professor_of')
 VisitingProfessor.professor = RoleFor(VisitingProfessor, 'professor')
-VisitingProfessor.is_visiting_professor_of = IsVisitingProfessorOf(VisitingProfessor, 'is_visiting_professor_of')
 Chair.full_professor = RoleFor(Chair, 'full_professor')
 Chair.is_head_of = IsHeadOf(Chair, 'is_head_of')
 Dean.full_professor = RoleFor(Dean, 'full_professor')
