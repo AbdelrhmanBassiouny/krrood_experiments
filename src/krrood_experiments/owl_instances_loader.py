@@ -42,7 +42,7 @@ logger.setLevel(logging.DEBUG)
 
 # Handler
 handler = logging.StreamHandler()
-handler.setLevel(logging.INFO)  # <-- this filters out DEBUG messages
+handler.setLevel(logging.ERROR)  # <-- this filters out DEBUG messages
 logger.addHandler(handler)
 
 
@@ -327,12 +327,21 @@ class OwlLoader:
                 if py_cls:
                     ac.add_type(py_cls)
                     self.anonymous_instances_by_type[py_cls].add(ac)
+        if self.anonymous_instances:
+            return
         for s, o_class in self.graph.subject_objects(RDF.type):
             if not isinstance(s, URIRef):
                 continue
             if s in self.anonymous_instances:
                 continue
-            if o_class in [OWL.Class, RDFS.Class, OWL.Ontology]:
+            if o_class in [
+                OWL.Class,
+                RDFS.Class,
+                OWL.Ontology,
+                OWL.ObjectProperty,
+                OWL.DatatypeProperty,
+                OWL.FunctionalProperty,
+            ]:
                 continue
             self.anonymous_instances[s] = AnonymousClass(s)
             py_cls = self.metadata.get_python_class(o_class)
@@ -443,6 +452,9 @@ class OwlLoader:
                 if p in [
                     RDF.type,
                     OWL.disjointWith,
+                    RDFS.subClassOf,
+                    OWL.equivalentClass,
+                    OWL.Class,
                 ]:
                     continue
                 predicate_name = to_snake(local_name(p))
@@ -599,10 +611,10 @@ class OwlLoader:
             obj_node: The RDF node of the object.
         """
         subj = None
-        if len(subj_roles) == 1:
-            subj = subj_roles[0]
-        if len(subj_roles) > 1:
-            subj = [s for s in subj_roles if hasattr(s, field_name)][0]
+        # for s in subj_roles:
+        #     if hasattr(s, field_name):
+        #         subj = s
+        #         break
         obj_roles = (
             self._ensure_instance(obj_node) if isinstance(obj_node, URIRef) else None
         )
@@ -747,10 +759,10 @@ class OwlLoader:
         # s_uri = subj.uri
         # existing_roles = self.registry.resolve(s_uri)
         # if existing_roles:
-        #     for er in existing_roles:
-        #         if type(er) is role_class:
-        #             return er
-
+        for er in existing_roles:
+            if type(er) is role_class:
+                return er
+        self._get_matching_role(existing_roles, role_class)
         kwargs = self._get_common_role_taker_kwargs(existing_roles, role_class)
         # role_taker_inst = next(iter(kwargs.values()), None) if kwargs else None
         #

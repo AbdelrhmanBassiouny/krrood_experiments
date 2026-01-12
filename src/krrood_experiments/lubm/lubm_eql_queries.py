@@ -250,9 +250,6 @@ if __name__ == "__main__":
     registry = load_instances_for_lubm_with_predicates()
     assert Chair in registry._by_class
     assert GraduateStudent in registry._by_class
-    import pdbpp
-
-    pdbpp.set_trace()
     report_python_query_time()
     start_time = time.time()
     queries_with_selectables = get_eql_queries(registry)
