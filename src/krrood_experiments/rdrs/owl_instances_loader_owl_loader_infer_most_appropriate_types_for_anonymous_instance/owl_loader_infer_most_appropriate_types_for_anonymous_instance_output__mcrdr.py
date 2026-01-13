@@ -37,4 +37,7 @@ def classify(case: Dict, **kwargs) -> Set[type]:
 
     if conditions_156662505516608460529403101557922300371(case):
         update_case_and_conclusions_with_rule_output(case, conclusions, conclusion_156662505516608460529403101557922300371(case),attribute_name, conclusion_type, mutually_exclusive)
+
+    if conditions_60769889497012087197446453003101494103(case):
+        update_case_and_conclusions_with_rule_output(case, conclusions, conclusion_60769889497012087197446453003101494103(case),attribute_name, conclusion_type, mutually_exclusive)
     return conclusions
