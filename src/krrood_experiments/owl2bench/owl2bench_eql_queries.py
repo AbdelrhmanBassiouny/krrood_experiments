@@ -58,10 +58,7 @@ from krrood_experiments.owl2bench.owl2bench_with_predicates_properties import (
     HasSameHomeTownWith,
 )
 from krrood_experiments.owl_instances_loader import OwlInstancesRegistry
-
-print(sys.getrecursionlimit())
-sys.setrecursionlimit(140000)
-print(sys.getrecursionlimit())
+import rustworkx as rx
 
 
 def get_eql_queries(
@@ -95,14 +92,6 @@ def get_eql_queries(
     o2 = variable_from(o1.is_affiliated_organization_of)
     q8 = an(set_of(o1, o2))
     q8 = QueryWithSelectables(q8, {"x": o1, "y": o2}, 8)
-
-    # o1 = variable(College, domain=None)
-    # c = variable_from(o1.has_college_discipline)
-    # q9 = an(set_of(o1, c).where(not_(HasType(c, Science))))
-    # q9 = QueryWithSelectables(q9, {"x": o1, "y": c}, 9)
-
-    # {('y', 'http://benchmark/OWL2Bench#U0C3D0PhDS0'), ('x', 'http://benchmark/OWL2Bench#U0C3D0AP1')}
-    # {('x', 'http://benchmark/OWL2Bench#U0C3D2AP3'), ('y', 'http://benchmark/OWL2Bench#U0C0D1AssocP2')} not found in EQL answers, for query 10
 
     p1 = variable(Person, domain=None)
     p2 = variable_from(p1.has_collaboration_with)
@@ -139,14 +128,6 @@ def get_eql_queries(
     q20 = an(set_of(p1, p2))
     q20 = QueryWithSelectables(q20, {"x": p1, "y": p2}, 20)
 
-    # colleges = variable(College, domain=None)
-    # engineering_colleges = an(
-    #     entity(colleges).where(
-    #         contains(colleges.has_college_discipline.uri, "Engineering")
-    #     )
-    # )
-    # q21 = QueryWithSelectables(engineering_colleges, {"x": colleges}, 21)
-
     s = variable(Student, domain=None)
     so = flatten(s.is_student_of)
     po = flatten(so.is_part_of)
@@ -177,7 +158,7 @@ def get_eql_queries(
         q15,
         q16,
         q19,
-        # q20,
+        q20,
         q21,
         q22,
     ]
@@ -212,10 +193,26 @@ if __name__ == "__main__":
         for instance in SymbolGraph().get_instances_of_type(cls):
             yield instance
 
-    SymbolGraph().to_dot(
-        "./owl2bench_symbol_graph.svg",
-        graph=SymbolGraph().descriptor_subgraph(HasSameHomeTownWith),
-    )
+    # town_graph = (
+    #     SymbolGraph()
+    #     .descriptor_subgraph(HasSameHomeTownWith)
+    #     .to_undirected(multigraph=False)
+    # )
+    # print(f"Number of nodes in town graph: {town_graph.num_nodes()}")
+    # print(f"Number of edges in town graph: {town_graph.num_edges()}")
+    # node_sets = []
+    # for node in town_graph.node_indices():
+    #     for node2 in town_graph.node_indices():
+    #         if node == node2:
+    #             continue
+    #         if rx.has_path(town_graph, node, node2):
+    #             node_sets.append((node, node2))
+    # print(f"Number of connected node pairs in town graph: {len(node_sets)}")
+
+    # SymbolGraph().to_dot(
+    #     "./owl2bench_symbol_graph.svg",
+    #     graph=town_graph,
+    # )
     start_time = time.time()
     q10_python_equivalent(instances_for_class)
     end_time = time.time()
