@@ -1481,10 +1481,23 @@ class InferenceEngine:
         parent_props = parent_info.declared_properties
         child_props = child_info.declared_properties
 
-        parent_props_filtered = {p.split("{")[0] for p in parent_props}
-        child_props_filtered = {p.split("{")[0] for p in child_props}
+        parent_props_filtered = [p.split("{")[0] for p in parent_props]
+        child_props_filtered = [p.split("{")[0] for p in child_props]
 
-        matched_prop_names = parent_props_filtered.intersection(child_props_filtered)
+        matched_prop_names = set(parent_props_filtered).intersection(
+            set(child_props_filtered)
+        )
+
+        for mpn in copy(matched_prop_names):
+            mpn_parent_idx = parent_props_filtered.index(mpn)
+            mpn_child_idx = child_props_filtered.index(mpn)
+            parent_p_name = parent_props[mpn_parent_idx]
+            child_p_name = child_props[mpn_child_idx]
+            if (
+                self.onto.properties[parent_p_name].is_specialized
+                and not self.onto.properties[child_p_name].is_specialized
+            ):
+                matched_prop_names.remove(mpn)
 
         # Re-verify based on original logic: check all combinations of parent/child properties
         # and remove/add base name based on range and superproperty compatibility.
