@@ -257,7 +257,7 @@ def conclusion_60769889497012087197446453003101494103(case) -> List[type]:
             for d in ds
             if d is not None
             for c in d.all_domains[d]
-            if hasattr(c, "axiom") and has_solution(instance, c.axiom)
+            if hasattr(c, "axiom_python") and c.axiom_python(instance)
         ]
         return get_most_specific_types(classes_that_satsify_the_axioms)
 

@@ -97,6 +97,7 @@ class ClassInfo:
     role_taker: Optional[RoleTakerInfo] = None
     declared_properties: List[str] = field(default_factory=list)
     axioms: List[str] = field(default_factory=list)
+    axioms_python: List[str] = field(default_factory=list)
     onto: Optional[OntologyInfo] = field(default=None, repr=False)
 
     def __deepcopy__(self, memo):
@@ -1071,6 +1072,12 @@ class InferenceEngine:
                         f"IsSubClassOf(variable_from(candidate_var.{snake_prop_name}.types), {rng_name})",
                     ]
                 )
+                self.onto.classes[for_class].axioms_python.extend(
+                    [
+                        f"hasattr(candidate, '{snake_prop_name}')",
+                        f"any(issubclass(t, {rng_name}) for attr in candidate.{snake_prop_name} for t in attr.types)",
+                    ]
+                )
                 for inverse in self.onto.properties[prop_name].inverses:
                     snake_inverse_name = NamingRegistry.to_snake_case(inverse)
                     self.onto.property_restrictions.setdefault(rng_name, {}).setdefault(
@@ -1080,6 +1087,12 @@ class InferenceEngine:
                         [
                             f"HasAttribute(candidate_var, '{snake_inverse_name}')",
                             f"IsSubClassOf(variable_from(candidate_var.{snake_inverse_name}.types), {for_class})",
+                        ]
+                    )
+                    self.onto.classes[rng_name].axioms_python.extend(
+                        [
+                            f"hasattr(candidate, '{snake_inverse_name}')",
+                            f"any(issubclass(t, {for_class}) for attr in candidate.{snake_inverse_name} for t in attr.types)",
                         ]
                     )
             except Exception as e:

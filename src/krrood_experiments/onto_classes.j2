@@ -66,6 +66,12 @@ class {{ cls.name }}({% if cls.base_classes %}{{ ', '.join(cls.base_classes) }}{
         return ({{ cls.axioms | join(',\n\t\t\t\t') }}
         )
     {% endif %}
+    {% if cls.axioms_python|length > 0 %}
+
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return {{ cls.axioms_python | join(' and ') }}
+    {% endif %}
 
 
 {% endfor %}
