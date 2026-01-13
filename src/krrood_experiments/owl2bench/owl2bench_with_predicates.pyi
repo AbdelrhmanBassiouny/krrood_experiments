@@ -59,7 +59,7 @@ class Organization(OWL2BenchThing):
     has_employee: Set[Employee] = field(default_factory=set)
     has_evaluation_committee: Set[EvaluationCommittee] = field(default_factory=set)
     has_faculty: Set[Faculty] = field(default_factory=set)
-    has_head: Set[Union[Faculty, Person]] = field(default_factory=set)
+    has_head: Set[Person] = field(default_factory=set)
     has_member: Set[Person] = field(default_factory=set)
     has_part: Set[Organization] = field(default_factory=set)
     has_student: Set[Student] = field(default_factory=set)

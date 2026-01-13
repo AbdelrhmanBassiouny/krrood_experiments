@@ -1301,7 +1301,20 @@ class InferenceEngine:
             ranges = simplified or ranges
 
         if len(ranges) > 1:
-            info.object_range_hint = f"Union[{', '.join(sorted(set(ranges)))}]"
+            for i, r in enumerate(ranges[:-1]):
+                for r2 in ranges[i + 1 :]:
+                    if r2 in self.onto.classes[r].all_base_classes:
+                        try:
+                            ranges.remove(r2)
+                        except ValueError:
+                            pass
+                    elif r in self.onto.classes[r2].all_base_classes:
+                        try:
+                            ranges.remove(r)
+                        except ValueError:
+                            pass
+        if len(ranges) > 1:
+            info.object_range_hint = f"Union[{', '.join(sorted(ranges))}]"
         elif len(ranges) == 1:
             info.object_range_hint = ranges[0]
         else:
@@ -1823,6 +1836,33 @@ class CodeGenerator:
                 info.base_classes_for_topological_sort.append(
                     info.role_taker.class_name
                 )
+
+        for info in prop_classes.values():
+            if not info.object_range_hint or "Union" not in info.object_range_hint:
+                continue
+            contesting_types = [
+                t.strip() for t in info.object_range_hint[6:-1].split(",")
+            ]
+            for i, r in enumerate(contesting_types[:-1]):
+                for r2 in contesting_types[i + 1 :]:
+                    if (
+                        r2
+                        in self.onto.classes[r].all_base_classes_including_role_takers
+                    ):
+                        try:
+                            contesting_types.remove(r)
+                        except ValueError:
+                            pass
+                    elif (
+                        r
+                        in self.onto.classes[r2].all_base_classes_including_role_takers
+                    ):
+                        try:
+                            contesting_types.remove(r2)
+                        except ValueError:
+                            pass
+            if len(contesting_types) == 1:
+                info.object_range_hint = contesting_types[0]
 
         classes_order = self.engine.topological_order(
             self.onto.classes, "base_classes_for_topological_sort"
