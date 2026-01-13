@@ -6,6 +6,7 @@ from abc import ABC
 from collections import defaultdict
 from copy import copy
 from dataclasses import fields, is_dataclass, dataclass, field
+from functools import lru_cache
 from types import ModuleType
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union, ClassVar
 
@@ -16,6 +17,7 @@ from krrood.class_diagrams.utils import (
     nearest_common_ancestor,
     Role,
     role_aware_nearest_common_ancestor,
+    sort_classes_by_role_aware_inheritance_path_length,
 )
 from krrood.entity_query_language.entity import has_solution
 from krrood.entity_query_language.predicate import Symbol
@@ -30,6 +32,7 @@ from rdflib import RDF, URIRef, Literal, OWL, RDFS
 from ripple_down_rules import RDRDecorator
 from typing_extensions import Set
 
+from krrood_experiments.owl2bench.owl2bench_with_predicates import Engineering
 from krrood_experiments.utils import (
     get_non_class_attribute_names_of_instance,
     not_none_inheritance_path_length,
@@ -245,13 +248,16 @@ class OwlLoader:
     def ask_now(case: Case):
         # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D2OS3"
         # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C3D0AP1"
-        return Symbol in case.output_
+        # return Symbol in case.output_
         # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0WC0D3FP8"
         # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C2D1L8"
         # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D0FP8"
         # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D0FP4"
+        # return "Engineering" in str(case.instance.uri)
+        return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D1FP3"
         # return not bool(case.output_)
 
+    target = [Engineering]
     metadata: ModelMetadata = field(init=False)
     _type_rdr: ClassVar[RDRDecorator] = RDRDecorator(
         os.path.join(os.path.dirname(__file__), "rdrs"),
@@ -303,7 +309,7 @@ class OwlLoader:
         descriptors = [d for d in descriptors if d is not None]
         inferred_types = set()
         for d in descriptors:
-            nca = role_aware_nearest_common_ancestor(d.all_domains[d])
+            nca = role_aware_nearest_common_ancestor(tuple(d.all_domains[d]))
             if nca not in [object, None, ABC, Symbol, Role]:
                 inferred_types.add(nca)
         pred_subjects = self.obj_pred_subj_map[instance.uri]
@@ -311,7 +317,7 @@ class OwlLoader:
             ranges = PropertyDescriptor.all_ranges[
                 self.metadata.get_descriptor_base(pred)
             ]
-            nca = role_aware_nearest_common_ancestor(ranges)
+            nca = role_aware_nearest_common_ancestor(tuple(ranges))
             if nca not in [object, None, ABC, Symbol, Role]:
                 inferred_types.add(nca)
         filtered_types = set(get_most_specific_types(inferred_types))
@@ -597,6 +603,70 @@ class OwlLoader:
             )
         return None
 
+    @lru_cache
+    def common_ancestor_of_descriptor_ranges(
+        self, descriptor_base: Type[PropertyDescriptor]
+    ) -> Type:
+        """Finds the nearest common ancestor of all ranges for a given PropertyDescriptor base.
+
+        Args:
+            descriptor_base: The base PropertyDescriptor class.
+        Returns:
+            The nearest common ancestor type.
+        """
+        descriptor_ranges = tuple(PropertyDescriptor.all_ranges[descriptor_base])
+        nca_range = role_aware_nearest_common_ancestor(descriptor_ranges)
+        return nca_range
+
+    @lru_cache
+    def sorted_obj_role_types(
+        self, obj_role_types: Tuple[Type], descriptor_base: Type[PropertyDescriptor]
+    ) -> List[Type]:
+        """Sorts object role types based on their inheritance path length to the common ancestor.
+
+        Args:
+            obj_role_types: A tuple of object role types.
+            descriptor_base: The base PropertyDescriptor class.
+        Returns:
+            A list of sorted object role types.
+        """
+        nca_range = self.common_ancestor_of_descriptor_ranges(descriptor_base)
+        sorted_obj_role_types = list(
+            reversed(
+                sort_classes_by_role_aware_inheritance_path_length(
+                    obj_role_types, nca_range
+                )
+            )
+        )
+        return sorted_obj_role_types
+
+    @lru_cache
+    def best_fit_object_role(
+        self, field_name: str, obj_roles: Tuple[Any]
+    ) -> Optional[Type]:
+        """Finds the best fitting object role type for a given object type.
+
+        Args:
+            descriptor_base: The base PropertyDescriptor class.
+            obj_type: The type of the object instance.
+
+        Returns:
+            The best fitting object role type if found, otherwise None.
+        """
+        descriptor_base = self.metadata.get_descriptor_base(field_name)
+        descriptor_ranges = tuple(PropertyDescriptor.all_ranges[descriptor_base])
+        obj_role_types = tuple(map(type, obj_roles))
+        obj_role_types = self.sorted_obj_role_types(obj_role_types, descriptor_base)
+        obj = None
+        for obj_role_type in obj_role_types or []:
+            if issubclass_or_role(
+                obj_role_type,
+                descriptor_ranges,
+            ):
+                obj = [obj_r for obj_r in obj_roles if type(obj_r) is obj_role_type][0]
+                break
+        return obj
+
     def _assign_object_property(
         self,
         subj_roles: List[Symbol],
@@ -611,25 +681,23 @@ class OwlLoader:
             obj_node: The RDF node of the object.
         """
         subj = None
-        # for s in subj_roles:
-        #     if hasattr(s, field_name):
-        #         subj = s
-        #         break
         obj_roles = (
             self._ensure_instance(obj_node) if isinstance(obj_node, URIRef) else None
         )
-        descriptor_base = self.metadata.get_descriptor_base(field_name)
-        obj = None
-        for obj_role in obj_roles or []:
-            if issubclass_or_role(
-                obj_role.__class__,
-                tuple(PropertyDescriptor.all_ranges[descriptor_base]),
-            ):
-                obj = obj_role
-                break
+        if len(obj_roles) > 1:
+            obj = self.best_fit_object_role(field_name, tuple(obj_roles))
+        else:
+            obj = obj_roles[0] if obj_roles else None
         if obj is None:
-            raise ValueError(f"Could not find object for {subj_roles}.{field_name}")
+            import pdbpp
 
+            pdbpp.set_trace()
+            raise ValueError(f"Could not find object for {subj_roles}.{field_name}")
+        subject_roles_with_field_name = [
+            s for s in subj_roles if hasattr(s, field_name)
+        ]
+        if subject_roles_with_field_name:
+            subj = subject_roles_with_field_name[0]
         matched_obj = None
         # Look for the super, and the inverse properties of the current property,
         # and try to assign their values as well. So call self._assign_object_property()
@@ -756,20 +824,11 @@ class OwlLoader:
         Returns:
             The role instance.
         """
-        # s_uri = subj.uri
-        # existing_roles = self.registry.resolve(s_uri)
-        # if existing_roles:
         for er in existing_roles:
-            if type(er) is role_class:
+            if issubclass_or_role(er, role_class):
                 return er
         self._get_matching_role(existing_roles, role_class)
         kwargs = self._get_common_role_taker_kwargs(existing_roles, role_class)
-        # role_taker_inst = next(iter(kwargs.values()), None) if kwargs else None
-        #
-        # if role_taker_inst is None:
-        #     uri = s_uri
-        # else:
-        #     uri = getattr(role_taker_inst, "uri", s_uri)
         uri = existing_roles[0].uri
         return self.registry.get_or_create_for(
             URIRef(uri) if isinstance(uri, str) else uri,

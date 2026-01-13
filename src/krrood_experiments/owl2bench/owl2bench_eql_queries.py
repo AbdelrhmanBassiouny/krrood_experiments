@@ -118,13 +118,17 @@ def get_eql_queries(
     q12 = an(entity(p1).distinct(p1.uri))
     q12 = QueryWithSelectables(q12, {"x": p1}, 12)
 
-    o = variable(Organization, domain=None)
-    heads = variable_from(o.has_head)
-    q15 = an(entity(heads))
+    @symbolic_function
+    def length(lst):
+        return len(lst)
+
+    p = variable(Person, domain=None)
+    q15 = an(entity(p).where(length(p.is_head_of) > 0))
+    q15 = QueryWithSelectables(q15, {"x": p}, 15)
 
     o = variable(Organization, domain=None)
-    head = variable_from(o.has_head)
-    q16 = an(entity(o).where(exists(o, o.has_head)))
+    q16 = an(entity(o).where(length(o.has_head) > 0))
+    q16 = QueryWithSelectables(q16, {"x": o}, 16)
 
     p1 = variable(Faculty, domain=None)
     q19 = an(entity(p1).distinct(p1.uri))
@@ -135,12 +139,20 @@ def get_eql_queries(
     q20 = an(set_of(p1, p2))
     q20 = QueryWithSelectables(q20, {"x": p1, "y": p2}, 20)
 
+    # colleges = variable(College, domain=None)
+    # engineering_colleges = an(
+    #     entity(colleges).where(
+    #         contains(colleges.has_college_discipline.uri, "Engineering")
+    #     )
+    # )
+    # q21 = QueryWithSelectables(engineering_colleges, {"x": colleges}, 21)
+
     s = variable(Student, domain=None)
     so = flatten(s.is_student_of)
     po = flatten(so.is_part_of)
     q21 = an(
         set_of(s, so).where(
-            HasType(po, College), contains(po.has_college_discipline, Engineering)
+            HasType(po, College), contains(po.has_college_discipline.uri, "Engineering")
         )
     )
     q21 = QueryWithSelectables(q21, {"x": s, "y": so}, 21)
@@ -165,9 +177,9 @@ def get_eql_queries(
         q15,
         q16,
         q19,
-        q20,
-        # q21,
-        # q22,
+        # q20,
+        q21,
+        q22,
     ]
     return eql_queries
 

@@ -1,21 +1,22 @@
-from krrood_experiments.owl_instances_loader import OwlLoader
-from ripple_down_rules.datastructures.case import Case
-from krrood_experiments.utils import (
-    AnonymousClass,
-    get_most_specific_types,
-    get_non_class_attribute_names_of_instance,
-)
 from ripple_down_rules.utils import make_set
+from ripple_down_rules.datastructures.case import Case
 from krrood.class_diagrams.utils import (
     Role,
     issubclass_or_role,
     nearest_common_ancestor,
     role_aware_nearest_common_ancestor,
 )
+from krrood_experiments.owl_instances_loader import OwlLoader
+from collections import defaultdict
 from typing_extensions import Dict, List, Set, Union
+from krrood_experiments.utils import (
+    AnonymousClass,
+    get_most_specific_types,
+    get_non_class_attribute_names_of_instance,
+)
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
-from abc import ABC
 from krrood.entity_query_language.entity import has_solution
+from abc import ABC
 from ripple_down_rules import *
 
 
@@ -114,13 +115,7 @@ def conclusion_39422379577793614665216170177046282573(case) -> List[type]:
                     continue
                 contesting_types_by_ancestors[nca].update({c1, c2})
                 contesting_types.update({c1, c2})
-        # remove ancestors that are subsets of other ancestors
         non_contesting_types = inferred_types - contesting_types
-        # types_with_satisfied_axioms = [
-        #     t
-        #     for t in non_contesting_types
-        #     if not hasattr(t, "axiom") or has_solution(instance, t.axiom)
-        # ]
         for nct in non_contesting_types:
             contesting_types_by_ancestors[nct].add(nct)
         final_ancestors = list(contesting_types_by_ancestors.keys())
@@ -172,7 +167,7 @@ def conclusion_199871154586794138198665296345684269309(case) -> List[type]:
             (issubclass_or_role(ct, tuple(ranges)) for ct in current_types)
         ):
             return []
-        ancestor = role_aware_nearest_common_ancestor(ranges)
+        ancestor = role_aware_nearest_common_ancestor(tuple(ranges))
         if ancestor is None:
             return []
         return ancestor
@@ -232,5 +227,38 @@ def conclusion_156662505516608460529403101557922300371(case) -> List[type]:
     ) -> List[type]:
         """Get possible value(s) for owl_loader_infer_most_appropriate_types_for_anonymous_instance.output_  of type ."""
         return [self_.metadata.get_python_class(instance.uri)]
+
+    return owl_loader_infer_most_appropriate_types_for_anonymous_instance(**case)
+
+
+def conditions_60769889497012087197446453003101494103(case) -> bool:
+    def conditions_for_owl_loader_infer_most_appropriate_types_for_anonymous_instance(
+        self_: OwlLoader, instance: AnonymousClass, **kwargs
+    ) -> bool:
+        """Get conditions on whether it's possible to conclude a value for owl_loader_infer_most_appropriate_types_for_anonymous_instance.output_  of type ."""
+        return True
+
+    return (
+        conditions_for_owl_loader_infer_most_appropriate_types_for_anonymous_instance(
+            **case
+        )
+    )
+
+
+def conclusion_60769889497012087197446453003101494103(case) -> List[type]:
+    def owl_loader_infer_most_appropriate_types_for_anonymous_instance(
+        self_: OwlLoader, instance: AnonymousClass, **kwargs
+    ) -> List[type]:
+        """Get possible value(s) for owl_loader_infer_most_appropriate_types_for_anonymous_instance.output_  of type ."""
+        non_class_fields = get_non_class_attribute_names_of_instance(instance)
+        ds = [self_.metadata.get_descriptor_base(d) for d in non_class_fields]
+        classes_that_satsify_the_axioms = [
+            c
+            for d in ds
+            if d is not None
+            for c in d.all_domains[d]
+            if hasattr(c, "axiom") and has_solution(instance, c.axiom)
+        ]
+        return get_most_specific_types(classes_that_satsify_the_axioms)
 
     return owl_loader_infer_most_appropriate_types_for_anonymous_instance(**case)
