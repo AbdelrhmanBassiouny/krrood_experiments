@@ -53,6 +53,29 @@ class Interest(OWL2BenchThing):
 
 
 @dataclass(eq=False)
+class Organization(OWL2BenchThing):
+    has_dean: Set[Person] = field(default_factory=set)
+    has_employee_evaluation_committee: Set[EmployeeEvaluationCommittee] = field(default_factory=set)
+    has_employee: Set[Employee] = field(default_factory=set)
+    has_evaluation_committee: Set[EvaluationCommittee] = field(default_factory=set)
+    has_faculty: Set[Faculty] = field(default_factory=set)
+    has_head: Set[Union[Faculty, Person]] = field(default_factory=set)
+    has_member: Set[Person] = field(default_factory=set)
+    has_part: Set[Organization] = field(default_factory=set)
+    has_student: Set[Student] = field(default_factory=set)
+    has_student_evaluation_committee: Set[StudentEvaluationCommittee] = field(default_factory=set)
+    has_sub_organization: Set[Organization] = field(default_factory=set)
+    has_thesis_evaluation_committee: Set[ThesisEvaluationCommittee] = field(default_factory=set)
+    has_women_college: Set[Organization] = field(default_factory=set)
+    is_affiliated_organization_of: Set[Organization] = field(default_factory=set)
+    is_part_of: Set[Organization] = field(default_factory=set)
+    is_sub_organization_of: Set[Organization] = field(default_factory=set)
+    is_women_college_of: Set[Organization] = field(default_factory=set)
+    org_publication: Set[Publication] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
 class PersonMixinProtocol(OWL2BenchThing):
     dislikes: Set[Interest]
     evaluated_by: Set[EvaluationCommittee]
@@ -122,6 +145,38 @@ class Book(Publication):
 
 
 @dataclass(eq=False)
+class College(Organization):
+    has_college_discipline: Set[CollegeDiscipline] = field(default_factory=set)
+    has_department: Set[Department] = field(default_factory=set)
+    has_head: Set[Dean] = field(default_factory=set)
+    is_college_of: Set[University] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
+class Department(Organization):
+    has_assistant_professor: Set[AssistantProfessor] = field(default_factory=set)
+    has_associate_professor: Set[AssociateProfessor] = field(default_factory=set)
+    has_clerical_staff: Set[ClericalStaff] = field(default_factory=set)
+    has_full_professor: Set[FullProfessor] = field(default_factory=set)
+    has_head: Set[Chair] = field(default_factory=set)
+    has_lecturer: Set[Lecturer] = field(default_factory=set)
+    has_other_staff: Set[OtherStaff] = field(default_factory=set)
+    has_pg_program: Set[PGProgram] = field(default_factory=set)
+    has_ph_d_program: Set[PhDProgram] = field(default_factory=set)
+    has_post_doc: Set[PostDoc] = field(default_factory=set)
+    has_professor: Set[Professor] = field(default_factory=set)
+    has_program: Set[Program] = field(default_factory=set)
+    has_supporting_staff: Set[SupportingStaff] = field(default_factory=set)
+    has_system_staff: Set[SystemStaff] = field(default_factory=set)
+    has_ug_program: Set[UGProgram] = field(default_factory=set)
+    has_visiting_professor: Set[VisitingProfessor] = field(default_factory=set)
+    is_department_of: Set[College] = field(default_factory=set)
+    offer_course: Set[Course] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
 class ElectiveCourse(Course):
     ...
 
@@ -172,6 +227,12 @@ class HumanitiesAndSocial(CollegeDiscipline):
 
 
 @dataclass(eq=False)
+class Institute(Organization):
+    ...
+
+
+
+@dataclass(eq=False)
 class Man(Person):
     ...
 
@@ -198,29 +259,6 @@ class Movie(Interest):
 @dataclass(eq=False)
 class Music(Interest):
     ...
-
-
-
-@dataclass(eq=False)
-class Organization(Program):
-    has_dean: Set[Person] = field(default_factory=set)
-    has_employee_evaluation_committee: Set[EmployeeEvaluationCommittee] = field(default_factory=set)
-    has_employee: Set[Employee] = field(default_factory=set)
-    has_evaluation_committee: Set[EvaluationCommittee] = field(default_factory=set)
-    has_faculty: Set[Faculty] = field(default_factory=set)
-    has_head: Set[Union[Faculty, Person]] = field(default_factory=set)
-    has_member: Set[Person] = field(default_factory=set)
-    has_part: Set[Organization] = field(default_factory=set)
-    has_student: Set[Student] = field(default_factory=set)
-    has_student_evaluation_committee: Set[StudentEvaluationCommittee] = field(default_factory=set)
-    has_sub_organization: Set[Organization] = field(default_factory=set)
-    has_thesis_evaluation_committee: Set[ThesisEvaluationCommittee] = field(default_factory=set)
-    has_women_college: Set[Organization] = field(default_factory=set)
-    is_affiliated_organization_of: Set[Organization] = field(default_factory=set)
-    is_part_of: Set[Organization] = field(default_factory=set)
-    is_sub_organization_of: Set[Organization] = field(default_factory=set)
-    is_women_college_of: Set[Organization] = field(default_factory=set)
-    org_publication: Set[Publication] = field(default_factory=set)
 
 
 
@@ -254,7 +292,21 @@ class Reading(Interest):
 
 
 @dataclass(eq=False)
+class ResearchGroup(Organization):
+    has_research_assistant: Set[ResearchAssistant] = field(default_factory=set)
+    has_research_project: Set[ResearchProject] = field(default_factory=set)
+    is_research_group_of: Set[University] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
 class ResearchProject(Work):
+    ...
+
+
+
+@dataclass(eq=False)
+class School(Organization):
     ...
 
 
@@ -337,6 +389,14 @@ class UGCourse(Course):
 @dataclass(eq=False)
 class UGProgram(Program):
     ...
+
+
+
+@dataclass(eq=False)
+class University(Organization):
+    has_alumnus: Set[Person] = field(default_factory=set)
+    has_college: Set[College] = field(default_factory=set)
+    has_research_group: Set[ResearchGroup] = field(default_factory=set)
 
 
 
@@ -437,11 +497,8 @@ class CivilEngineering(Engineering):
 
 
 @dataclass(eq=False)
-class College(Organization):
-    has_college_discipline: Set[CollegeDiscipline] = field(default_factory=set)
-    has_department: Set[Department] = field(default_factory=set)
-    has_head: Set[Dean] = field(default_factory=set)
-    is_college_of: Set[University] = field(default_factory=set)
+class CoEdCollege(College):
+    ...
 
 
 
@@ -466,29 +523,6 @@ class ConferencePaper(Article):
 @dataclass(eq=False)
 class Cricket(Sports):
     ...
-
-
-
-@dataclass(eq=False)
-class Department(Organization):
-    has_assistant_professor: Set[AssistantProfessor] = field(default_factory=set)
-    has_associate_professor: Set[AssociateProfessor] = field(default_factory=set)
-    has_clerical_staff: Set[ClericalStaff] = field(default_factory=set)
-    has_full_professor: Set[FullProfessor] = field(default_factory=set)
-    has_head: Set[Chair] = field(default_factory=set)
-    has_lecturer: Set[Lecturer] = field(default_factory=set)
-    has_other_staff: Set[OtherStaff] = field(default_factory=set)
-    has_pg_program: Set[PGProgram] = field(default_factory=set)
-    has_ph_d_program: Set[PhDProgram] = field(default_factory=set)
-    has_post_doc: Set[PostDoc] = field(default_factory=set)
-    has_professor: Set[Professor] = field(default_factory=set)
-    has_program: Set[Program] = field(default_factory=set)
-    has_supporting_staff: Set[SupportingStaff] = field(default_factory=set)
-    has_system_staff: Set[SystemStaff] = field(default_factory=set)
-    has_ug_program: Set[UGProgram] = field(default_factory=set)
-    has_visiting_professor: Set[VisitingProfessor] = field(default_factory=set)
-    is_department_of: Set[College] = field(default_factory=set)
-    offer_course: Set[Course] = field(default_factory=set)
 
 
 
@@ -571,12 +605,6 @@ class Humanities(HumanitiesAndSocial):
 
 @dataclass(eq=False)
 class IndustryEngineering(Engineering):
-    ...
-
-
-
-@dataclass(eq=False)
-class Institute(Organization):
     ...
 
 
@@ -744,14 +772,6 @@ class ResearchAssistant(Employee):
 
 
 @dataclass(eq=False)
-class ResearchGroup(Organization):
-    has_research_assistant: Set[ResearchAssistant] = field(default_factory=set)
-    has_research_project: Set[ResearchProject] = field(default_factory=set)
-    is_research_group_of: Set[University] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
 class RiskManagement(Management):
     ...
 
@@ -759,12 +779,6 @@ class RiskManagement(Management):
 
 @dataclass(eq=False)
 class SalesManagement(Management):
-    ...
-
-
-
-@dataclass(eq=False)
-class School(Organization):
     ...
 
 
@@ -843,21 +857,13 @@ class UGStudent(Student):
 
 
 @dataclass(eq=False)
-class University(Organization):
-    has_alumnus: Set[Person] = field(default_factory=set)
-    has_college: Set[College] = field(default_factory=set)
-    has_research_group: Set[ResearchGroup] = field(default_factory=set)
+class WomanCollege(College):
+    has_student: Set[Woman] = field(default_factory=set)
 
 
 
 @dataclass(eq=False)
 class ClericalStaff(SupportingStaff):
-    ...
-
-
-
-@dataclass(eq=False)
-class CoEdCollege(College):
     ...
 
 
@@ -894,12 +900,6 @@ class Professor(ProfessorMixinProtocol):
 @dataclass(eq=False)
 class SystemStaff(SupportingStaff):
     ...
-
-
-
-@dataclass(eq=False)
-class WomanCollege(College):
-    has_student: Set[Woman] = field(default_factory=set)
 
 
 
