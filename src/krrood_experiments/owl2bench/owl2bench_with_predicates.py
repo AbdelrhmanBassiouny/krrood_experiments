@@ -33,6 +33,10 @@ class Course(OWL2BenchThing):
 				IsSubClassOf(variable_from(candidate_var.is_taught_by.types), Faculty)
         )
 
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'is_taught_by') and any(issubclass(t, Faculty) for attr in candidate.is_taught_by for t in attr.types)
+
 
 @dataclass(eq=False)
 class EvaluationCommittee(OWL2BenchThing):
@@ -73,6 +77,10 @@ class Organization(OWL2BenchThing):
 				IsSubClassOf(variable_from(candidate_var.has_employee.types), Employee)
         )
 
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'has_employee') and any(issubclass(t, Employee) for attr in candidate.has_employee for t in attr.types)
+
 
 @dataclass(eq=False)
 class Person(OWL2BenchThing):
@@ -111,6 +119,10 @@ class Program(OWL2BenchThing):
         return (HasAttribute(candidate_var, 'has_head'),
 				IsSubClassOf(variable_from(candidate_var.has_head.types), Director)
         )
+
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'has_head') and any(issubclass(t, Director) for attr in candidate.has_head for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -153,6 +165,10 @@ class College(Organization):
 				IsSubClassOf(variable_from(candidate_var.has_head.types), Dean)
         )
 
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'has_head') and any(issubclass(t, Dean) for attr in candidate.has_head for t in attr.types)
+
 
 @dataclass(eq=False)
 class Department(Organization):
@@ -181,6 +197,10 @@ class Department(Organization):
         return (HasAttribute(candidate_var, 'has_head'),
 				IsSubClassOf(variable_from(candidate_var.has_head.types), Chair)
         )
+
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'has_head') and any(issubclass(t, Chair) for attr in candidate.has_head for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -211,6 +231,10 @@ class Employee(Role[Person], Symbol):
         return (HasAttribute(candidate_var, 'works_for'),
 				IsSubClassOf(variable_from(candidate_var.works_for.types), Organization)
         )
+
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'works_for') and any(issubclass(t, Organization) for attr in candidate.works_for for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -297,6 +321,10 @@ class PeopleWithHobby(Role[Person], Symbol):
 				IsSubClassOf(variable_from(candidate_var.likes.types), Interest)
         )
 
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'likes') and any(issubclass(t, Interest) for attr in candidate.likes for t in attr.types)
+
 
 @dataclass(eq=False)
 class PhDProgram(Program):
@@ -364,6 +392,10 @@ class SportsFan(Role[Person], Symbol):
 				IsSubClassOf(variable_from(candidate_var.is_crazy_about.types), Sports)
         )
 
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'is_crazy_about') and any(issubclass(t, Sports) for attr in candidate.is_crazy_about for t in attr.types)
+
 
 @dataclass(eq=False)
 class SportsLover(Role[Person], Symbol):
@@ -382,6 +414,10 @@ class SportsLover(Role[Person], Symbol):
         return (HasAttribute(candidate_var, 'loves'),
 				IsSubClassOf(variable_from(candidate_var.loves.types), Sports)
         )
+
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'loves') and any(issubclass(t, Sports) for attr in candidate.loves for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -404,6 +440,10 @@ class Student(Role[Person], Symbol):
         return (HasAttribute(candidate_var, 'enroll_in'),
 				IsSubClassOf(variable_from(candidate_var.enroll_in.types), Department)
         )
+
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'enroll_in') and any(issubclass(t, Department) for attr in candidate.enroll_in for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -455,6 +495,10 @@ class Woman(Person):
 				IsSubClassOf(variable_from(candidate_var.is_student_of.types), WomanCollege)
         )
 
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'is_student_of') and any(issubclass(t, WomanCollege) for attr in candidate.is_student_of for t in attr.types)
+
 
 @dataclass(eq=False)
 class AeronauticalEngineering(Engineering):
@@ -502,6 +546,10 @@ class BasketBallFan(SportsFan):
 				IsSubClassOf(variable_from(candidate_var.is_crazy_about.types), BasketBall)
         )
 
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'is_crazy_about') and any(issubclass(t, BasketBall) for attr in candidate.is_crazy_about for t in attr.types)
+
 
 @dataclass(eq=False)
 class BasketBallLover(SportsLover):
@@ -513,6 +561,10 @@ class BasketBallLover(SportsLover):
         return (HasAttribute(candidate_var, 'loves'),
 				IsSubClassOf(variable_from(candidate_var.loves.types), BasketBall)
         )
+
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'loves') and any(issubclass(t, BasketBall) for attr in candidate.loves for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -601,6 +653,10 @@ class Faculty(Employee):
         return (HasAttribute(candidate_var, 'teaches_course'),
 				IsSubClassOf(variable_from(candidate_var.teaches_course.types), Course)
         )
+
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'teaches_course') and any(issubclass(t, Course) for attr in candidate.teaches_course for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -729,6 +785,10 @@ class PGStudent(Student):
 				IsSubClassOf(variable_from(candidate_var.enroll_for.types), PGProgram)
         )
 
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'enroll_for') and any(issubclass(t, PGProgram) for attr in candidate.enroll_for for t in attr.types)
+
 
 @dataclass(eq=False)
 class PerformingArts(FineArts):
@@ -750,6 +810,10 @@ class PhDStudent(Student):
         return (HasAttribute(candidate_var, 'enroll_for'),
 				IsSubClassOf(variable_from(candidate_var.enroll_for.types), PhDProgram)
         )
+
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'enroll_for') and any(issubclass(t, PhDProgram) for attr in candidate.enroll_for for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -808,6 +872,10 @@ class ScienceStudent(Student):
 				IsSubClassOf(variable_from(candidate_var.has_major.types), Science)
         )
 
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'has_major') and any(issubclass(t, Science) for attr in candidate.has_major for t in attr.types)
+
 
 @dataclass(eq=False)
 class Statistics(Science):
@@ -840,6 +908,10 @@ class T20CricketFan(SportsFan):
 				IsSubClassOf(variable_from(candidate_var.is_crazy_about.types), Cricket)
         )
 
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'is_crazy_about') and any(issubclass(t, Cricket) for attr in candidate.is_crazy_about for t in attr.types)
+
 
 @dataclass(eq=False)
 class TeachingAssistant(Role[Student], Symbol):
@@ -858,6 +930,10 @@ class TeachingAssistant(Role[Student], Symbol):
         return (HasAttribute(candidate_var, 'is_teaching_assistant_of'),
 				IsSubClassOf(variable_from(candidate_var.is_teaching_assistant_of.types), Course)
         )
+
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'is_teaching_assistant_of') and any(issubclass(t, Course) for attr in candidate.is_teaching_assistant_of for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -892,6 +968,10 @@ class UGStudent(Student):
 				IsSubClassOf(variable_from(candidate_var.enroll_for.types), UGProgram)
         )
 
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'enroll_for') and any(issubclass(t, UGProgram) for attr in candidate.enroll_for for t in attr.types)
+
 
 @dataclass(eq=False)
 class WomanCollege(College):
@@ -903,6 +983,10 @@ class WomanCollege(College):
         return (HasAttribute(candidate_var, 'has_student'),
 				IsSubClassOf(variable_from(candidate_var.has_student.types), Woman)
         )
+
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'has_student') and any(issubclass(t, Woman) for attr in candidate.has_student for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -988,6 +1072,10 @@ class Chair(Role[FullProfessor], Symbol):
 				IsSubClassOf(variable_from(candidate_var.is_head_of.types), Department)
         )
 
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'is_head_of') and any(issubclass(t, Department) for attr in candidate.is_head_of for t in attr.types)
+
 
 @dataclass(eq=False)
 class Dean(Role[FullProfessor], Symbol):
@@ -1007,6 +1095,10 @@ class Dean(Role[FullProfessor], Symbol):
 				IsSubClassOf(variable_from(candidate_var.is_head_of.types), College)
         )
 
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'is_head_of') and any(issubclass(t, College) for attr in candidate.is_head_of for t in attr.types)
+
 
 @dataclass(eq=False)
 class Director(Role[FullProfessor], Symbol):
@@ -1025,6 +1117,10 @@ class Director(Role[FullProfessor], Symbol):
         return (HasAttribute(candidate_var, 'is_head_of'),
 				IsSubClassOf(variable_from(candidate_var.is_head_of.types), Program)
         )
+
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'is_head_of') and any(issubclass(t, Program) for attr in candidate.is_head_of for t in attr.types)
 
 
 
