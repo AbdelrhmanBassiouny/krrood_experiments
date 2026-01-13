@@ -1,6 +1,6 @@
-from typing_extensions import Any, Dict
-from ripple_down_rules.helpers import general_rdr_classify
 from ripple_down_rules.datastructures.case import Case, create_case
+from ripple_down_rules.helpers import general_rdr_classify
+from typing_extensions import Any, Dict
 from . import owl_loader_infer_most_appropriate_types_for_anonymous_instance_output__mcrdr as output__classifier
 
 name = 'output_'

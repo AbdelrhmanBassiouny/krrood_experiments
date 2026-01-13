@@ -18,6 +18,7 @@ from krrood.class_diagrams.utils import (
     Role,
     role_aware_nearest_common_ancestor,
     sort_classes_by_role_aware_inheritance_path_length,
+    role_aware_inheritance_path_length,
 )
 from krrood.entity_query_language.entity import has_solution
 from krrood.entity_query_language.predicate import Symbol
@@ -32,7 +33,7 @@ from rdflib import RDF, URIRef, Literal, OWL, RDFS
 from ripple_down_rules import RDRDecorator
 from typing_extensions import Set
 
-from krrood_experiments.owl2bench.owl2bench_with_predicates import Engineering
+from krrood_experiments.owl2bench.owl2bench_with_predicates import Engineering, Painting
 from krrood_experiments.utils import (
     get_non_class_attribute_names_of_instance,
     not_none_inheritance_path_length,
@@ -254,10 +255,14 @@ class OwlLoader:
         # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D0FP8"
         # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D0FP4"
         # return "Engineering" in str(case.instance.uri)
-        return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D1FP3"
+        # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D1FP3"
+        return str(case.instance.uri) == "http://benchmark/OWL2Bench#AbstractPainting"
         # return not bool(case.output_)
 
-    target = [Engineering]
+    @staticmethod
+    def target(case: Case):
+        return case.instance.types
+
     metadata: ModelMetadata = field(init=False)
     _type_rdr: ClassVar[RDRDecorator] = RDRDecorator(
         os.path.join(os.path.dirname(__file__), "rdrs"),
@@ -266,6 +271,7 @@ class OwlLoader:
         fit=False,
         update_existing_rules=False,
         ask_now=ask_now,
+        ask_now_target=target,
         use_generated_classifier=True,
         regenerate_model=False,
     )
@@ -284,11 +290,61 @@ class OwlLoader:
         self._assign_all_properties_to_all_instances()
         for instance in copy(self.anonymous_instances).values():
             result = self.infer_most_appropriate_types_for_anonymous_instance(instance)
-            if result:
-                instance.final_sorted_types = list(
-                    sorted(result, key=lambda t: t.__name__)
-                )
+            if not result:
+                continue
+            instance.final_sorted_types = result
+        for instance in copy(self.anonymous_instances).values():
+            for predicate, subjects in self.obj_pred_subj_map[instance.uri].items():
+                obj_role_types = instance.final_sorted_types
+                descriptor_base = self.metadata.get_descriptor_base(predicate)
+                best_subjects = []
+                for i, obj_type in enumerate(obj_role_types):
+                    best_subjects.append(
+                        self._find_best_role_class(descriptor_base, obj_type, predicate)
+                    )
+                for subj in subjects:
+                    all_inferred_types = []
+                    all_inferred_types.extend(subj.final_sorted_types)
+                    all_inferred_types.extend(best_subjects)
+                    most_specific_types = get_most_specific_types(all_inferred_types)
+                    sorted_types = list(
+                        sort_classes_by_role_aware_inheritance_path_length(
+                            tuple(most_specific_types),
+                            common_ancestor=self.metadata.ontology_base_class,
+                            classes_to_remove_from_common_ancestor=(
+                                Symbol,
+                                ABC,
+                                object,
+                            ),
+                        )
+                    )
+                    subj.final_sorted_types = sorted_types
+
         self._create_explicit_instances()
+        for uri, instances in self.registry._by_uri.items():
+            if len(instances) <= 1:
+                continue
+            types = tuple(type(instance) for instance in instances)
+            sorted_types = list(
+                reversed(
+                    sort_classes_by_role_aware_inheritance_path_length(
+                        types,
+                        common_ancestor=self.metadata.ontology_base_class,
+                        classes_to_remove_from_common_ancestor=(
+                            Symbol,
+                            ABC,
+                            object,
+                        ),
+                    )
+                )
+            )
+            sorted_instances = list()
+            for st in sorted_types:
+                for instance in instances:
+                    if type(instance) is st:
+                        sorted_instances.append(instance)
+                        break
+            self.registry._by_uri[uri] = sorted_instances
         self._assign_all_properties()
         return self.registry
 
@@ -750,7 +806,7 @@ class OwlLoader:
             raise ValueError(f"Could not find descriptor for {snake}")
 
         try:
-            new_role_class = self._find_best_role_class(base_desc, obj, snake)
+            new_role_class = self._find_best_role_class(base_desc, type(obj), snake)
         except ValueError:
             import pdbpp
 
@@ -765,15 +821,15 @@ class OwlLoader:
     @staticmethod
     def _find_best_role_class(
         base_desc: Type[PropertyDescriptor],
-        obj: Any,
+        obj_type: Any,
         predicate_name: str,
     ) -> Type:
         """Determines the most appropriate role class for a given descriptor and object.
 
         Args:
             base_desc: The base PropertyDescriptor class.
-            obj: The object instance.
-            predicate_name: The snake_case name of the predicate.
+            obj_type: The object type.
+            predicate_name: The name of the predicate.
 
         Returns:
             The selected role class.
@@ -785,30 +841,29 @@ class OwlLoader:
         if len(possible_roles) == 1:
             return possible_roles[0]
 
-        o_type = type(obj)
         wrapped_field_types = {
             pr: getattr(pr, predicate_name).range
             for pr in possible_roles
             if hasattr(pr, predicate_name)
-            and issubclass_or_role(o_type, getattr(pr, predicate_name).range)
+            and issubclass_or_role(obj_type, getattr(pr, predicate_name).range)
         }
 
         if not wrapped_field_types:
             raise ValueError(
-                f"Could not determine role for {obj} ({o_type}) and predicate {predicate_name} ({base_desc})"
+                f"Could not determine role for ({obj_type}) and predicate {predicate_name} ({base_desc})"
             )
 
         # choose the nearest wrapped field type
         chosen_role = min(
             wrapped_field_types.keys(),
             key=lambda k: not_none_inheritance_path_length(
-                wrapped_field_types[k], o_type
+                wrapped_field_types[k], obj_type
             ),
         )
 
         if chosen_role is None:
             raise ValueError(
-                f"Could not determine role for {obj} ({o_type}) and predicate {predicate_name} ({base_desc})"
+                f"Could not determine role for ({obj_type}) and predicate {predicate_name} ({base_desc})"
             )
         return chosen_role
 
@@ -825,9 +880,9 @@ class OwlLoader:
             The role instance.
         """
         for er in existing_roles:
-            if issubclass_or_role(er, role_class):
+            if issubclass_or_role(type(er), role_class):
                 return er
-        self._get_matching_role(existing_roles, role_class)
+        # self._get_matching_role(existing_roles, role_class)
         kwargs = self._get_common_role_taker_kwargs(existing_roles, role_class)
         uri = existing_roles[0].uri
         return self.registry.get_or_create_for(
