@@ -1836,6 +1836,9 @@ class CodeGenerator:
                 list(initial), self.onto.classes, "all_base_classes", "role_taker"
             )
 
+        if "roleFor" in self.onto.properties:
+            del self.onto.properties["roleFor"]
+
         prop_classes = {
             k: v for k, v in self.onto.properties.items() if not v.is_specialized
         }
@@ -1933,10 +1936,6 @@ class CodeGenerator:
                     self.onto.properties[dj_prop_name].descriptor_name
                 )
 
-        if "roleFor" in self.onto.properties:
-            self.onto.properties["roleFor"].base_descriptors.append(
-                RoleForMixin.__name__
-            )
         for prop_name, prop_info in self.onto.properties.items():
             if prop_info.chain_axioms:
                 prop_info.base_descriptors.append(HasChainAxioms.__name__)
