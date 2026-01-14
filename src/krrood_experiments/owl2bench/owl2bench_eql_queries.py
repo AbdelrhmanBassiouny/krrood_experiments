@@ -143,7 +143,7 @@ def get_eql_queries(
     o = variable(Organization, domain=None)
     z = flatten(o.has_dean)
     c = flatten(z.teaches_course)
-    q22 = an(set_of(s, c).where(contains(s.takes_course, c)))
+    q22 = an(set_of(s, c).where(contains(s.takes_course, c)).distinct(s.uri, c.uri))
     q22 = QueryWithSelectables(q22, {"s": s, "c": c}, 22)
 
     eql_queries = [
@@ -159,7 +159,7 @@ def get_eql_queries(
         q15,
         q16,
         q19,
-        # q20,
+        q20,
         q21,
         q22,
     ]

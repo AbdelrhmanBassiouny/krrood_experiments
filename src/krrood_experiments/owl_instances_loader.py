@@ -263,7 +263,8 @@ class OwlLoader:
         # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D0FP4"
         # return "Engineering" in str(case.instance.uri)
         # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D1FP3"
-        return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D0FP4"
+        # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D0FP4"
+        return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D2PGS0"
         # return not bool(case.output_)
 
     target = [Engineering]

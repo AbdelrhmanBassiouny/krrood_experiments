@@ -11,6 +11,7 @@ from typing import List, Any, Tuple, TYPE_CHECKING
 from krrood.entity_query_language.symbolic import An, UnificationDict
 from owlrl import DeductiveClosure, OWLRL_Semantics
 from rdflib import Graph
+from sqlalchemy.sql.operators import contains
 from typing_extensions import Dict
 
 from .owl_instances_loader import (
@@ -132,16 +133,16 @@ def evaluate_eql(
     for i, q in enumerate(eql_queries):
         start_time = time.time()
         result = list(q.evaluate())
-        if i == 6:
-            result_uris = [tuple((k, v.uri) for k, v in res.items()) for res in result]
-            seen_res = set()
-            for res in result_uris:
-                if res in seen_res:
-                    import pdbpp
-
-                    pdbpp.set_trace()
-                else:
-                    seen_res.add(res)
+        # if i == 13:
+        #     result_uris = [tuple((k, v.uri) for k, v in res.items()) for res in result]
+        #     seen_res = set()
+        #     for res in result_uris:
+        #         if res in seen_res:
+        #             import pdbpp
+        #
+        #             pdbpp.set_trace()
+        #         else:
+        #             seen_res.add(res)
         times.append(time.time() - start_time)
         counts.append(len(result))
         results[q.id_] = result
@@ -171,7 +172,7 @@ def load_instances_for_lubm_with_predicates() -> OwlInstancesRegistry:
 
 
 def load_instances_for_owl2bench_with_predicates(
-    reasoned: bool = False,
+    reasoned: bool = False, clean: bool = True
 ) -> OwlInstancesRegistry:
     """Load instances from the given path and add them to the given model module."""
     suffix = ".owl" if not reasoned else ".rdf"
@@ -191,7 +192,11 @@ def load_instances_for_owl2bench_with_predicates(
         "refactored_ontologies",
     )
     files = [
-        f.name for f in folder_path.iterdir() if f.is_file() and f.suffix == suffix
+        f.name
+        for f in folder_path.iterdir()
+        if f.is_file()
+        and f.suffix == suffix
+        and (not clean or contains(f.name, "clean"))
     ]
     registry = OwlLoader.load_multi_file_instances(
         [os.path.join(folder_path, file) for file in files],
