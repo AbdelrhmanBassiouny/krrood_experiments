@@ -69,11 +69,11 @@ class OwlInstancesRegistry:
             # If an instance of the desired factory already exists, return it
             return [i for i in instances if isinstance(i, factory)][0]
 
-        role_taker_association, role_taker = OwlLoader.get_and_construct_role_taker(
-            factory, uri, symbol_graph, **kwargs
+        role_taker_field, role_taker = OwlLoader.get_and_construct_role_taker(
+            self, factory, uri, symbol_graph, **kwargs
         )
-        if role_taker_association:
-            kwargs[role_taker_association.field.public_name] = role_taker
+        if role_taker_field:
+            kwargs[role_taker_field.name] = role_taker
 
         inst = factory(*args, **kwargs)
 
@@ -255,7 +255,8 @@ class OwlLoader:
         # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D0FP8"
         # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D0FP4"
         # return "Engineering" in str(case.instance.uri)
-        return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D1FP3"
+        # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D1FP3"
+        return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D0FP4"
         # return not bool(case.output_)
 
     target = [Engineering]
@@ -286,10 +287,43 @@ class OwlLoader:
         for instance in copy(self.anonymous_instances).values():
             result = self.infer_most_appropriate_types_for_anonymous_instance(instance)
             if result:
+                result = get_most_specific_types(result)
                 instance.final_sorted_types = list(
-                    sorted(result, key=lambda t: t.__name__)
+                    sort_classes_by_role_aware_inheritance_path_length(
+                        tuple(result),
+                        common_ancestor=self.metadata.ontology_base_class,
+                        classes_to_remove_from_common_ancestor=(
+                            Symbol,
+                            ABC,
+                            object,
+                        ),
+                    )
                 )
         self._create_explicit_instances()
+        for uri, instances in self.registry._by_uri.items():
+            if len(instances) <= 1:
+                continue
+            types = tuple(type(instance) for instance in instances)
+            sorted_types = list(
+                reversed(
+                    sort_classes_by_role_aware_inheritance_path_length(
+                        types,
+                        common_ancestor=self.metadata.ontology_base_class,
+                        classes_to_remove_from_common_ancestor=(
+                            Symbol,
+                            ABC,
+                            object,
+                        ),
+                    )
+                )
+            )
+            sorted_instances = list()
+            for st in sorted_types:
+                for instance in instances:
+                    if type(instance) is st:
+                        sorted_instances.append(instance)
+                        break
+            self.registry._by_uri[uri] = sorted_instances
         self._assign_all_properties()
         return self.registry
 
@@ -396,6 +430,10 @@ class OwlLoader:
             for o_class in ai.final_sorted_types
         )
         for s, py_cls in so_iterator:
+            if str(s) == "http://benchmark/OWL2Bench#U0C0D0FP4":
+                import pdbpp
+
+                pdbpp.set_trace()
             existing_roles = self.registry.resolve(s)
             kwargs = self._get_common_role_taker_kwargs(existing_roles, py_cls)
             self.registry.get_or_create_for(s, py_cls, self.symbol_graph, **kwargs)
@@ -875,7 +913,7 @@ class OwlLoader:
 
     @staticmethod
     def get_and_construct_role_taker(
-        cls_: Type, uri_ref: URIRef, symbol_graph: SymbolGraph, **kwargs
+        registry, cls_: Type, uri_ref: URIRef, symbol_graph: SymbolGraph, **kwargs
     ) -> Tuple[Optional[Association], Optional[Symbol]]:
         """Recursively finds or constructs role-takers for a given class.
 
@@ -888,25 +926,20 @@ class OwlLoader:
         Returns:
             A tuple of (Association, RoleTakerInstance) if found/created, else (None, None).
         """
-        role_taker_association = (
-            symbol_graph.class_diagram.get_role_taker_associations_of_cls(cls_)
-        )
-        if not role_taker_association:
+        if not issubclass(cls_, Role):
             return None, None
 
-        role_taker_field = role_taker_association.field
-        if role_taker_field.public_name in kwargs:
+        role_taker_cls = cls_.get_role_taker_type()
+        role_taker_field = cls_.role_taker_field()
+        if role_taker_field.name in kwargs:
             return None, None
 
-        instances_of_role_taker_type = symbol_graph.get_instances_of_type(
-            role_taker_association.target.clazz
-        )
         try:
             role_taker = next(
                 (
                     inst
-                    for inst in instances_of_role_taker_type
-                    if inst.uri == str(uri_ref)
+                    for inst in registry.resolve(uri_ref)
+                    if isinstance(inst, role_taker_cls)
                 ),
                 None,
             )
@@ -915,20 +948,20 @@ class OwlLoader:
 
             pdbpp.set_trace()
         if role_taker:
-            return role_taker_association, role_taker
+            return role_taker_field, role_taker
 
         (
-            inner_role_taker_association,
+            inner_role_taker_field,
             inner_role_taker,
         ) = OwlLoader.get_and_construct_role_taker(
-            role_taker_association.target.clazz, uri_ref, symbol_graph
+            registry, role_taker_cls, uri_ref, symbol_graph
         )
-        if inner_role_taker_association:
-            kwargs[inner_role_taker_association.field.public_name] = inner_role_taker
-        role_taker = role_taker_association.target.clazz(**kwargs)
+        if inner_role_taker_field:
+            kwargs[inner_role_taker_field.name] = inner_role_taker
+        role_taker = role_taker_cls(**kwargs)
         role_taker.uri = str(uri_ref)
 
-        return role_taker_association, role_taker
+        return role_taker_field, role_taker
 
     @staticmethod
     def create_symbol_graph(
