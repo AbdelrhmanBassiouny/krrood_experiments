@@ -351,7 +351,7 @@ class OwlLoader:
                 for i, node in enumerate(comp[:-1]):
                     node_instance = descriptor_induced_subgraph[node]
                     descriptor_instance: PropertyDescriptor = (
-                        descriptor_type.get_descriptor_instances_for_domain_types(
+                        descriptor_type.get_descriptor_instance_for_domain_type(
                             node_instance.instance_type
                         )
                     )

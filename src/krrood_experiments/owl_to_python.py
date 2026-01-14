@@ -957,12 +957,12 @@ class InferenceEngine:
                 node = coll
                 while node and node != RDF.nil:
                     first = self.onto.graph.value(node, RDF.first)
-                    self._restrictions_handler(cls_name, first)
+                    restriction_added = self._restrictions_handler(cls_name, first)
                     covered_restrictions.add(first)
                     on_prop = (
                         self.onto.graph.value(first, OWL.onProperty) if first else None
                     )
-                    if on_prop:
+                    if on_prop and restriction_added:
                         prop_name = NamingRegistry.uri_to_python_name(
                             on_prop, self.onto.graph
                         )
@@ -1003,10 +1003,10 @@ class InferenceEngine:
         :param node: The restriction node.
         """
         if not node:
-            return
+            return True
         on_prop = self.onto.graph.value(node, OWL.onProperty)
         if not on_prop:
-            return
+            return True
         description_for = self.onto.description_for(for_class)
         for_class = description_for or for_class
         prop_name = NamingRegistry.uri_to_python_name(on_prop, self.onto.graph)
@@ -1035,7 +1035,7 @@ class InferenceEngine:
                         cls_info.role_taker = RoleTakerInfo(
                             rng_name, NamingRegistry.to_snake_case(rng_name)
                         )
-                    return
+                    return True
                 if rng_name is None:
                     if self.onto.graph.value(value_type, OWL.complementOf):
                         complement_of = self.onto.graph.value(
@@ -1052,9 +1052,23 @@ class InferenceEngine:
                                 complement_rng_name
                             ].disjoint_with[0]
                         else:
-                            return
+                            return True
                     else:
-                        return
+                        return True
+                existing_ranges = self.property_maps.rng_map.get(prop_name, set())
+                contesting_ranges = set(existing_ranges)
+                for dom_cls, pred_obj in self.onto.property_restrictions.items():
+                    if prop_name in pred_obj:
+                        for er in existing_ranges:
+                            if er in pred_obj[prop_name]:
+                                contesting_ranges.remove(er)
+                if contesting_ranges and not any(
+                    cr in self.onto.classes[rng_name].all_base_classes + [rng_name]
+                    for cr in contesting_ranges
+                ):
+                    self.property_maps.dom_map[prop_name].remove(for_class)
+                    return False
+
                 self.property_maps.rng_map[prop_name].add(rng_name)
                 rng_uri = (
                     value_type
@@ -1097,6 +1111,7 @@ class InferenceEngine:
                     )
             except Exception as e:
                 logger.warning(f"[owl_to_python] Error processing restriction: {e}")
+            return True
 
     def _propagate_types(self):
         """

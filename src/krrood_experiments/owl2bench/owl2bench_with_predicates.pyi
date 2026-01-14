@@ -408,7 +408,7 @@ class UnofficialPublication(Publication):
 
 @dataclass(eq=False)
 class Woman(Person):
-    is_student_of: Set[WomanCollege] = field(default_factory=set)
+    ...
 
 
 
@@ -858,7 +858,7 @@ class UGStudent(Student):
 
 @dataclass(eq=False)
 class WomanCollege(College):
-    has_student: Set[Woman] = field(default_factory=set)
+    ...
 
 
 

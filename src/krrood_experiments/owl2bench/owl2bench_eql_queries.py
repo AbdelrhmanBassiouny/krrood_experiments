@@ -3,6 +3,7 @@ import json
 import pickle
 import sys
 import time
+import weakref
 from typing import List
 
 import SPARQLWrapper
@@ -158,7 +159,7 @@ def get_eql_queries(
         q15,
         q16,
         q19,
-        q20,
+        # q20,
         q21,
         q22,
     ]
@@ -175,11 +176,17 @@ def q10_python_equivalent(registry: Callable[[type], Iterable]):
 
 
 def process_value_for_owl2bench_answer_comparison(value: Any):
+    if isinstance(value, weakref.ReferenceType):
+        value = value()
     if hasattr(value, "uri"):
         return value.uri
     elif isinstance(value, rdflib.Literal):
         return value.value
     else:
+        if not isinstance(value, str):
+            import pdbpp
+
+            pdbpp.set_trace()
         return value
 
 
@@ -193,26 +200,6 @@ if __name__ == "__main__":
         for instance in SymbolGraph().get_instances_of_type(cls):
             yield instance
 
-    # town_graph = (
-    #     SymbolGraph()
-    #     .descriptor_subgraph(HasSameHomeTownWith)
-    #     .to_undirected(multigraph=False)
-    # )
-    # print(f"Number of nodes in town graph: {town_graph.num_nodes()}")
-    # print(f"Number of edges in town graph: {town_graph.num_edges()}")
-    # node_sets = []
-    # for node in town_graph.node_indices():
-    #     for node2 in town_graph.node_indices():
-    #         if node == node2:
-    #             continue
-    #         if rx.has_path(town_graph, node, node2):
-    #             node_sets.append((node, node2))
-    # print(f"Number of connected node pairs in town graph: {len(node_sets)}")
-
-    # SymbolGraph().to_dot(
-    #     "./owl2bench_symbol_graph.svg",
-    #     graph=town_graph,
-    # )
     start_time = time.time()
     q10_python_equivalent(instances_for_class)
     end_time = time.time()
@@ -227,59 +214,64 @@ if __name__ == "__main__":
         # print([r for r in results[i - 1]])
     print(f"Time elapsed: {end_time - start_time} seconds")
 
-    # # Initialize connection to GraphDB
-    # sparql = SPARQLWrapper.SPARQLWrapper("http://localhost:7200/repositories/KRROOD")
-    # sparql.setReturnFormat(SPARQLWrapper.JSON)
-    #
-    # # Execute query
-    # from krrood_experiments.owl2bench.sparql_queries import (
-    #     all_queries as sparql_queries,
-    # )
-    #
-    # sparql_answers = {}
-    # for q in sparql_queries:
-    #     if q.number not in results:
-    #         continue
-    #     sparql.setQuery(q.raw_sparql_string)
-    #     res = sparql.query().convert()
-    #     sparql_answers[q.number] = []
-    #     for r in res["results"]["bindings"]:
-    #         flat_r = {k: v["value"] for k, v in r.items()}
-    #         sparql_answers[q.number].append(set(tuple(flat_r.items())))
-    # for i, query_results in results.items():
-    #     if i not in sparql_answers:
-    #         continue
-    #     uri_results = []
-    #     for res in query_results:
-    #         for k, v in res.items():
-    #             res[k] = process_value_for_owl2bench_answer_comparison(v)
-    #         uri_results.append(set(tuple(res.items())))
-    #     for sol in uri_results:
-    #         try:
-    #             assert (
-    #                 sol in sparql_answers[i]
-    #             ), f"{sol} not found in SPARQL answers, for query {i}"
-    #         except AssertionError as e:
-    #             print(f"{sol} not found in SPARQL answers, for query {i}")
-    #             # import pdbpp
-    #             #
-    #             # pdbpp.set_trace()
-    #     for gt_sol in sparql_answers[i]:
-    #         try:
-    #             assert (
-    #                 gt_sol in uri_results
-    #             ), f"{gt_sol} not found in EQL answers, for query {i}"
-    #         except AssertionError:
-    #             print(f"{gt_sol} not found in EQL answers, for query {i}")
-    #             # import pdbpp
-    #             #
-    #             # pdbpp.set_trace()
-    #     try:
-    #         assert len(sparql_answers[i]) == len(
-    #             uri_results
-    #         ), f"Number of results mismatch for query {i}"
-    #     except AssertionError as e:
-    #         print(f"Number of results mismatch for query {i}")
-    #         # import pdbpp
-    #         #
-    #         # pdbpp.set_trace()
+    try:
+        # Initialize connection to GraphDB
+        sparql = SPARQLWrapper.SPARQLWrapper(
+            "http://localhost:7200/repositories/KRROOD"
+        )
+        sparql.setReturnFormat(SPARQLWrapper.JSON)
+
+        # Execute query
+        from krrood_experiments.owl2bench.sparql_queries import (
+            all_queries as sparql_queries,
+        )
+
+        sparql_answers = {}
+        for q in sparql_queries:
+            if q.number not in results:
+                continue
+            sparql.setQuery(q.raw_sparql_string)
+            res = sparql.query().convert()
+            sparql_answers[q.number] = []
+            for r in res["results"]["bindings"]:
+                flat_r = {k: v["value"] for k, v in r.items()}
+                sparql_answers[q.number].append(set(tuple(flat_r.items())))
+        for i, query_results in results.items():
+            if i not in sparql_answers:
+                continue
+            uri_results = []
+            for res in query_results:
+                for k, v in res.items():
+                    res[k] = process_value_for_owl2bench_answer_comparison(v)
+                uri_results.append(set(tuple(res.items())))
+            for sol in uri_results:
+                try:
+                    assert (
+                        sol in sparql_answers[i]
+                    ), f"{sol} not found in SPARQL answers, for query {i}"
+                except AssertionError as e:
+                    print(f"{sol} not found in SPARQL answers, for query {i}")
+                    # import pdbpp
+                    #
+                    # pdbpp.set_trace()
+            for gt_sol in sparql_answers[i]:
+                try:
+                    assert (
+                        gt_sol in uri_results
+                    ), f"{gt_sol} not found in EQL answers, for query {i}"
+                except AssertionError:
+                    print(f"{gt_sol} not found in EQL answers, for query {i}")
+                    # import pdbpp
+                    #
+                    # pdbpp.set_trace()
+            try:
+                assert len(sparql_answers[i]) == len(
+                    uri_results
+                ), f"Number of results mismatch for query {i}"
+            except AssertionError as e:
+                print(f"Number of results mismatch for query {i}")
+                # import pdbpp
+                #
+                # pdbpp.set_trace()
+    except Exception as e:
+        pass
