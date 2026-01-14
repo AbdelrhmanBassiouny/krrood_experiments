@@ -348,11 +348,6 @@ class PublicationResearch(PropertyDescriptor):
 
 
 @dataclass(eq=False)
-class RoleFor(PropertyDescriptor, TransitiveProperty, RoleForMixin):
-    """is a role for"""
-
-
-@dataclass(eq=False)
 class TakesCourse(PropertyDescriptor):
     """TakesCourse"""
 
