@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os.path
+import time
 from abc import ABC
 from collections import defaultdict
 from copy import copy
@@ -25,7 +26,12 @@ from krrood.entity_query_language.symbol_graph import SymbolGraph
 from krrood.ontomatic.property_descriptor.attribute_introspector import (
     DescriptorAwareIntrospector,
 )
-from krrood.ontomatic.property_descriptor.mixins import IsBaseClass
+from krrood.ontomatic.property_descriptor.mixins import (
+    IsBaseClass,
+    TransitiveProperty,
+    SymmetricProperty,
+    IrreflexiveProperty,
+)
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
 from krrood.ormatic.utils import classes_of_module
 from rdflib import RDF, URIRef, Literal, OWL, RDFS
@@ -40,13 +46,14 @@ from krrood_experiments.utils import (
     AnonymousClass,
     get_most_specific_types,
 )
+import rustworkx as rx
 
 logger = logging.Logger("owl_loader")
 logger.setLevel(logging.DEBUG)
 
 # Handler
 handler = logging.StreamHandler()
-handler.setLevel(logging.INFO)  # <-- this filters out DEBUG messages
+handler.setLevel(logging.ERROR)  # <-- this filters out DEBUG messages
 logger.addHandler(handler)
 
 
@@ -325,7 +332,51 @@ class OwlLoader:
                         break
             self.registry._by_uri[uri] = sorted_instances
         self._assign_all_properties()
+        self._add_inferences_from_transitive_symmetric_relations()
         return self.registry
+
+    def _add_inferences_from_transitive_symmetric_relations(self):
+        transitive_symmetric_descriptor_types = [
+            d
+            for p, d in self.metadata.descriptor_by_name.items()
+            if issubclass(d, TransitiveProperty) and issubclass(d, SymmetricProperty)
+        ]
+        for descriptor_type in transitive_symmetric_descriptor_types:
+            descriptor_induced_subgraph = SymbolGraph().descriptor_subgraph(
+                descriptor_type
+            )
+            wcc = rx.weakly_connected_components(descriptor_induced_subgraph)
+            for comp in wcc:
+                comp = list(comp)
+                for i, node in enumerate(comp[:-1]):
+                    node_instance = descriptor_induced_subgraph[node]
+                    descriptor_instance: PropertyDescriptor = (
+                        descriptor_type.get_descriptor_instances_for_domain_types(
+                            node_instance.instance_type
+                        )
+                    )
+                    for node2 in comp[i + 1 :]:
+                        node2_instance = descriptor_induced_subgraph[node2]
+                        # if (
+                        #     node != node2
+                        #     or (not issubclass(descriptor_type, IrreflexiveProperty)
+                        #     and (node, node) not in node_sets)
+                        # ):
+                        #     node_sets.append((node, node2))
+                        # elif rx.has_path(descriptor_induced_subgraph, node, node2):
+                        #     node_sets.append((node, node2))
+                        # else:
+                        #     continue
+                        descriptor_instance.update_value(
+                            node_instance.instance,
+                            node2_instance.instance,
+                            inferred=True,
+                        )
+                        descriptor_instance.update_value(
+                            node2_instance.instance,
+                            node_instance.instance,
+                            inferred=True,
+                        )
 
     @_type_rdr.decorator
     def infer_most_appropriate_types_for_anonymous_instance(
@@ -430,10 +481,6 @@ class OwlLoader:
             for o_class in ai.final_sorted_types
         )
         for s, py_cls in so_iterator:
-            if str(s) == "http://benchmark/OWL2Bench#U0C0D0FP4":
-                import pdbpp
-
-                pdbpp.set_trace()
             existing_roles = self.registry.resolve(s)
             kwargs = self._get_common_role_taker_kwargs(existing_roles, py_cls)
             self.registry.get_or_create_for(s, py_cls, self.symbol_graph, **kwargs)
@@ -490,7 +537,31 @@ class OwlLoader:
 
     def _assign_all_properties(self):
         """Iterates through all triples in the graph and assigns properties to instances."""
-        total = len(self.anonymous_instances) + len(self.literals)
+        skip_ps = [
+            RDF.type,
+            OWL.disjointWith,
+            RDFS.subClassOf,
+            OWL.equivalentClass,
+            OWL.Class,
+        ]
+        # Calculate true total: sum of predicate counts for all subjects
+        total_predicates = sum(
+            sum(
+                [
+                    1
+                    for p, o in self.graph.predicate_objects(anon.uri, unique=True)
+                    if p not in skip_ps
+                ]
+            )
+            for anon in self.anonymous_instances.values()
+        )
+        total_literals = sum(len(p_o) for p_o in self.literals.values())
+        total = total_predicates + total_literals
+
+        max_time = 0
+        slowest_predicate = ""
+        finished = False
+
         with tqdm(total=total, desc="Assigning properties") as pbar:
             for anonymous_subject in self.anonymous_instances.values():
                 for p, o in self.graph.predicate_objects(
@@ -510,15 +581,47 @@ class OwlLoader:
                         raise ValueError(
                             f"Could not find subject roles for {anonymous_subject}"
                         )
+
+                    start = time.time()
                     self._assign_property(subject_roles, predicate_name, o)
-                pbar.update(1)
+                    duration = time.time() - start
+
+                    if duration > max_time:
+                        max_time = duration
+                        slowest_predicate = predicate_name
+                        pbar.set_postfix(
+                            slowest=f"{slowest_predicate} ({max_time:.4f}s)"
+                        )
+
+                    pbar.update(1)
+
+                    # if pbar.n / pbar.total >= 0.4:
+                    #     finished = True
+                    #     break
+                if finished:
+                    break
+            if finished:
+                pbar.close()
+                return
+
             for anonymous_subject, literal_p_o in self.literals.items():
                 for literal_p, literal_v in literal_p_o.items():
                     subject_roles = self._get_subject_roles(anonymous_subject)
                     if not subject_roles:
                         continue
+
+                    start = time.time()
                     self._assign_property(subject_roles, literal_p, literal_v)
-                pbar.update(1)
+                    duration = time.time() - start
+
+                    if duration > max_time:
+                        max_time = duration
+                        slowest_predicate = literal_p
+                        pbar.set_postfix(
+                            slowest=f"{slowest_predicate} ({max_time:.4f}s)"
+                        )
+
+                    pbar.update(1)
 
     def _assign_property(
         self,
