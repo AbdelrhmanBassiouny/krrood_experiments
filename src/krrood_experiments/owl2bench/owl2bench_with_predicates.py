@@ -486,18 +486,7 @@ class UnofficialPublication(Publication):
 
 @dataclass(eq=False)
 class Woman(Person):
-    is_student_of: Set[WomanCollege] = field(kw_only=True, default_factory=set)
-
-    @classmethod
-    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
-        super_axiom, candidate_var = get_super_axiom_and_candidate_var(Woman, cls, candidate)
-        return (HasAttribute(candidate_var, 'is_student_of'),
-				IsSubClassOf(variable_from(candidate_var.is_student_of.types), WomanCollege)
-        )
-
-    @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return hasattr(candidate, 'is_student_of') and any(issubclass(t, WomanCollege) for attr in candidate.is_student_of for t in attr.types)
+    ...
 
 
 @dataclass(eq=False)
@@ -975,18 +964,7 @@ class UGStudent(Student):
 
 @dataclass(eq=False)
 class WomanCollege(College):
-    has_student: Set[Woman] = field(kw_only=True, default_factory=set)
-
-    @classmethod
-    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
-        super_axiom, candidate_var = get_super_axiom_and_candidate_var(WomanCollege, cls, candidate)
-        return (HasAttribute(candidate_var, 'has_student'),
-				IsSubClassOf(variable_from(candidate_var.has_student.types), Woman)
-        )
-
-    @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return hasattr(candidate, 'has_student') and any(issubclass(t, Woman) for attr in candidate.has_student for t in attr.types)
+    ...
 
 
 @dataclass(eq=False)
@@ -1210,7 +1188,6 @@ Student.takes_course = TakesCourse(Student, 'takes_course')
 University.has_alumnus = HasAlumnus(University, 'has_alumnus')
 University.has_college = HasCollege(University, 'has_college')
 University.has_research_group = HasResearchGroup(University, 'has_research_group')
-Woman.is_student_of = IsStudentOf(Woman, 'is_student_of')
 BasketBallFan.is_crazy_about = IsCrazyAbout(BasketBallFan, 'is_crazy_about')
 BasketBallLover.loves = Loves(BasketBallLover, 'loves')
 Faculty.is_faculty_of = IsFacultyOf(Faculty, 'is_faculty_of')
@@ -1222,7 +1199,6 @@ ScienceStudent.has_major = HasMajor(ScienceStudent, 'has_major')
 T20CricketFan.is_crazy_about = IsCrazyAbout(T20CricketFan, 'is_crazy_about')
 TeachingAssistant.is_teaching_assistant_of = IsTeachingAssistantOf(TeachingAssistant, 'is_teaching_assistant_of')
 UGStudent.enroll_for = EnrollFor(UGStudent, 'enroll_for')
-WomanCollege.has_student = HasStudent(WomanCollege, 'has_student')
 Lecturer.is_lecturer_of = IsLecturerOf(Lecturer, 'is_lecturer_of')
 PostDoc.is_post_doc_of = IsPostDocOf(PostDoc, 'is_post_doc_of')
 Professor.is_professor_of = IsProfessorOf(Professor, 'is_professor_of')
