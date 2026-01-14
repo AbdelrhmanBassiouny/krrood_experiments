@@ -1037,15 +1037,18 @@ class OwlLoader:
         if role_taker_field.name in kwargs:
             return None, None
 
+        role_taker = None
         try:
-            role_taker = next(
-                (
-                    inst
-                    for inst in registry.resolve(uri_ref)
-                    if isinstance(inst, role_taker_cls)
-                ),
-                None,
-            )
+            registry_instances = registry.resolve(uri_ref)
+            if registry_instances:
+                role_taker = next(
+                    (
+                        inst
+                        for inst in registry_instances
+                        if isinstance(inst, role_taker_cls)
+                    ),
+                    None,
+                )
         except AttributeError as e:
             import pdbpp
 

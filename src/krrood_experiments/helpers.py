@@ -92,6 +92,8 @@ def generate_owl2bench_with_predicates(clean: bool = False, save_to_file: bool =
     )
     # base_name = "OWL2RL-1"
     base_name = "owl2benchRlFixed"
+    suffix = ".owl"
+    suffix_reasoned = ".rdf"
     file_name = f"{base_name}_clean.owl" if clean else f"{base_name}.owl"
     converter.load_ontology(os.path.join(resources_path, file_name))
     if save_to_file:
