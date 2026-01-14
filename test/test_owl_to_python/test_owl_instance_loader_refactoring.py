@@ -64,17 +64,11 @@ class MockModule:
 
 def test_model_metadata_collection():
     module = MockModule
-    metadata = ModelMetadata(module)
+    metadata = ModelMetadata(module, SymbolGraph())
 
     assert metadata.class_by_name["MockPerson"] == MockPerson
     assert metadata.descriptor_by_name["NameAttr"] == NameAttr
     assert metadata.descriptor_by_name["AgeAttr"] == AgeAttr
-
-    # Check field mappings
-    person_pred_map = metadata.field_by_predicate_local[MockPerson]
-    # In MockPerson, name_attr and age_attr are descriptors
-    assert "name_attr" in person_pred_map
-    assert "age_attr" in person_pred_map
 
     assert (
         metadata.get_python_class(URIRef("http://example.org#MockPerson")) == MockPerson

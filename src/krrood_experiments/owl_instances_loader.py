@@ -30,6 +30,7 @@ from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDes
 from krrood.ormatic.utils import classes_of_module
 from rdflib import RDF, URIRef, Literal, OWL, RDFS
 from ripple_down_rules import RDRDecorator
+from tqdm import tqdm
 from typing_extensions import Set
 
 from krrood_experiments.owl2bench.owl2bench_with_predicates import Engineering
@@ -451,31 +452,35 @@ class OwlLoader:
 
     def _assign_all_properties(self):
         """Iterates through all triples in the graph and assigns properties to instances."""
-        for anonymous_subject in self.anonymous_instances.values():
-            for p, o in self.graph.predicate_objects(
-                anonymous_subject.uri, unique=True
-            ):
-                if p in [
-                    RDF.type,
-                    OWL.disjointWith,
-                    RDFS.subClassOf,
-                    OWL.equivalentClass,
-                    OWL.Class,
-                ]:
-                    continue
-                predicate_name = to_snake(local_name(p))
-                subject_roles = self._get_subject_roles(anonymous_subject.uri)
-                if not subject_roles:
-                    raise ValueError(
-                        f"Could not find subject roles for {anonymous_subject}"
-                    )
-                self._assign_property(subject_roles, predicate_name, o)
-        for anonymous_subject, literal_p_o in self.literals.items():
-            for literal_p, literal_v in literal_p_o.items():
-                subject_roles = self._get_subject_roles(anonymous_subject)
-                if not subject_roles:
-                    continue
-                self._assign_property(subject_roles, literal_p, literal_v)
+        total = len(self.anonymous_instances) + len(self.literals)
+        with tqdm(total=total, desc="Assigning properties") as pbar:
+            for anonymous_subject in self.anonymous_instances.values():
+                for p, o in self.graph.predicate_objects(
+                    anonymous_subject.uri, unique=True
+                ):
+                    if p in [
+                        RDF.type,
+                        OWL.disjointWith,
+                        RDFS.subClassOf,
+                        OWL.equivalentClass,
+                        OWL.Class,
+                    ]:
+                        continue
+                    predicate_name = to_snake(local_name(p))
+                    subject_roles = self._get_subject_roles(anonymous_subject.uri)
+                    if not subject_roles:
+                        raise ValueError(
+                            f"Could not find subject roles for {anonymous_subject}"
+                        )
+                    self._assign_property(subject_roles, predicate_name, o)
+                pbar.update(1)
+            for anonymous_subject, literal_p_o in self.literals.items():
+                for literal_p, literal_v in literal_p_o.items():
+                    subject_roles = self._get_subject_roles(anonymous_subject)
+                    if not subject_roles:
+                        continue
+                    self._assign_property(subject_roles, literal_p, literal_v)
+                pbar.update(1)
 
     def _assign_property(
         self,
@@ -759,7 +764,9 @@ class OwlLoader:
 
         if hasattr(new_role, snake) and self._assign_to_attribute(new_role, snake, obj):
             return
+        import pdbpp
 
+        pdbpp.set_trace()
         raise ValueError(f"Could not assign {obj} to {subj_roles} ({snake})")
 
     @staticmethod
@@ -825,9 +832,8 @@ class OwlLoader:
             The role instance.
         """
         for er in existing_roles:
-            if issubclass_or_role(er, role_class):
+            if issubclass_or_role(type(er), role_class):
                 return er
-        self._get_matching_role(existing_roles, role_class)
         kwargs = self._get_common_role_taker_kwargs(existing_roles, role_class)
         uri = existing_roles[0].uri
         return self.registry.get_or_create_for(
