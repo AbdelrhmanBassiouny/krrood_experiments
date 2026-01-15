@@ -40,6 +40,7 @@ from ripple_down_rules import RDRDecorator
 from tqdm import tqdm
 from typing_extensions import Set
 
+from krrood_experiments.owl2bench.ontomatic.owl_to_python import NamingRegistry
 from krrood_experiments.owl2bench.ontomatic.utils import (
     get_non_class_attribute_names_of_instance,
     not_none_inheritance_path_length,
@@ -318,10 +319,11 @@ class OwlLoader:
         self._index_triples()
         self._create_anonymous_instances_with_explicit_types()
         self._assign_all_properties_to_all_instances()
-        results = self.infer_most_appropriate_types_for_anonymous_instances()
-        for result in results:
-            instance = self.anonymous_instances[result.uri]
-            instance.final_sorted_types.append(result.type)
+        # results = self.infer_most_appropriate_types_for_anonymous_instances()
+        # for result in results:
+        #     instance = self.anonymous_instances[result.uri]
+        #     instance.final_sorted_types.append(result.type)
+        self.infer_all_types()
         for instance in self.anonymous_instances.values():
             result = get_most_specific_types(tuple(instance.final_sorted_types))
             instance.final_sorted_types = list(
@@ -363,6 +365,91 @@ class OwlLoader:
         self._assign_all_properties()
         self._add_inferences_from_transitive_symmetric_relations()
         return self.registry
+
+    def infer_all_types(self):
+        for instance in self.anonymous_instances.values():
+            instance.final_sorted_types = get_most_specific_types(tuple(instance.types))
+        for instance in self.anonymous_instances.values():
+            descriptors = self.get_descriptors_of_instance(instance)
+            if len(descriptors) == 0:
+                py_cls = self.metadata.get_python_class(
+                    NamingRegistry.uri_to_python_name(instance.uri)
+                )
+                if py_cls:
+                    if not any(
+                        issubclass_or_role(t, py_cls)
+                        for t in instance.final_sorted_types
+                    ):
+                        instance.final_sorted_types.append(py_cls)
+
+            for desc in descriptors:
+                domains = desc.all_domains[desc]
+                if len(domains) == 1:
+                    self._update_inferred_types_given_descriptor_domain_and_range(
+                        instance, desc, list(domains)[0]
+                    )
+                    continue
+                domains = list(
+                    reversed(
+                        sort_classes_by_role_aware_inheritance_path_length(
+                            tuple(domains)
+                        )
+                    )
+                )
+                for dom in domains:
+                    if hasattr(dom, "axiom_python") and dom.axiom_python(instance):
+                        self._update_inferred_types_given_descriptor_domain_and_range(
+                            instance, desc, dom
+                        )
+                        break
+                    try:
+                        range_ = desc.get_descriptor_instance_for_domain_type(dom).range
+                    except ValueError:
+                        continue
+                    for range_inst in getattr(instance, desc.get_field_name()):
+                        if any(
+                            issubclass_or_role(it, range_)
+                            for it in range_inst.final_sorted_types
+                        ):
+                            if not any(
+                                issubclass_or_role(t, dom)
+                                for t in instance.final_sorted_types
+                            ):
+                                instance.final_sorted_types.append(dom)
+                            break
+
+    @lru_cache
+    def get_descriptors_of_instance(
+        self, instance: AnonymousClass
+    ) -> List[Type[PropertyDescriptor]]:
+        non_class_fields = get_non_class_attribute_names_of_instance(instance)
+        descriptors = [self.metadata.get_descriptor_base(f) for f in non_class_fields]
+        return [d for d in descriptors if d is not None]
+
+    def _update_inferred_types_given_descriptor_domain_and_range(
+        self,
+        instance: AnonymousClass,
+        desc: Type[PropertyDescriptor],
+        dom: Type,
+        range_: Optional[Type] = None,
+        range_inst: Optional[AnonymousClass] = None,
+    ):
+        if not any(issubclass_or_role(t, dom) for t in instance.final_sorted_types):
+            instance.final_sorted_types.append(dom)
+        if not range_:
+            try:
+                range_ = desc.get_descriptor_instance_for_domain_type(dom).range
+            except ValueError:
+                return
+        if not range_inst:
+            range_instances = getattr(instance, desc.get_field_name())
+        else:
+            range_instances = [range_inst]
+        for range_inst in range_instances:
+            if not any(
+                issubclass_or_role(t, range_) for t in range_inst.final_sorted_types
+            ):
+                range_inst.final_sorted_types.append(range_)
 
     def _add_inferences_from_transitive_symmetric_relations(self):
         transitive_symmetric_descriptor_types = [
@@ -712,9 +799,16 @@ class OwlLoader:
         if len(subj_roles) == 1:
             subj = subj_roles[0]
         else:
-            subj = [
-                s for s in subj_roles if not must_have_attr or hasattr(s, field_name)
-            ][0]
+            try:
+                subj = [
+                    s
+                    for s in subj_roles
+                    if not must_have_attr or hasattr(s, field_name)
+                ][0]
+            except IndexError:
+                import pdbpp
+
+                pdbpp.set_trace()
         if not must_have_attr or hasattr(subj, field_name):
             # Coerce to field annotated type
             try:

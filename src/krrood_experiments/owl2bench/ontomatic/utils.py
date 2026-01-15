@@ -21,7 +21,6 @@ def get_non_class_attribute_names_of_instance(instance: Any) -> Set[str]:
     )
 
 
-@lru_cache
 def get_most_specific_types(types: Iterable[type]) -> List[type]:
     ts = list(dict.fromkeys(types))  # stable unique
     keep = []
