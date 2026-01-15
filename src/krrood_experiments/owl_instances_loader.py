@@ -105,6 +105,7 @@ class OwlInstancesRegistry:
         return self._by_uri.get(uri)
 
 
+@lru_cache(maxsize=None)
 def local_name(uri: Union[str, URIRef]) -> str:
     s = str(uri)
     if "#" in s:
@@ -112,6 +113,7 @@ def local_name(uri: Union[str, URIRef]) -> str:
     return s.rstrip("/").rsplit("/", 1)[-1]
 
 
+@lru_cache(maxsize=None)
 def to_snake(name: str) -> str:
     out = []
     for i, ch in enumerate(name):
@@ -121,6 +123,7 @@ def to_snake(name: str) -> str:
     return "".join(out)
 
 
+@lru_cache(maxsize=None)
 def to_pascal(name: str) -> str:
     parts = []
     cur = []
@@ -246,6 +249,9 @@ class OwlLoader:
     literals: Dict[URIRef, Dict[str, Literal]] = field(
         default_factory=lambda: defaultdict(dict)
     )
+    _triples_by_subject: Dict[URIRef, List[Tuple[URIRef, Any]]] = field(
+        default_factory=lambda: defaultdict(list)
+    )
 
     @dataclass
     class Case:
@@ -253,22 +259,6 @@ class OwlLoader:
         self_: OwlLoader
         output_: List[Type]
 
-    @staticmethod
-    def ask_now(case: Case):
-        # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D2OS3"
-        # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C3D0AP1"
-        # return Symbol in case.output_
-        # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0WC0D3FP8"
-        # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C2D1L8"
-        # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D0FP8"
-        # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D0FP4"
-        # return "Engineering" in str(case.instance.uri)
-        # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D1FP3"
-        # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D0FP4"
-        return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D2PGS0"
-        # return not bool(case.output_)
-
-    target = [Engineering]
     metadata: ModelMetadata = field(init=False)
     _type_rdr: ClassVar[RDRDecorator] = RDRDecorator(
         os.path.join(os.path.dirname(__file__), "rdrs"),
@@ -276,13 +266,18 @@ class OwlLoader:
         False,
         fit=False,
         update_existing_rules=False,
-        ask_now=ask_now,
         use_generated_classifier=True,
         regenerate_model=False,
     )
 
     def __post_init__(self):
         self.metadata = ModelMetadata(self.model_modules, self.symbol_graph)
+
+    def _index_triples(self):
+        """Indexes all triples in the graph for faster lookup by subject."""
+        self._triples_by_subject.clear()
+        for s, p, o in self.graph:
+            self._triples_by_subject[s].append((p, o))
 
     def load(self) -> OwlInstancesRegistry:
         """Parses the OWL file and loads instances into the registry.
@@ -291,6 +286,7 @@ class OwlLoader:
             The populated OwlInstancesRegistry.
         """
         self.graph.parse(self.owl_path)
+        self._index_triples()
         self._create_anonymous_instances_with_explicit_types()
         self._assign_all_properties_to_all_instances()
         for instance in copy(self.anonymous_instances).values():
@@ -450,7 +446,7 @@ class OwlLoader:
 
     def _assign_all_properties_to_instance(self, instance: AnonymousClass):
         """Iterates through all properties of all instances and assigns properties to the instances."""
-        for p, o in self.graph.predicate_objects(subject=instance.uri, unique=True):
+        for p, o in set(self._triples_by_subject[instance.uri]):
             if p in [RDF.type, RDFS.subClassOf, OWL.equivalentClass, OWL.disjointWith]:
                 continue
             field_name = to_snake(local_name(p))
@@ -527,86 +523,63 @@ class OwlLoader:
         if inst is not None:
             return inst
         # Try to infer class from rdf:type triples
-        for _, _, o_class in self.graph.triples((uri, RDF.type, None)):
-            py_cls = self.metadata.get_python_class(o_class)
-            if py_cls is not None:
-                return [self.registry.get_or_create_for(uri, py_cls, self.symbol_graph)]
+        for p, o_class in self._triples_by_subject[uri]:
+            if p == RDF.type:
+                py_cls = self.metadata.get_python_class(o_class)
+                if py_cls is not None:
+                    return [
+                        self.registry.get_or_create_for(uri, py_cls, self.symbol_graph)
+                    ]
         if uri in self.anonymous_instances:
             return [self.anonymous_instances[uri]]
         return None
 
     def _assign_all_properties(self):
         """Iterates through all triples in the graph and assigns properties to instances."""
-        skip_ps = [
+        skip_ps = {
             RDF.type,
             OWL.disjointWith,
             RDFS.subClassOf,
             OWL.equivalentClass,
             OWL.Class,
-        ]
-        # Calculate true total: sum of predicate counts for all subjects
-        total_predicates = sum(
-            sum(
-                [
-                    1
-                    for p, o in self.graph.predicate_objects(anon.uri, unique=True)
-                    if p not in skip_ps
-                ]
-            )
-            for anon in self.anonymous_instances.values()
-        )
+        }
+
+        # Pre-filter triples for anonymous instances to avoid repeated set() calls and predicate_objects lookups
+        filtered_triples = []
+        for anon in self.anonymous_instances.values():
+            triples = set(self._triples_by_subject[anon.uri])
+            for p, o in triples:
+                if p not in skip_ps:
+                    filtered_triples.append((anon.uri, p, o))
+
+        total_predicates = len(filtered_triples)
         total_literals = sum(len(p_o) for p_o in self.literals.values())
         total = total_predicates + total_literals
 
         max_time = 0
         slowest_predicate = ""
-        finished = False
 
         with tqdm(total=total, desc="Assigning properties") as pbar:
-            for anonymous_subject in self.anonymous_instances.values():
-                for p, o in self.graph.predicate_objects(
-                    anonymous_subject.uri, unique=True
-                ):
-                    if p in [
-                        RDF.type,
-                        OWL.disjointWith,
-                        RDFS.subClassOf,
-                        OWL.equivalentClass,
-                        OWL.Class,
-                    ]:
-                        continue
-                    predicate_name = to_snake(local_name(p))
-                    subject_roles = self._get_subject_roles(anonymous_subject.uri)
-                    if not subject_roles:
-                        raise ValueError(
-                            f"Could not find subject roles for {anonymous_subject}"
-                        )
+            for uri, p, o in filtered_triples:
+                predicate_name = to_snake(local_name(p))
+                subject_roles = self._get_subject_roles(uri)
+                if not subject_roles:
+                    raise ValueError(f"Could not find subject roles for {uri}")
 
-                    start = time.time()
-                    self._assign_property(subject_roles, predicate_name, o)
-                    duration = time.time() - start
+                start = time.time()
+                self._assign_property(subject_roles, predicate_name, o)
+                duration = time.time() - start
 
-                    if duration > max_time:
-                        max_time = duration
-                        slowest_predicate = predicate_name
-                        pbar.set_postfix(
-                            slowest=f"{slowest_predicate} ({max_time:.4f}s)"
-                        )
+                if duration > max_time:
+                    max_time = duration
+                    slowest_predicate = predicate_name
+                    pbar.set_postfix(slowest=f"{slowest_predicate} ({max_time:.4f}s)")
 
-                    pbar.update(1)
+                pbar.update(1)
 
-                    # if pbar.n / pbar.total >= 0.4:
-                    #     finished = True
-                    #     break
-                if finished:
-                    break
-            if finished:
-                pbar.close()
-                return
-
-            for anonymous_subject, literal_p_o in self.literals.items():
+            for anonymous_subject_uri, literal_p_o in self.literals.items():
                 for literal_p, literal_v in literal_p_o.items():
-                    subject_roles = self._get_subject_roles(anonymous_subject)
+                    subject_roles = self._get_subject_roles(anonymous_subject_uri)
                     if not subject_roles:
                         continue
 
@@ -835,9 +808,6 @@ class OwlLoader:
         else:
             obj = obj_roles[0] if obj_roles else None
         if obj is None:
-            import pdbpp
-
-            pdbpp.set_trace()
             raise ValueError(f"Could not find object for {subj_roles}.{field_name}")
         subject_roles_with_field_name = [
             s for s in subj_roles if hasattr(s, field_name)
@@ -898,16 +868,11 @@ class OwlLoader:
         try:
             new_role_class = self._find_best_role_class(base_desc, obj, snake)
         except ValueError:
-            import pdbpp
-
-            pdbpp.set_trace()
+            raise
         new_role = self._get_or_create_role_instance(subj_roles, new_role_class)
 
         if hasattr(new_role, snake) and self._assign_to_attribute(new_role, snake, obj):
             return
-        import pdbpp
-
-        pdbpp.set_trace()
         raise ValueError(f"Could not assign {obj} to {subj_roles} ({snake})")
 
     @staticmethod
@@ -1049,10 +1014,8 @@ class OwlLoader:
                     ),
                     None,
                 )
-        except AttributeError as e:
-            import pdbpp
-
-            pdbpp.set_trace()
+        except AttributeError:
+            raise
         if role_taker:
             return role_taker_field, role_taker
 
