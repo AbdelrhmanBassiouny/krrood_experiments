@@ -34,12 +34,6 @@ class CollegeDiscipline(OWL2BenchThing):
 
 
 @dataclass(eq=False)
-class Course(OWL2BenchThing):
-    is_taught_by: Set[Faculty] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
 class EvaluationCommittee(OWL2BenchThing):
     evaluates: Set[Person] = field(default_factory=set)
     has_committee_members: Set[Person] = field(default_factory=set)
@@ -154,6 +148,12 @@ class College(Organization):
 
 
 @dataclass(eq=False)
+class Course(Work):
+    is_taught_by: Set[Faculty] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
 class Department(Organization):
     has_assistant_professor: Set[AssistantProfessor] = field(default_factory=set)
     has_associate_professor: Set[AssociateProfessor] = field(default_factory=set)
@@ -173,12 +173,6 @@ class Department(Organization):
     has_visiting_professor: Set[VisitingProfessor] = field(default_factory=set)
     is_department_of: Set[College] = field(default_factory=set)
     offer_course: Set[Course] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
-class ElectiveCourse(Course):
-    ...
 
 
 
@@ -368,13 +362,6 @@ class Travelling(Interest):
 
 
 @dataclass(eq=False)
-class UGCourse(Course):
-    """Mandatory courses for all UG students"""
-    ...
-
-
-
-@dataclass(eq=False)
 class UGProgram(Program):
     ...
 
@@ -528,6 +515,12 @@ class Drama(FineArts):
 
 @dataclass(eq=False)
 class Economics(HumanitiesAndSocial):
+    ...
+
+
+
+@dataclass(eq=False)
+class ElectiveCourse(Course):
     ...
 
 
@@ -834,6 +827,13 @@ class TheatreAndDance(FineArts):
 @dataclass(eq=False)
 class ThesisEvaluationCommittee(StudentEvaluationCommittee):
     """Evaluates PhD students"""
+    ...
+
+
+
+@dataclass(eq=False)
+class UGCourse(Course):
+    """Mandatory courses for all UG students"""
     ...
 
 

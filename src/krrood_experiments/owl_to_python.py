@@ -1895,6 +1895,37 @@ class CodeGenerator:
             if len(contesting_types) == 1:
                 info.object_range_hint = contesting_types[0]
 
+        removed_cls = []
+        for cls_name, cls_info in self.onto.classes.items():
+            if cls_name in removed_cls:
+                continue
+            for eq_cls in cls_info.equivalent_classes:
+                removed_cls.append(eq_cls)
+                initial_base_classes = copy(cls_info.base_classes)
+                for base_cls in self.onto.classes[eq_cls].base_classes:
+                    if base_cls not in cls_info.base_classes:
+                        cls_info.base_classes.append(base_cls)
+                        cls_info.all_base_classes.append(base_cls)
+                        cls_info.all_base_classes_including_role_takers.append(base_cls)
+                        cls_info.base_classes_for_topological_sort.append(base_cls)
+                if (
+                    len(initial_base_classes) == 1
+                    and initial_base_classes[0] == self.onto.base_cls_name
+                    and len(cls_info.base_classes) > 1
+                ):
+                    cls_info.base_classes.remove(self.onto.base_cls_name)
+                for prop in self.onto.classes[eq_cls].declared_properties:
+                    if prop not in cls_info.declared_properties:
+                        cls_info.declared_properties.append(prop)
+                for axiom in self.onto.classes[eq_cls].axioms:
+                    if axiom not in cls_info.axioms:
+                        cls_info.axioms.append(axiom)
+                for python_axiom in self.onto.classes[eq_cls].axioms_python:
+                    if python_axiom not in cls_info.axioms_python:
+                        cls_info.axioms_python.append(python_axiom)
+        for rc in removed_cls:
+            if rc in self.onto.classes:
+                del self.onto.classes[rc]
         classes_order = self.engine.topological_order(
             self.onto.classes, "base_classes_for_topological_sort"
         )
@@ -1934,13 +1965,6 @@ class CodeGenerator:
         # topological_order might still have 'Role' name if it was in the items keys
         # We need to filter the order as well
         classes_order = [c for c in classes_order if c != Role.__name__]
-        removed_cls = []
-        for cls_name, cls_info in self.onto.classes.items():
-            if cls_name in removed_cls:
-                continue
-            for eq_cls in cls_info.equivalent_classes:
-                classes_order.remove(eq_cls)
-                removed_cls.append(eq_cls)
         for cls_info in self.onto.classes.values():
             cls_info.onto = None
         render_classes = {k: asdict(v) for k, v in self.onto.classes.items()}
