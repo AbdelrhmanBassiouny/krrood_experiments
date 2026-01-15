@@ -1,6 +1,5 @@
 import itertools
 import time
-from dataclasses import dataclass
 from typing import List
 
 import rdflib
@@ -17,10 +16,9 @@ from krrood.entity_query_language.entity_result_processors import (
     the,
 )
 from krrood.entity_query_language.predicate import HasType
-from krrood.entity_query_language.symbolic import An, UnificationDict
 from typing_extensions import Any, Optional
 
-from krrood_experiments.helpers import (
+from krrood_experiments.owl2bench.ontomatic.helpers import (
     evaluate_eql,
     load_instances_for_lubm_with_predicates,
     get_lubm_answers,
@@ -39,7 +37,9 @@ from krrood_experiments.lubm.lubm_with_predicates import (
     ResearchGroup,
     UndergraduateStudent,
 )
-from krrood_experiments.owl_instances_loader import OwlInstancesRegistry
+from krrood_experiments.owl2bench.ontomatic.owl_instances_loader import (
+    OwlInstancesRegistry,
+)
 
 
 def get_eql_queries(

@@ -1,0 +1,28 @@
+import pytest
+
+import SPARQLWrapper
+import krrood_experiments.owl2bench.ood.eql_queries
+
+
+@pytest.mark.parametrize(
+    "eql_query_obj",
+    [
+        pytest.param(q, id=f"q{q.sparql_query.number}")
+        for q in krrood_experiments.owl2bench.ood.eql_queries.all_queries
+        # if owl2bench.sparql_queries.OWLProfile.RL in q.sparql_query.profile
+    ],
+)
+def test_query(eql_query_obj, world_from_graph_db):
+
+    # Initialize connection to GraphDB
+    sparql = SPARQLWrapper.SPARQLWrapper("http://localhost:7200/repositories/KRROOD")
+    sparql.setReturnFormat(SPARQLWrapper.JSON)
+
+    # Execute query
+    sparql.setQuery(eql_query_obj.sparql_query.raw_sparql_string)
+    sparql_results = sparql.query().convert()
+    sparql_result_len = len(sparql_results["results"]["bindings"])
+
+    eql_result = list(eql_query_obj.query(world_from_graph_db).evaluate())
+    eql_result_len = len(eql_result)
+    assert sparql_result_len == eql_result_len
