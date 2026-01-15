@@ -31,6 +31,7 @@ from krrood.ontomatic.property_descriptor.mixins import (
     TransitiveProperty,
     SymmetricProperty,
     IrreflexiveProperty,
+    ReflexiveProperty,
 )
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
 from krrood.ormatic.utils import classes_of_module
@@ -349,25 +350,23 @@ class OwlLoader:
             wcc = rx.weakly_connected_components(descriptor_induced_subgraph)
             for comp in wcc:
                 comp = list(comp)
-                for i, node in enumerate(comp[:-1]):
+                for i, node in enumerate(comp):
                     node_instance = descriptor_induced_subgraph[node]
                     descriptor_instance: PropertyDescriptor = (
                         descriptor_type.get_descriptor_instance_for_domain_type(
                             node_instance.instance_type
                         )
                     )
+                    if issubclass(descriptor_type, ReflexiveProperty) or not issubclass(
+                        descriptor_type, IrreflexiveProperty
+                    ):
+                        descriptor_instance.update_value(
+                            node_instance.instance,
+                            node_instance.instance,
+                            inferred=True,
+                        )
                     for node2 in comp[i + 1 :]:
                         node2_instance = descriptor_induced_subgraph[node2]
-                        # if (
-                        #     node != node2
-                        #     or (not issubclass(descriptor_type, IrreflexiveProperty)
-                        #     and (node, node) not in node_sets)
-                        # ):
-                        #     node_sets.append((node, node2))
-                        # elif rx.has_path(descriptor_induced_subgraph, node, node2):
-                        #     node_sets.append((node, node2))
-                        # else:
-                        #     continue
                         descriptor_instance.update_value(
                             node_instance.instance,
                             node2_instance.instance,
