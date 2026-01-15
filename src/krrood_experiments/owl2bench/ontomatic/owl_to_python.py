@@ -885,12 +885,6 @@ class InferenceEngine:
                 continue
             if prop_info.type == PropertyType.DATA_PROPERTY:
                 continue
-            # classifier = property_rdr.get_rdr_classifier_from_python_file(
-            #     "./rdrs/property_inference"
-            # )
-            # if ask_now(prop_info):
-            #     pass
-            # answer = classifier(prop_info)
             domain_case_query = CaseQuery(prop_info, "domains", (str,), False)
             prop_info.onto = self.onto
             domains = self.property_rdr.fit_case(
@@ -1035,6 +1029,10 @@ class InferenceEngine:
                         cls_info.role_taker = RoleTakerInfo(
                             rng_name, NamingRegistry.to_snake_case(rng_name)
                         )
+                        # if rng_name in cls_info.superclasses:
+                        #     cls_info.superclasses.remove(rng_name)
+                        #     cls_info.base_classes.remove(rng_name)
+                        #     cls_info.all_base_classes.remove(rng_name)
                     return True
                 if rng_name is None:
                     if self.onto.graph.value(value_type, OWL.complementOf):
@@ -1179,8 +1177,6 @@ class InferenceEngine:
         Update PropertyInfo objects with inferred domain and range information.
         """
         for name, info in self.onto.properties.items():
-            # info.domains = sorted(self.property_maps.dom_map[name])
-            # info.ranges = sorted(self.property_maps.rng_map[name])
             info.domains = sorted(info.domains)
             info.ranges = sorted(info.ranges)
             info.range_uris = [
@@ -1767,10 +1763,11 @@ class CodeGenerator:
             info.base_classes = [
                 b for b in info.superclasses if b != Symbol.__name__
             ] or [self.onto.base_cls_name]
-            if (
-                len(info.base_classes) == 1
-                and info.base_classes[0] == self.onto.role_cls_name
-            ):
+            if self.onto.role_cls_name in info.base_classes:
+                for cls in copy(info.base_classes):
+                    if cls not in [self.onto.role_cls_name]:
+                        info.base_classes.remove(cls)
+                        info.superclasses.remove(cls)
                 info.base_classes.append(Symbol.__name__)
 
     def _ensure_ontology_base_class_in_classes(self):

@@ -40,7 +40,6 @@ from ripple_down_rules import RDRDecorator
 from tqdm import tqdm
 from typing_extensions import Set
 
-from krrood_experiments.owl2bench.owl2bench_with_predicates import Engineering
 from krrood_experiments.owl2bench.ontomatic.utils import (
     get_non_class_attribute_names_of_instance,
     not_none_inheritance_path_length,
@@ -476,7 +475,14 @@ class OwlLoader:
             for s, ai in self.anonymous_instances.items()
             for o_class in ai.final_sorted_types
         )
+        seen_s = set()
         for s, py_cls in so_iterator:
+            if s not in seen_s:
+                seen_s.add(s)
+            else:
+                import pdbpp
+
+                pdbpp.set_trace()
             existing_roles = self.registry.resolve(s)
             kwargs = self._get_common_role_taker_kwargs(existing_roles, py_cls)
             self.registry.get_or_create_for(s, py_cls, self.symbol_graph, **kwargs)
