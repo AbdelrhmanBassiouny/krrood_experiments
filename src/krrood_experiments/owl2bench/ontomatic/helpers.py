@@ -87,7 +87,8 @@ def generate_owl2bench_with_predicates(clean: bool = False, save_to_file: bool =
         os.path.dirname(__file__),
         "..",
         "..",
-        "owl2bench",
+        "..",
+        "..",
         "resources",
         "refactored_ontologies",
     )
@@ -100,7 +101,7 @@ def generate_owl2bench_with_predicates(clean: bool = False, save_to_file: bool =
     if save_to_file:
         # Save into the package module so tests import the updated code
         output_path = os.path.join(
-            os.path.dirname(__file__), "owl2bench/owl2bench_with_predicates.py"
+            os.path.dirname(__file__), "owl2bench_with_predicates.py"
         )
         converter.save_to_file(output_path)
     return
@@ -141,7 +142,7 @@ def evaluate_eql(
 
 def load_instances_for_lubm_with_predicates() -> OwlInstancesRegistry:
     """Load instances from the given path and add them to the given model module."""
-    from .lubm import (
+    from ...lubm import (
         lubm_with_predicates,
         lubm_with_predicates_properties,
         lubm_with_predicates_base,
@@ -166,18 +167,19 @@ def load_instances_for_owl2bench_with_predicates(
 ) -> OwlInstancesRegistry:
     """Load instances from the given path and add them to the given model module."""
     suffix = ".owl" if not reasoned else ".rdf"
-    from .owl2bench import (
+    from . import (
         owl2bench_with_predicates,
     )
-    from .owl2bench.ontomatic import owl2bench_with_predicates_properties
-    from .owl2bench.ontomatic import owl2bench_with_predicates_base
+    from . import owl2bench_with_predicates_properties
+    from . import owl2bench_with_predicates_base
 
     folder_path = Path(
         f"{dirname(__file__)}",
         "",
-        "../../..",
         "..",
-        "owl2bench",
+        "..",
+        "..",
+        "..",
         "resources",
         "refactored_ontologies",
     )

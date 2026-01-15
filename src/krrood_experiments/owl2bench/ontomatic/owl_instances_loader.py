@@ -258,14 +258,20 @@ class OwlLoader:
         self_: OwlLoader
         output_: List[Type]
 
+    @staticmethod
+    def ask_now(case: Case):
+        # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0"
+        return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D0AP0"
+
     metadata: ModelMetadata = field(init=False)
     _type_rdr: ClassVar[RDRDecorator] = RDRDecorator(
         os.path.join(os.path.dirname(__file__), "rdrs"),
         (type,),
         False,
-        fit=False,
+        fit=True,
+        ask_now=ask_now,
         update_existing_rules=False,
-        use_generated_classifier=True,
+        use_generated_classifier=False,
         regenerate_model=False,
     )
 

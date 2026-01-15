@@ -4,6 +4,8 @@ from ripple_down_rules.helpers import (
 )
 from ripple_down_rules.utils import copy_case, make_set
 from ripple_down_rules.datastructures.case import Case, create_case
+from typing_extensions import Set
+
 from .property_info_ranges_mcrdr_defs import *
 
 

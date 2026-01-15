@@ -5,15 +5,14 @@ Generated using custom converter
 
 from __future__ import annotations
 
-from dataclasses import fields, Field
+from dataclasses import dataclass, field, fields, Field
 from functools import lru_cache
+from typing_extensions import Tuple
 
-from krrood.entity_query_language.entity import ConditionType, variable_from
+from krrood.class_diagrams.utils import Role
+from krrood.entity_query_language.entity import contains, ConditionType, variable_from
 from krrood.entity_query_language.predicate import HasAttribute, IsSubClassOf
-from krrood_experiments.owl2bench.ontomatic.utils import (
-    AnonymousClass,
-    get_super_axiom_and_candidate_var,
-)
+from .utils import AnonymousClass, get_super_axiom_and_candidate_var
 from .owl2bench_with_predicates_properties import *
 from .owl2bench_with_predicates_base import *
 
@@ -107,7 +106,6 @@ class Person(OWL2BenchThing):
     is_dean_of: Set[Organization] = field(kw_only=True, default_factory=set)
     is_head_of: Set[Organization] = field(kw_only=True, default_factory=set)
     is_member_of: Set[Organization] = field(kw_only=True, default_factory=set)
-    likes: Set[Interest] = field(kw_only=True, default_factory=set)
     loves: Set[Interest] = field(kw_only=True, default_factory=set)
 
 
@@ -355,6 +353,7 @@ class Painting(Interest): ...
 class PeopleWithHobby(Role[Person], Symbol):
     # Role taker
     person: Person
+    likes: Set[Interest] = field(kw_only=True, default_factory=set)
 
     @classmethod
     @lru_cache(maxsize=None)
@@ -418,64 +417,6 @@ class Specification(Publication): ...
 
 @dataclass(eq=False)
 class Sports(Interest): ...
-
-
-@dataclass(eq=False)
-class SportsFan(Role[Person], Symbol):
-    # Role taker
-    person: Person
-    is_crazy_about: Set[Sports] = field(kw_only=True, default_factory=set)
-
-    @classmethod
-    @lru_cache(maxsize=None)
-    def role_taker_field(cls) -> Field:
-        return next(iter(f for f in fields(cls) if f.name == "person"))
-
-    @classmethod
-    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
-        super_axiom, candidate_var = get_super_axiom_and_candidate_var(
-            SportsFan, cls, candidate
-        )
-        return (
-            HasAttribute(candidate_var, "is_crazy_about"),
-            IsSubClassOf(variable_from(candidate_var.is_crazy_about.types), Sports),
-        )
-
-    @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return hasattr(candidate, "is_crazy_about") and any(
-            issubclass(t, Sports)
-            for attr in candidate.is_crazy_about
-            for t in attr.types
-        )
-
-
-@dataclass(eq=False)
-class SportsLover(Role[Person], Symbol):
-    # Role taker
-    person: Person
-    loves: Set[Sports] = field(kw_only=True, default_factory=set)
-
-    @classmethod
-    @lru_cache(maxsize=None)
-    def role_taker_field(cls) -> Field:
-        return next(iter(f for f in fields(cls) if f.name == "person"))
-
-    @classmethod
-    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
-        super_axiom, candidate_var = get_super_axiom_and_candidate_var(
-            SportsLover, cls, candidate
-        )
-        return (
-            HasAttribute(candidate_var, "loves"),
-            IsSubClassOf(variable_from(candidate_var.loves.types), Sports),
-        )
-
-    @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return hasattr(candidate, "loves") and any(
-            issubclass(t, Sports) for attr in candidate.loves for t in attr.types
-        )
 
 
 @dataclass(eq=False)
@@ -564,50 +505,6 @@ class Badminton(Sports): ...
 
 @dataclass(eq=False)
 class BasketBall(Sports): ...
-
-
-@dataclass(eq=False)
-class BasketBallFan(SportsFan):
-    is_crazy_about: Set[BasketBall] = field(kw_only=True, default_factory=set)
-
-    @classmethod
-    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
-        super_axiom, candidate_var = get_super_axiom_and_candidate_var(
-            BasketBallFan, cls, candidate
-        )
-        return (
-            HasAttribute(candidate_var, "is_crazy_about"),
-            IsSubClassOf(variable_from(candidate_var.is_crazy_about.types), BasketBall),
-        )
-
-    @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return hasattr(candidate, "is_crazy_about") and any(
-            issubclass(t, BasketBall)
-            for attr in candidate.is_crazy_about
-            for t in attr.types
-        )
-
-
-@dataclass(eq=False)
-class BasketBallLover(SportsLover):
-    loves: Set[BasketBall] = field(kw_only=True, default_factory=set)
-
-    @classmethod
-    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
-        super_axiom, candidate_var = get_super_axiom_and_candidate_var(
-            BasketBallLover, cls, candidate
-        )
-        return (
-            HasAttribute(candidate_var, "loves"),
-            IsSubClassOf(variable_from(candidate_var.loves.types), BasketBall),
-        )
-
-    @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return hasattr(candidate, "loves") and any(
-            issubclass(t, BasketBall) for attr in candidate.loves for t in attr.types
-        )
 
 
 @dataclass(eq=False)
@@ -905,6 +802,50 @@ class ScienceStudent(Student):
 
 
 @dataclass(eq=False)
+class SportsFan(PeopleWithHobby):
+    is_crazy_about: Set[Sports] = field(kw_only=True, default_factory=set)
+
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(
+            SportsFan, cls, candidate
+        )
+        return (
+            HasAttribute(candidate_var, "is_crazy_about"),
+            IsSubClassOf(variable_from(candidate_var.is_crazy_about.types), Sports),
+        )
+
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, "is_crazy_about") and any(
+            issubclass(t, Sports)
+            for attr in candidate.is_crazy_about
+            for t in attr.types
+        )
+
+
+@dataclass(eq=False)
+class SportsLover(PeopleWithHobby):
+    loves: Set[Sports] = field(kw_only=True, default_factory=set)
+
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(
+            SportsLover, cls, candidate
+        )
+        return (
+            HasAttribute(candidate_var, "loves"),
+            IsSubClassOf(variable_from(candidate_var.loves.types), Sports),
+        )
+
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, "loves") and any(
+            issubclass(t, Sports) for attr in candidate.loves for t in attr.types
+        )
+
+
+@dataclass(eq=False)
 class Statistics(Science): ...
 
 
@@ -918,29 +859,6 @@ class SupportingStaff(Employee): ...
 
 @dataclass(eq=False)
 class Swimming(Sports): ...
-
-
-@dataclass(eq=False)
-class T20CricketFan(SportsFan):
-    is_crazy_about: Set[Cricket] = field(kw_only=True, default_factory=set)
-
-    @classmethod
-    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
-        super_axiom, candidate_var = get_super_axiom_and_candidate_var(
-            T20CricketFan, cls, candidate
-        )
-        return (
-            HasAttribute(candidate_var, "is_crazy_about"),
-            IsSubClassOf(variable_from(candidate_var.is_crazy_about.types), Cricket),
-        )
-
-    @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return hasattr(candidate, "is_crazy_about") and any(
-            issubclass(t, Cricket)
-            for attr in candidate.is_crazy_about
-            for t in attr.types
-        )
 
 
 @dataclass(eq=False)
@@ -1029,6 +947,50 @@ class WomanCollege(College): ...
 
 
 @dataclass(eq=False)
+class BasketBallFan(SportsFan):
+    is_crazy_about: Set[BasketBall] = field(kw_only=True, default_factory=set)
+
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(
+            BasketBallFan, cls, candidate
+        )
+        return (
+            HasAttribute(candidate_var, "is_crazy_about"),
+            IsSubClassOf(variable_from(candidate_var.is_crazy_about.types), BasketBall),
+        )
+
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, "is_crazy_about") and any(
+            issubclass(t, BasketBall)
+            for attr in candidate.is_crazy_about
+            for t in attr.types
+        )
+
+
+@dataclass(eq=False)
+class BasketBallLover(SportsLover):
+    loves: Set[BasketBall] = field(kw_only=True, default_factory=set)
+
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(
+            BasketBallLover, cls, candidate
+        )
+        return (
+            HasAttribute(candidate_var, "loves"),
+            IsSubClassOf(variable_from(candidate_var.loves.types), BasketBall),
+        )
+
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, "loves") and any(
+            issubclass(t, BasketBall) for attr in candidate.loves for t in attr.types
+        )
+
+
+@dataclass(eq=False)
 class ClericalStaff(SupportingStaff): ...
 
 
@@ -1061,6 +1023,29 @@ class Professor(Faculty):
 
 @dataclass(eq=False)
 class SystemStaff(SupportingStaff): ...
+
+
+@dataclass(eq=False)
+class T20CricketFan(SportsFan):
+    is_crazy_about: Set[Cricket] = field(kw_only=True, default_factory=set)
+
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(
+            T20CricketFan, cls, candidate
+        )
+        return (
+            HasAttribute(candidate_var, "is_crazy_about"),
+            IsSubClassOf(variable_from(candidate_var.is_crazy_about.types), Cricket),
+        )
+
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, "is_crazy_about") and any(
+            issubclass(t, Cricket)
+            for attr in candidate.is_crazy_about
+            for t in attr.types
+        )
 
 
 @dataclass(eq=False)
@@ -1240,7 +1225,6 @@ Person.is_crazy_about = IsCrazyAbout(Person, "is_crazy_about")
 Person.is_dean_of = IsDeanOf(Person, "is_dean_of")
 Person.is_head_of = IsHeadOf(Person, "is_head_of")
 Person.is_member_of = IsMemberOf(Person, "is_member_of")
-Person.likes = Likes(Person, "likes")
 Person.loves = Loves(Person, "loves")
 Program.has_head = HasHead(Program, "has_head")
 Publication.has_author = HasAuthor(Publication, "has_author")
@@ -1285,6 +1269,7 @@ Employee.is_supporting_staff_of = IsSupportingStaffOf(
 )
 Employee.is_system_staff_of = IsSystemStaffOf(Employee, "is_system_staff_of")
 Employee.works_for = WorksFor(Employee, "works_for")
+PeopleWithHobby.likes = Likes(PeopleWithHobby, "likes")
 ResearchGroup.has_research_assistant = HasResearchAssistant(
     ResearchGroup, "has_research_assistant"
 )
@@ -1294,8 +1279,6 @@ ResearchGroup.has_research_project = HasResearchProject(
 ResearchGroup.is_research_group_of = IsResearchGroupOf(
     ResearchGroup, "is_research_group_of"
 )
-SportsFan.is_crazy_about = IsCrazyAbout(SportsFan, "is_crazy_about")
-SportsLover.loves = Loves(SportsLover, "loves")
 Student.enroll_for = EnrollFor(Student, "enroll_for")
 Student.enroll_in = EnrollIn(Student, "enroll_in")
 Student.is_student_of = IsStudentOf(Student, "is_student_of")
@@ -1303,8 +1286,6 @@ Student.takes_course = TakesCourse(Student, "takes_course")
 University.has_alumnus = HasAlumnus(University, "has_alumnus")
 University.has_college = HasCollege(University, "has_college")
 University.has_research_group = HasResearchGroup(University, "has_research_group")
-BasketBallFan.is_crazy_about = IsCrazyAbout(BasketBallFan, "is_crazy_about")
-BasketBallLover.loves = Loves(BasketBallLover, "loves")
 Faculty.is_faculty_of = IsFacultyOf(Faculty, "is_faculty_of")
 Faculty.teaches_course = TeachesCourse(Faculty, "teaches_course")
 PGStudent.enroll_for = EnrollFor(PGStudent, "enroll_for")
@@ -1313,14 +1294,18 @@ ResearchAssistant.is_research_assistant_of = IsResearchAssistantOf(
     ResearchAssistant, "is_research_assistant_of"
 )
 ScienceStudent.has_major = HasMajor(ScienceStudent, "has_major")
-T20CricketFan.is_crazy_about = IsCrazyAbout(T20CricketFan, "is_crazy_about")
+SportsFan.is_crazy_about = IsCrazyAbout(SportsFan, "is_crazy_about")
+SportsLover.loves = Loves(SportsLover, "loves")
 TeachingAssistant.is_teaching_assistant_of = IsTeachingAssistantOf(
     TeachingAssistant, "is_teaching_assistant_of"
 )
 UGStudent.enroll_for = EnrollFor(UGStudent, "enroll_for")
+BasketBallFan.is_crazy_about = IsCrazyAbout(BasketBallFan, "is_crazy_about")
+BasketBallLover.loves = Loves(BasketBallLover, "loves")
 Lecturer.is_lecturer_of = IsLecturerOf(Lecturer, "is_lecturer_of")
 PostDoc.is_post_doc_of = IsPostDocOf(PostDoc, "is_post_doc_of")
 Professor.is_professor_of = IsProfessorOf(Professor, "is_professor_of")
+T20CricketFan.is_crazy_about = IsCrazyAbout(T20CricketFan, "is_crazy_about")
 AssistantProfessor.is_assistant_professor_of = IsAssistantProfessorOf(
     AssistantProfessor, "is_assistant_professor_of"
 )

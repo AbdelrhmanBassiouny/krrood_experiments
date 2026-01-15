@@ -5,7 +5,8 @@ Generated using custom converter
 
 from __future__ import annotations
 
-from krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates_base import *
+from .owl2bench_with_predicates_properties import *
+from .owl2bench_with_predicates_base import *
 
 
 # Generated classes
@@ -90,7 +91,6 @@ class PersonMixinProtocol(OWL2BenchThing):
     is_dean_of: Set[Organization]
     is_head_of: Set[Organization]
     is_member_of: Set[Organization]
-    likes: Set[Interest]
     loves: Set[Interest]
 
 
@@ -269,6 +269,7 @@ class Painting(Interest):
 
 @dataclass(eq=False)
 class PeopleWithHobby(PersonMixinProtocol, Symbol):
+    likes: Set[Interest] = field(default_factory=set)
 
 
 
@@ -320,18 +321,6 @@ class Specification(Publication):
 @dataclass(eq=False)
 class Sports(Interest):
     ...
-
-
-
-@dataclass(eq=False)
-class SportsFan(PersonMixinProtocol, Symbol):
-    is_crazy_about: Set[Sports] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
-class SportsLover(PersonMixinProtocol, Symbol):
-    loves: Set[Sports] = field(default_factory=set)
 
 
 
@@ -425,18 +414,6 @@ class Badminton(Sports):
 @dataclass(eq=False)
 class BasketBall(Sports):
     ...
-
-
-
-@dataclass(eq=False)
-class BasketBallFan(SportsFan):
-    is_crazy_about: Set[BasketBall] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
-class BasketBallLover(SportsLover):
-    loves: Set[BasketBall] = field(default_factory=set)
 
 
 
@@ -770,6 +747,18 @@ class ScienceStudent(Student):
 
 
 @dataclass(eq=False)
+class SportsFan(PeopleWithHobby):
+    is_crazy_about: Set[Sports] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
+class SportsLover(PeopleWithHobby):
+    loves: Set[Sports] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
 class Statistics(Science):
     ...
 
@@ -790,12 +779,6 @@ class SupportingStaff(Employee):
 @dataclass(eq=False)
 class Swimming(Sports):
     ...
-
-
-
-@dataclass(eq=False)
-class T20CricketFan(SportsFan):
-    is_crazy_about: Set[Cricket] = field(default_factory=set)
 
 
 
@@ -850,6 +833,18 @@ class WomanCollege(College):
 
 
 @dataclass(eq=False)
+class BasketBallFan(SportsFan):
+    is_crazy_about: Set[BasketBall] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
+class BasketBallLover(SportsLover):
+    loves: Set[BasketBall] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
 class ClericalStaff(SupportingStaff):
     ...
 
@@ -887,6 +882,12 @@ class Professor(ProfessorMixinProtocol):
 @dataclass(eq=False)
 class SystemStaff(SupportingStaff):
     ...
+
+
+
+@dataclass(eq=False)
+class T20CricketFan(SportsFan):
+    is_crazy_about: Set[Cricket] = field(default_factory=set)
 
 
 

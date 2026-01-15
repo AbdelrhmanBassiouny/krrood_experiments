@@ -251,14 +251,35 @@ def conclusion_60769889497012087197446453003101494103(case) -> List[type]:
     ) -> List[type]:
         """Get possible value(s) for owl_loader_infer_most_appropriate_types_for_anonymous_instance.output_  of type ."""
         non_class_fields = get_non_class_attribute_names_of_instance(instance)
-        ds = [self_.metadata.get_descriptor_base(d) for d in non_class_fields]
+        ds = {self_.metadata.get_descriptor_base(d) for d in non_class_fields}
+        all_classes = set()
+        for d in ds:
+            if d is None:
+                continue
+            all_classes.update(d.all_domains[d])
         classes_that_satsify_the_axioms = [
             c
-            for d in ds
-            if d is not None
-            for c in d.all_domains[d]
+            for c in all_classes
             if hasattr(c, "axiom_python") and c.axiom_python(instance)
         ]
-        return get_most_specific_types(classes_that_satsify_the_axioms)
+        most_specific_classes = get_most_specific_types(classes_that_satsify_the_axioms)
+        if len(most_specific_classes) > 1:
+            nca = nearest_common_ancestor(most_specific_classes)
+            if (
+                nca is not case.self_.metadata.ontology_base_class
+                and issubclass(nca, case.self_.metadata.ontology_base_class)
+                and case.instance.types
+            ):
+                explicit_classes = get_most_specific_types(case.instance.types)
+                final_classes = {
+                    c
+                    for c in most_specific_classes
+                    if issubclass_or_role(c, tuple(explicit_classes))
+                }
+            else:
+                final_classes = most_specific_classes
+        else:
+            final_classes = most_specific_classes
+        return final_classes
 
     return owl_loader_infer_most_appropriate_types_for_anonymous_instance(**case)
