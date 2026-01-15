@@ -1415,7 +1415,7 @@ class InferenceEngine:
                 py_types.append("bool")
         return py_types
 
-    def find_implicit_subtypes(self, props_order: List[str]):
+    def find_implicit_subtypes(self):
         """
         Identify implicit subtype or role relationships between classes based on property commonality.
         """

@@ -141,14 +141,21 @@ def evaluate_eql(
 
 def load_instances_for_lubm_with_predicates() -> OwlInstancesRegistry:
     """Load instances from the given path and add them to the given model module."""
-    from .lubm import (
+    from ...lubm import (
         lubm_with_predicates,
         lubm_with_predicates_properties,
         lubm_with_predicates_base,
     )
 
     folder_path = Path(
-        f"{dirname(__file__)}", "", "../../..", "..", "lubm", "resources", "instances"
+        f"{dirname(__file__)}",
+        "..",
+        "..",
+        "..",
+        "..",
+        "lubm",
+        "resources",
+        "instances",
     )
     files = [f.name for f in folder_path.iterdir() if f.is_file()]
     files.sort(key=lambda x: int(x.split("_")[1].split(".")[0]))
@@ -162,33 +169,18 @@ def load_instances_for_lubm_with_predicates() -> OwlInstancesRegistry:
 
 
 def load_instances_for_owl2bench_with_predicates(
-    reasoned: bool = False, clean: bool = True
+    file_name: str,
 ) -> OwlInstancesRegistry:
     """Load instances from the given path and add them to the given model module."""
-    suffix = ".owl" if not reasoned else ".rdf"
+
     from . import (
         owl2bench_with_predicates,
     )
     from . import owl2bench_with_predicates_properties
     from . import owl2bench_with_predicates_base
 
-    folder_path = Path(
-        f"{dirname(__file__)}",
-        "",
-        "../../..",
-        "..",
-        "resources",
-        "refactored_ontologies",
-    )
-    files = [
-        f.name
-        for f in folder_path.iterdir()
-        if f.is_file()
-        and f.suffix == suffix
-        and (not clean or contains(f.name, "clean"))
-    ]
     registry = OwlLoader.load_multi_file_instances(
-        [os.path.join(folder_path, file) for file in files],
+        [file_name],
         base_module=owl2bench_with_predicates_base,
         classes_module=owl2bench_with_predicates,
         properties_module=owl2bench_with_predicates_properties,
