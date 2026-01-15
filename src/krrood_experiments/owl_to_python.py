@@ -1934,6 +1934,13 @@ class CodeGenerator:
         # topological_order might still have 'Role' name if it was in the items keys
         # We need to filter the order as well
         classes_order = [c for c in classes_order if c != Role.__name__]
+        removed_cls = []
+        for cls_name, cls_info in self.onto.classes.items():
+            if cls_name in removed_cls:
+                continue
+            for eq_cls in cls_info.equivalent_classes:
+                classes_order.remove(eq_cls)
+                removed_cls.append(eq_cls)
         for cls_info in self.onto.classes.values():
             cls_info.onto = None
         render_classes = {k: asdict(v) for k, v in self.onto.classes.items()}
