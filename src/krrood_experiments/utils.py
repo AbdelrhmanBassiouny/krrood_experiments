@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import Set, Type, List
 
 from krrood.entity_query_language.entity import variable
@@ -29,6 +30,7 @@ def get_most_specific_types(types: Iterable[type]) -> List[type]:
     return keep
 
 
+@lru_cache(maxsize=None)
 def not_none_inheritance_path_length(child: Type, parent: Type) -> int:
     length = inheritance_path_length(child, parent)
     if length is None:

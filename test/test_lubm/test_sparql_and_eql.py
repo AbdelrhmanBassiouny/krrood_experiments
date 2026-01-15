@@ -25,7 +25,7 @@ def test_eql_counts_match_sparql():
     print(f"Time elapsed: {end_time - start_time} seconds")
 
     lubm_answers = get_lubm_answers()
-    for i, query_results in enumerate(results, 1):
+    for i, query_results in results.items():
         uri_results = []
         for res in query_results:
             uri_results.append(
