@@ -8,11 +8,12 @@ from krrood.entity_query_language.symbolic import Variable
 from krrood.class_diagrams.utils import issubclass_or_role
 from krrood.utils import inheritance_path_length
 from rdflib import URIRef
-from typing_extensions import Type, Set, List, Iterable
+from typing_extensions import Type, Set, List, Iterable, Any
 from dataclasses import fields, dataclass, field
 
 
-def get_non_class_attribute_names_of_instance(instance: Type) -> Set[str]:
+@lru_cache
+def get_non_class_attribute_names_of_instance(instance: Any) -> Set[str]:
     """Get non-class fields of an instance."""
     return {f for f in dir(instance) if not f.startswith("_")} - set(
         [f for f in dir(type(instance)) if not f.startswith("_")]
@@ -20,6 +21,7 @@ def get_non_class_attribute_names_of_instance(instance: Type) -> Set[str]:
     )
 
 
+@lru_cache
 def get_most_specific_types(types: Iterable[type]) -> List[type]:
     ts = list(dict.fromkeys(types))  # stable unique
     keep = []

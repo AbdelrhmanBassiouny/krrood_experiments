@@ -215,6 +215,7 @@ class ModelMetadata:
         # Expect PascalCase names in model equal to RDF local name
         return self.class_by_name.get(name)
 
+    @lru_cache
     def get_descriptor_base(
         self, pred_local: str
     ) -> Optional[Type[PropertyDescriptor]]:
@@ -227,6 +228,28 @@ class ModelMetadata:
             The PropertyDescriptor subclass if found, otherwise None.
         """
         return self.descriptor_by_name.get(to_pascal(pred_local))
+
+
+@dataclass(unsafe_hash=True)
+class URIType:
+    """
+    Represents a pairing of a URI and its associated Python type.
+    """
+
+    uri: URIRef
+    """
+    The URI of the entity.
+    """
+    type: Type
+    """
+    The associated Python type.
+    """
+
+    def __str__(self):
+        return f"URIType(uri={self.uri}, type={self.type.__name__})"
+
+    def __repr__(self):
+        return self.__str__()
 
 
 @dataclass
@@ -261,17 +284,18 @@ class OwlLoader:
     @staticmethod
     def ask_now(case: Case):
         # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0"
-        return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D0AP0"
+        # return str(case.instance.uri) == "http://benchmark/OWL2Bench#U0C0D0AP0"
+        return False
 
     metadata: ModelMetadata = field(init=False)
     _type_rdr: ClassVar[RDRDecorator] = RDRDecorator(
         os.path.join(os.path.dirname(__file__), "rdrs"),
-        (type,),
+        (URIType,),
         False,
-        fit=False,
+        fit=True,
         ask_now=ask_now,
         update_existing_rules=False,
-        use_generated_classifier=True,
+        use_generated_classifier=False,
         regenerate_model=False,
     )
 
@@ -294,21 +318,23 @@ class OwlLoader:
         self._index_triples()
         self._create_anonymous_instances_with_explicit_types()
         self._assign_all_properties_to_all_instances()
-        for instance in copy(self.anonymous_instances).values():
-            result = self.infer_most_appropriate_types_for_anonymous_instance(instance)
-            if result:
-                result = get_most_specific_types(result)
-                instance.final_sorted_types = list(
-                    sort_classes_by_role_aware_inheritance_path_length(
-                        tuple(result),
-                        common_ancestor=self.metadata.ontology_base_class,
-                        classes_to_remove_from_common_ancestor=(
-                            Symbol,
-                            ABC,
-                            object,
-                        ),
-                    )
+        results = self.infer_most_appropriate_types_for_anonymous_instances()
+        for result in results:
+            instance = self.anonymous_instances[result.uri]
+            instance.final_sorted_types.append(result.type)
+        for instance in self.anonymous_instances.values():
+            result = get_most_specific_types(tuple(instance.final_sorted_types))
+            instance.final_sorted_types = list(
+                sort_classes_by_role_aware_inheritance_path_length(
+                    tuple(result),
+                    common_ancestor=self.metadata.ontology_base_class,
+                    classes_to_remove_from_common_ancestor=(
+                        Symbol,
+                        ABC,
+                        object,
+                    ),
                 )
+            )
         self._create_explicit_instances()
         for uri, instances in self.registry._by_uri.items():
             if len(instances) <= 1:
@@ -380,12 +406,16 @@ class OwlLoader:
                         )
 
     @_type_rdr.decorator
-    def infer_most_appropriate_types_for_anonymous_instance(
-        self, instance: AnonymousClass
-    ) -> List[Type]:
+    def infer_most_appropriate_types_for_anonymous_instances(
+        self,
+    ) -> Set[URIType]:
         """Infers the most appropriate Python types for anonymous instances based on their explicit types and
         properties"""
-        return []
+        return {
+            URIType(instance.uri, t)
+            for instance in self.anonymous_instances.values()
+            for t in get_most_specific_types(tuple(instance.types))
+        }
 
     def get_inferred_types_from_descriptors_domains_of_instance(
         self, instance: AnonymousClass
@@ -1143,3 +1173,9 @@ class OwlLoader:
 
     def __hash__(self):
         return hash(id(self))
+
+    def __str__(self):
+        return f"OwlLoader(owl_path={self.owl_path})"
+
+    def __repr__(self):
+        return self.__str__()

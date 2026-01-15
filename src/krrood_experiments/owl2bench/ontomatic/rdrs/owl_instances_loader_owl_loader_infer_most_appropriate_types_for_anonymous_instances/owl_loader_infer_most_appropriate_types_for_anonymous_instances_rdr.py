@@ -1,11 +1,11 @@
+from ripple_down_rules.datastructures.case import Case, create_case
 from typing_extensions import Any, Dict
 from ripple_down_rules.helpers import general_rdr_classify
-from ripple_down_rules.datastructures.case import Case, create_case
-from . import owl_loader_infer_most_appropriate_types_for_anonymous_instance_output__mcrdr as output__classifier
+from . import owl_loader_infer_most_appropriate_types_for_anonymous_instances_output__mcrdr as output__classifier
 
 name = 'output_'
 case_type = Dict
-case_name = 'owl_loader_infer_most_appropriate_types_for_anonymous_instance'
+case_name = 'owl_loader_infer_most_appropriate_types_for_anonymous_instances'
 classifiers_dict = dict()
 classifiers_dict['output_'] = output__classifier
 
