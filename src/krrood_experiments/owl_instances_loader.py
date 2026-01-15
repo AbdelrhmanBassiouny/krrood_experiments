@@ -40,7 +40,6 @@ from ripple_down_rules import RDRDecorator
 from tqdm import tqdm
 from typing_extensions import Set
 
-from krrood_experiments.owl2bench.owl2bench_with_predicates import Engineering
 from krrood_experiments.utils import (
     get_non_class_attribute_names_of_instance,
     not_none_inheritance_path_length,
