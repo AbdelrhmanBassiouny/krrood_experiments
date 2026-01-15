@@ -7,23 +7,29 @@ from krrood.ormatic.ormatic import ORMatic
 from krrood.ormatic.utils import classes_of_module
 from krrood.utils import recursive_subclasses
 
-import owl2bench.model.college_disciplines
-import owl2bench.model.base
-import owl2bench.model.interests
+import krrood_experiments.owl2bench.ood.model.college_disciplines
+import krrood_experiments.owl2bench.ood.model.base
+import krrood_experiments.owl2bench.ood.model.interests
 
 
-import owl2bench.model.programs
-import owl2bench.model.publications
-import owl2bench.model.organizations
+import krrood_experiments.owl2bench.ood.model.programs
+import krrood_experiments.owl2bench.ood.model.publications
+import krrood_experiments.owl2bench.ood.model.organizations
 
 
 def generate_orm() -> None:
-    all_classes = classes_of_module(owl2bench.model.base)
-    all_classes += classes_of_module(owl2bench.model.college_disciplines)
-    all_classes += classes_of_module(owl2bench.model.interests)
-    all_classes += classes_of_module(owl2bench.model.organizations)
-    all_classes += classes_of_module(owl2bench.model.programs)
-    all_classes += classes_of_module(owl2bench.model.publications)
+    all_classes = classes_of_module(krrood_experiments.owl2bench.ood.model.base)
+    all_classes += classes_of_module(
+        krrood_experiments.owl2bench.ood.model.college_disciplines
+    )
+    all_classes += classes_of_module(krrood_experiments.owl2bench.ood.model.interests)
+    all_classes += classes_of_module(
+        krrood_experiments.owl2bench.ood.model.organizations
+    )
+    all_classes += classes_of_module(krrood_experiments.owl2bench.ood.model.programs)
+    all_classes += classes_of_module(
+        krrood_experiments.owl2bench.ood.model.publications
+    )
 
     # only keep dataclasses
     all_classes = {c for c in all_classes if is_dataclass(c)}
@@ -45,7 +51,9 @@ def generate_orm() -> None:
                 os.path.dirname(__file__),
                 "..",
                 "src",
+                "krrood_experiments",
                 "owl2bench",
+                "ood",
                 "orm",
                 "ormatic_interface.py",
             )

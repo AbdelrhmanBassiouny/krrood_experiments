@@ -115,7 +115,7 @@ q5 = SPARQLQuery(
     + """
     SELECT  DISTINCT  ?x  WHERE { ?x  rdf:type  owl2bench:T20CricketFan  }
     """,
-    description="Find all the instances of class T20CricketFan. T20CricketFan is a Person who is crazy about T20Cricket. {T20Cricket} is an instance of Class Cricket.",
+    description="Find all the instances of class T20CricketFan. T20CricketFan is a Person who is crazy about Cricket. {Cricket} is an instance of Class Cricket.",
     construct_involved="ObjectHasValue.",
     profile=[OWLProfile.EL, OWLProfile.RL, OWLProfile.DL],
 )
@@ -313,7 +313,7 @@ all_queries = [
     q2,
     q3,
     q4,
-    # q5,
+    q5,
     q6,
     q7,
     q8,
@@ -322,7 +322,7 @@ all_queries = [
     q11,
     q12,
     q13,
-    # q14,
+    #   q14,
     q15,
     q16,
     q17,

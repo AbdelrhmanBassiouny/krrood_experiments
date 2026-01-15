@@ -10,13 +10,10 @@ from owlrl import DeductiveClosure, OWLRL_Semantics
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker, class_mapper
 
-from owl2bench.loader import WorldLoader
-from owl2bench.orm.ormatic_interface import Base, WorldDAO
-from owl2bench.performance_utils import Backend, LoadingTiming, LatexPerformanceExporter
-from sqlalchemy import event
+from krrood_experiments.owl2bench.ood.loader import WorldLoader
+from krrood_experiments.owl2bench.ood.orm import Base, WorldDAO
+from owl2bench import Backend, LoadingTiming, LatexPerformanceExporter
 from sqlalchemy.orm import selectinload
-from contextlib import contextmanager
-
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 rdf_file_path = os.path.join(dir_path, "..", "resources", "statements.rdf")

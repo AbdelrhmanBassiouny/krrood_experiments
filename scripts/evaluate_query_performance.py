@@ -9,13 +9,12 @@ from krrood.ormatic.dao import to_dao
 from krrood.ormatic.utils import create_engine, drop_database
 from sqlalchemy.orm import sessionmaker
 
-from owl2bench.orm.ormatic_interface import Base, WorldDAO
-from owl2bench.loader import WorldLoader
-import owl2bench.sqlalchemy_queries
-from owl2bench.sparql_queries import OWLProfile
-import owl2bench.sparql_queries
-import owl2bench.eql_queries
-from owl2bench.performance_utils import Backend, QueryTiming, LatexPerformanceExporter
+from krrood_experiments.owl2bench.ood.orm import Base, WorldDAO
+from krrood_experiments.owl2bench.ood.loader import WorldLoader
+from krrood_experiments.owl2bench.sparql_queries import OWLProfile
+import krrood_experiments.owl2bench.sparql_queries
+import krrood_experiments.owl2bench.ood.eql_queries
+from owl2bench import Backend, QueryTiming, LatexPerformanceExporter
 
 
 def evaluate_queries(iterations_per_query: int = 10):
@@ -51,7 +50,9 @@ def evaluate_queries(iterations_per_query: int = 10):
     query_timings: List[QueryTiming] = []
 
     sparql_queries = [
-        q for q in owl2bench.sparql_queries.all_queries if OWLProfile.RL in q.profile
+        q
+        for q in krrood_experiments.owl2bench.sparql_queries.all_queries
+        if OWLProfile.RL in q.profile
     ]
 
     pbar = tqdm.tqdm(sparql_queries)
@@ -61,14 +62,14 @@ def evaluate_queries(iterations_per_query: int = 10):
         # Find the corresponding sqlalchemy query
         sqlalchemy_query = [
             q
-            for q in owl2bench.sqlalchemy_queries.all_queries
+            for q in krrood_experiments.owl2bench.ood.sqlalchemy_queries.all_queries
             if q.sparql_query == sparql_query
         ][0]
 
         # Find the corresponding eql query
         eql_query = [
             q
-            for q in owl2bench.eql_queries.all_queries
+            for q in krrood_experiments.owl2bench.ood.eql_queries.all_queries
             if q.sparql_query == sparql_query
         ][0]
 
