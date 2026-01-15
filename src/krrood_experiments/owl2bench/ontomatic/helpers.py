@@ -166,18 +166,17 @@ def load_instances_for_owl2bench_with_predicates(
 ) -> OwlInstancesRegistry:
     """Load instances from the given path and add them to the given model module."""
     suffix = ".owl" if not reasoned else ".rdf"
-    from .owl2bench import (
+    from . import (
         owl2bench_with_predicates,
     )
-    from .owl2bench.ontomatic import owl2bench_with_predicates_properties
-    from .owl2bench.ontomatic import owl2bench_with_predicates_base
+    from . import owl2bench_with_predicates_properties
+    from . import owl2bench_with_predicates_base
 
     folder_path = Path(
         f"{dirname(__file__)}",
         "",
         "../../..",
         "..",
-        "owl2bench",
         "resources",
         "refactored_ontologies",
     )
