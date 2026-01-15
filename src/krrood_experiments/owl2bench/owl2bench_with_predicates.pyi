@@ -306,12 +306,6 @@ class ResearchProject(Work):
 
 
 @dataclass(eq=False)
-class School(Organization):
-    ...
-
-
-
-@dataclass(eq=False)
 class Science(CollegeDiscipline):
     """Science"""
     ...
@@ -363,12 +357,6 @@ class Student(StudentMixinProtocol):
 
 @dataclass(eq=False)
 class StudentEvaluationCommittee(EvaluationCommittee):
-    ...
-
-
-
-@dataclass(eq=False)
-class TeachingCourse(Work):
     ...
 
 
