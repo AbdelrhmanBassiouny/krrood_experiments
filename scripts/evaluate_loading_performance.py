@@ -20,9 +20,11 @@ from krrood_experiments.owl2bench.ood.performance_utils import (
 from sqlalchemy.orm import selectinload
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-rdf_file_path = os.path.join(dir_path, "..", "resources", "statements.rdf")
+rdf_file_path = os.path.join(
+    dir_path, "..", "resources", "owl2bench_statements_reasoned.rdf"
+)
 rdf_unreasoned_file_path = os.path.join(
-    dir_path, "..", "resources", "statements_unreasoned.rdf"
+    dir_path, "..", "resources", "owl2bench_statements_unreasoned.rdf"
 )
 
 

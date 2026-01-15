@@ -27,7 +27,9 @@ def evaluate_queries(iterations_per_query: int = 10):
     sparql.setReturnFormat(SPARQLWrapper.JSON)
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    rdf_file_path = os.path.join(dir_path, "..", "resources", "statements.rdf")
+    rdf_file_path = os.path.join(
+        dir_path, "..", "resources", "owl2bench_statements_reasoned.rdf"
+    )
 
     print("Setting up backends for query evaluation...")
 
@@ -95,7 +97,7 @@ def evaluate_queries(iterations_per_query: int = 10):
 
             # Execute SQLAlchemy query
             start = time.time()
-            sql_results = session.execute(sqlalchemy_query.statement).all()
+            sql_results = list(session.execute(sqlalchemy_query.statement).all())
             current_sqlalchemy_runtimes.append((time.time() - start) * 1000)
 
             # Execute SPARQL query
