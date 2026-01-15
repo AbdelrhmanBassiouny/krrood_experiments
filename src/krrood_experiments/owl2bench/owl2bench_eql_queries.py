@@ -68,12 +68,12 @@ def get_eql_queries(
     # 1 (No joining, just filtration of graduate students through taking a certain course)
     p = variable(Person, domain=None)
     o1 = variable_from(p.is_member_of)
-    q2 = a(set_of(p, o1))
+    q2 = a(set_of(p, o1).distinct(p.uri, o1.uri))
     q2 = QueryWithSelectables(q2, {"x": p, "y": o1}, 2)
 
     o1 = variable(Organization, domain=None)
     o2 = variable_from(o1.is_part_of)
-    q3 = an(set_of(o1, o2))
+    q3 = an(set_of(o1, o2).distinct(o1.uri, o2.uri))
     q3 = QueryWithSelectables(q3, {"x": o1, "y": o2}, 3)
 
     p = variable(Person, domain=None)
@@ -117,7 +117,7 @@ def get_eql_queries(
     q15 = QueryWithSelectables(q15, {"x": p}, 15)
 
     o = variable(Organization, domain=None)
-    q16 = an(entity(o).where(length(o.has_head) > 0))
+    q16 = an(entity(o).where(length(o.has_head) > 0).distinct(o.uri))
     q16 = QueryWithSelectables(q16, {"x": o}, 16)
 
     p1 = variable(Faculty, domain=None)
@@ -133,9 +133,7 @@ def get_eql_queries(
     so = flatten(s.is_student_of)
     po = flatten(so.is_part_of)
     q21 = an(
-        set_of(s, so).where(
-            HasType(po, College), contains(po.has_college_discipline.uri, "Engineering")
-        )
+        set_of(s, so).where(contains(po.has_college_discipline.uri, "Engineering"))
     )
     q21 = QueryWithSelectables(q21, {"x": s, "y": so}, 21)
 
@@ -192,7 +190,7 @@ def process_value_for_owl2bench_answer_comparison(value: Any):
 
 if __name__ == "__main__":
     loading_start_time = time.time()
-    registry = load_instances_for_owl2bench_with_predicates(reasoned=False, clean=True)
+    registry = load_instances_for_owl2bench_with_predicates(reasoned=True, clean=False)
     loading_time = time.time() - loading_start_time
     print(f"Loading time: {loading_time} seconds")
 
