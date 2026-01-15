@@ -11,8 +11,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker, class_mapper
 
 from krrood_experiments.owl2bench.ood.loader import WorldLoader
-from krrood_experiments.owl2bench.ood.orm import Base, WorldDAO
-from owl2bench import Backend, LoadingTiming, LatexPerformanceExporter
+from krrood_experiments.owl2bench.ood.orm.ormatic_interface import Base, WorldDAO
+from krrood_experiments.owl2bench.ood.performance_utils import (
+    Backend,
+    LoadingTiming,
+    LatexPerformanceExporter,
+)
 from sqlalchemy.orm import selectinload
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
