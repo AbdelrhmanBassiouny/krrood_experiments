@@ -268,10 +268,10 @@ class OwlLoader:
         os.path.join(os.path.dirname(__file__), "rdrs"),
         (type,),
         False,
-        fit=True,
+        fit=False,
         ask_now=ask_now,
         update_existing_rules=False,
-        use_generated_classifier=False,
+        use_generated_classifier=True,
         regenerate_model=False,
     )
 
@@ -483,12 +483,12 @@ class OwlLoader:
         )
         seen_s = set()
         for s, py_cls in so_iterator:
-            if s not in seen_s:
-                seen_s.add(s)
-            else:
-                import pdbpp
-
-                pdbpp.set_trace()
+            # if s not in seen_s:
+            #     seen_s.add(s)
+            # else:
+            #     import pdbpp
+            #
+            #     pdbpp.set_trace()
             existing_roles = self.registry.resolve(s)
             kwargs = self._get_common_role_taker_kwargs(existing_roles, py_cls)
             self.registry.get_or_create_for(s, py_cls, self.symbol_graph, **kwargs)

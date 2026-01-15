@@ -264,7 +264,7 @@ def conclusion_60769889497012087197446453003101494103(case) -> List[type]:
         ]
         most_specific_classes = get_most_specific_types(classes_that_satsify_the_axioms)
         if len(most_specific_classes) > 1:
-            nca = nearest_common_ancestor(most_specific_classes)
+            nca = role_aware_nearest_common_ancestor(tuple(most_specific_classes))
             if (
                 nca is not case.self_.metadata.ontology_base_class
                 and issubclass(nca, case.self_.metadata.ontology_base_class)
