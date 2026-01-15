@@ -37,6 +37,7 @@ from krrood.ontomatic.property_descriptor.mixins import (
 from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
 from rdflib.namespace import RDF, RDFS, OWL, XSD
 from ripple_down_rules import GeneralRDR
+from ripple_down_rules.rdr_decorators import fit_rdr_func
 from sqlalchemy.util import OrderedSet
 from typing_extensions import Tuple
 
@@ -873,11 +874,11 @@ class InferenceEngine:
 
     def fit_property_rdr(self):
         def ask_now_domain(case: PropertyInfo):
-            # return case.name == "hasAdvisor"
+            return case.name == "loves"
             return False
 
         def ask_now_range(case: PropertyInfo):
-            # return case.name == "hasAdvisor"
+            return case.name == "loves"
             return False
 
         for prop_name, prop_info in self.onto.properties.items():
@@ -1195,15 +1196,22 @@ class InferenceEngine:
                 base = self.onto.properties.get(prop_name)
                 if not base or base.type != PropertyType.OBJECT_PROPERTY:
                     continue
-                if rng_names.issubset(
-                    set(self.onto.original_properties[prop_name].ranges)
-                ):
-                    continue
+                # if rng_names.issubset(
+                #     set(self.onto.original_properties[prop_name].ranges)
+                # ):
+                #     continue
                 if cls_name in base.declared_domains:
                     base.declared_domains.remove(cls_name)
                 for rng_name in sorted(rng_names):
                     if rng_name in base.ranges:
                         base.ranges.remove(rng_name)
+                    if len(base.ranges) == 0:
+                        for dd in base.declared_domains:
+                            if prop_name in self.onto.classes[dd].declared_properties:
+                                self.onto.classes[dd].declared_properties.remove(
+                                    prop_name
+                                )
+                        base.declared_domains = []
                     spec_key = f"{prop_name}{{{rng_name}}}"
                     if (
                         spec_key in self.onto.properties
@@ -1689,7 +1697,7 @@ class CodeGenerator:
         self._update_base_classes()
 
         self.engine, self.renderer = InferenceEngine(self.onto), JinjaRenderer(
-            os.path.dirname(__file__)
+            os.path.join(os.path.dirname(__file__), "jinja")
         )
 
     def generate(self, base_file_name: str) -> Dict[str, str]:
@@ -1813,7 +1821,7 @@ class CodeGenerator:
             for pn, p in self.onto.properties.items():
                 if pn == "roleFor":
                     continue
-                if cls_name not in (set(p.declared_domains) | set(p.domains)):
+                if cls_name not in set(p.declared_domains):
                     continue
                 if (
                     ancestors
