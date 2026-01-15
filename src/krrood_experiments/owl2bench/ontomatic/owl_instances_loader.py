@@ -477,12 +477,12 @@ class OwlLoader:
         )
         seen_s = set()
         for s, py_cls in so_iterator:
-            if s not in seen_s:
-                seen_s.add(s)
-            else:
-                import pdbpp
-
-                pdbpp.set_trace()
+            # if s not in seen_s:
+            #     seen_s.add(s)
+            # else:
+            #     import pdbpp
+            #
+            #     pdbpp.set_trace()
             existing_roles = self.registry.resolve(s)
             kwargs = self._get_common_role_taker_kwargs(existing_roles, py_cls)
             self.registry.get_or_create_for(s, py_cls, self.symbol_graph, **kwargs)
