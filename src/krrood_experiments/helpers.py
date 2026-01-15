@@ -133,16 +133,6 @@ def evaluate_eql(
     for i, q in enumerate(eql_queries):
         start_time = time.time()
         result = list(q.evaluate())
-        # if i == 13:
-        #     result_uris = [tuple((k, v.uri) for k, v in res.items()) for res in result]
-        #     seen_res = set()
-        #     for res in result_uris:
-        #         if res in seen_res:
-        #             import pdbpp
-        #
-        #             pdbpp.set_trace()
-        #         else:
-        #             seen_res.add(res)
         times.append(time.time() - start_time)
         counts.append(len(result))
         results[q.id_] = result
