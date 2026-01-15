@@ -23,25 +23,6 @@ class CollegeDiscipline(OWL2BenchThing):
 
 
 @dataclass(eq=False)
-class Course(OWL2BenchThing):
-    is_taught_by: Set[Faculty] = field(kw_only=True, default_factory=set)
-
-    @classmethod
-    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
-        super_axiom, candidate_var = get_super_axiom_and_candidate_var(Course, cls, candidate)
-        return (HasAttribute(candidate_var, 'is_taught_by'),
-				IsSubClassOf(variable_from(candidate_var.is_taught_by.types), Faculty)
-        )
-
-    @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return hasattr(candidate, 'is_taught_by') and any(issubclass(t, Faculty) for attr in candidate.is_taught_by for t in attr.types)
-
-
-TeachingCourse = Course
-
-
-@dataclass(eq=False)
 class EvaluationCommittee(OWL2BenchThing):
     evaluates: Set[Person] = field(kw_only=True, default_factory=set)
     has_committee_members: Set[Person] = field(kw_only=True, default_factory=set)
@@ -177,6 +158,25 @@ School = College
 
 
 @dataclass(eq=False)
+class Course(Work):
+    is_taught_by: Set[Faculty] = field(kw_only=True, default_factory=set)
+
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(Course, cls, candidate)
+        return (HasAttribute(candidate_var, 'is_taught_by'),
+				IsSubClassOf(variable_from(candidate_var.is_taught_by.types), Faculty)
+        )
+
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'is_taught_by') and any(issubclass(t, Faculty) for attr in candidate.is_taught_by for t in attr.types)
+
+
+TeachingCourse = Course
+
+
+@dataclass(eq=False)
 class Department(Organization):
     has_assistant_professor: Set[AssistantProfessor] = field(kw_only=True, default_factory=set)
     has_associate_professor: Set[AssociateProfessor] = field(kw_only=True, default_factory=set)
@@ -207,11 +207,6 @@ class Department(Organization):
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
         return hasattr(candidate, 'has_head') and any(issubclass(t, Chair) for attr in candidate.has_head for t in attr.types)
-
-
-@dataclass(eq=False)
-class ElectiveCourse(Course):
-    ...
 
 
 @dataclass(eq=False)
@@ -458,12 +453,6 @@ class Travelling(Interest):
 
 
 @dataclass(eq=False)
-class UGCourse(Course):
-    """Mandatory courses for all UG students"""
-    ...
-
-
-@dataclass(eq=False)
 class UGProgram(Program):
     ...
 
@@ -614,6 +603,11 @@ class Drama(FineArts):
 
 @dataclass(eq=False)
 class Economics(HumanitiesAndSocial):
+    ...
+
+
+@dataclass(eq=False)
+class ElectiveCourse(Course):
     ...
 
 
@@ -943,6 +937,12 @@ class ThesisEvaluationCommittee(StudentEvaluationCommittee):
 
 
 @dataclass(eq=False)
+class UGCourse(Course):
+    """Mandatory courses for all UG students"""
+    ...
+
+
+@dataclass(eq=False)
 class UGStudent(Student):
     enroll_for: Set[UGProgram] = field(kw_only=True, default_factory=set)
 
@@ -1103,7 +1103,6 @@ class Director(Role[FullProfessor], Symbol):
 OWL2BenchThing.has_same_home_town_with = HasSameHomeTownWith(OWL2BenchThing, 'has_same_home_town_with')
 OWL2BenchThing.is_affiliate_of = IsAffiliateOf(OWL2BenchThing, 'is_affiliate_of')
 OWL2BenchThing.knows = Knows(OWL2BenchThing, 'knows')
-Course.is_taught_by = IsTaughtBy(Course, 'is_taught_by')
 EvaluationCommittee.evaluates = Evaluates(EvaluationCommittee, 'evaluates')
 EvaluationCommittee.has_committee_members = HasCommitteeMembers(EvaluationCommittee, 'has_committee_members')
 Organization.has_dean = HasDean(Organization, 'has_dean')
@@ -1147,6 +1146,7 @@ College.has_college_discipline = HasCollegeDiscipline(College, 'has_college_disc
 College.has_department = HasDepartment(College, 'has_department')
 College.has_head = HasHead(College, 'has_head')
 College.is_college_of = IsCollegeOf(College, 'is_college_of')
+Course.is_taught_by = IsTaughtBy(Course, 'is_taught_by')
 Department.has_assistant_professor = HasAssistantProfessor(Department, 'has_assistant_professor')
 Department.has_associate_professor = HasAssociateProfessor(Department, 'has_associate_professor')
 Department.has_clerical_staff = HasClericalStaff(Department, 'has_clerical_staff')
