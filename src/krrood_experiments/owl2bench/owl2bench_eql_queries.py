@@ -192,7 +192,7 @@ def process_value_for_owl2bench_answer_comparison(value: Any):
 
 if __name__ == "__main__":
     loading_start_time = time.time()
-    registry = load_instances_for_owl2bench_with_predicates(reasoned=False)
+    registry = load_instances_for_owl2bench_with_predicates(reasoned=True, clean=False)
     loading_time = time.time() - loading_start_time
     print(f"Loading time: {loading_time} seconds")
 
