@@ -1,41 +1,50 @@
-import pytest
+import os
+import time
 
-import krrood_experiments.owl2bench.eql_queries as eql_queries
-import SPARQLWrapper
+import pytest
 
 from krrood_experiments.owl2bench.ontomatic.helpers import (
     load_instances_for_owl2bench_with_predicates,
 )
-
-
-@pytest.mark.skip(reason="Requires local GraphDB instance with OWL2Bench data loaded")
-@pytest.mark.parametrize(
-    "eql_query_obj",
-    [
-        pytest.param(q, id=f"q{q.sparql_query.number}")
-        for q in eql_queries.all_queries
-        # if owl2bench.sparql_queries.OWLProfile.RL in q.sparql_query.profile
-    ],
+from krrood_experiments.owl2bench.ontomatic.owl2bench_eql_queries import (
+    evaluate_eql_and_sparql_queries,
 )
-def test_query(eql_query_obj):
-
-    # Initialize connection to GraphDB
-    sparql = SPARQLWrapper.SPARQLWrapper("http://localhost:7200/repositories/KRROOD")
-    sparql.setReturnFormat(SPARQLWrapper.JSON)
-
-    # Execute query
-    sparql.setQuery(eql_query_obj.sparql_query.raw_sparql_string)
-    sparql_results = sparql.query().convert()
-    sparql_result_len = len(sparql_results["results"]["bindings"])
-
-    # eql_result = list(eql_query_obj.query(world_from_graph_db).evaluate())
-    # eql_result_len = len(eql_result)
-    # assert sparql_result_len == eql_result_len
-    print(sparql_result_len)
 
 
-def test_reasoning():
-    registry = load_instances_for_owl2bench_with_predicates()
+@pytest.fixture
+def resources_dir():
+    return os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", "resources"
+    )
 
-    # queries_with_selectables = eql_queries.get_eql_queries(instances_for_class)
-    # assert len(queries_with_selectables) == len(eql_queries.all_queries)
+
+@pytest.fixture
+def unreasoned_owl2bench_file_path(resources_dir):
+    return os.path.join(resources_dir, "owl2bench_statements_unreasoned.rdf")
+
+
+@pytest.fixture
+def reasoned_owl2bench_file_path(resources_dir):
+    return os.path.join(resources_dir, "owl2bench_statements_reasoned.rdf")
+
+
+def test_owl2bench_statements_reasoned(reasoned_owl2bench_file_path):
+    loading_start_time = time.time()
+    registry = load_instances_for_owl2bench_with_predicates(
+        reasoned_owl2bench_file_path
+    )
+    loading_time = time.time() - loading_start_time
+    print(f"Loading time: {loading_time} seconds")
+
+    evaluate_eql_and_sparql_queries()
+
+
+def test_owl2bench_statements_unreasoned(unreasoned_owl2bench_file_path):
+    loading_start_time = time.time()
+    registry = load_instances_for_owl2bench_with_predicates(
+        unreasoned_owl2bench_file_path
+    )
+    loading_time = time.time() - loading_start_time
+    print(f"Loading time: {loading_time} seconds")
+
+    evaluate_eql_and_sparql_queries()

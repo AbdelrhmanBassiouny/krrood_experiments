@@ -18,33 +18,21 @@ from krrood.entity_query_language.entity_result_processors import (
 )
 from krrood.entity_query_language.predicate import symbolic_function
 from krrood.entity_query_language.symbol_graph import SymbolGraph
-from ripple_down_rules.utils import recursive_subclasses
 from typing_extensions import Any, Optional, Callable, Iterable
 
 from krrood_experiments.owl2bench.ontomatic.helpers import (
-    evaluate_eql,
     QueryWithSelectables,
-    load_instances_for_owl2bench_with_predicates,
+)
+from krrood_experiments.owl2bench.ontomatic.helpers import (
+    evaluate_eql,
 )
 from krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates import (
-    Department,
     Student,
     University,
-    Publication,
-    Professor,
     Person,
-    Chair,
-    AssociateProfessor,
-    ResearchGroup,
     Organization,
     T20CricketFan,
-    Science,
-    College,
-    WomanCollege,
-    LeisureStudent,
-    UGStudent,
     Faculty,
-    Engineering,
 )
 
 
@@ -174,21 +162,10 @@ def process_value_for_owl2bench_answer_comparison(value: Any):
         return value
 
 
-if __name__ == "__main__":
-    loading_start_time = time.time()
-    # registry = load_instances_for_owl2bench_with_predicates(reasoned=False, clean=True)
-    registry = load_instances_for_owl2bench_with_predicates(reasoned=True, clean=False)
-    loading_time = time.time() - loading_start_time
-    print(f"Loading time: {loading_time} seconds")
-
+def evaluate_eql_and_sparql_queries():
     def instances_for_class(cls):
         for instance in SymbolGraph().get_instances_of_type(cls):
             yield instance
-
-    start_time = time.time()
-    q10_python_equivalent(instances_for_class)
-    end_time = time.time()
-    print(f"Q10 Python equivalent time: {end_time - start_time} seconds")
 
     start_time = time.time()
     queries_with_selectables = get_eql_queries(instances_for_class)
