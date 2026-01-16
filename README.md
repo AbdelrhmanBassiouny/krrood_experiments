@@ -64,7 +64,7 @@ Be aware that this is unsafe as your password is written here in plain text.
 
 ```bash
 cd scripts
-sudo -u postgres psql -f create_postgres_database_and_user_if_not_exists.sql -v db_name="krrood_experiments" -v user_name="krrood_experiments" -v user_password="krrood_experiments"
+sudo -u postgres psql -f create_database_and_user_if_not_exists.sql -v db_name="krrood_experiments" -v user_name="krrood_experiments" -v user_password="krrood_experiments"
 ```
 
 Set the following environment variable to point to your relational database:
