@@ -73,3 +73,17 @@ Tests are executed using `pytest`:
 pytest
 ```
 
+## Executing Experiments in Protégé
+
+### Setup
+
+- Download and install Protégé: https://protege.stanford.edu/
+- When you start Protégé, you will be greeted by an automatic update pop-up. From there, install the **Pellet Reasoner Plug-In** and **Snap SPARQL Query**.  
+  You can also install these via **File → Check for Plugins**.
+- After installing the plugins, restart Protégé and open the `.owl` file located at `resources/owl2bench_clean.owl`.
+- Run the Pellet reasoner by clicking **Reasoner** in the top menu, selecting **Pellet**, and then clicking **Start Reasoner**.
+- To view measurements for loading, reasoning, and querying, open the log by clicking the rightmost button in the footer, next to **Show Inferences**.
+- You can open the query interface via **Window → Views → Query Views → Snap SPARQL Query**, then click in the workspace to place the query interface.
+- Be aware that the built-in SPARQL Query interface may not work properly and can cause Protégé to freeze.
+
+
