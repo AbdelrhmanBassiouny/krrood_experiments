@@ -86,4 +86,12 @@ pytest
 - You can open the query interface via **Window → Views → Query Views → Snap SPARQL Query**, then click in the workspace to place the query interface.
 - Be aware that the built-in SPARQL Query interface may not work properly and can cause Protégé to freeze.
 
+## Executing Experiments in GraphDB
+
+### Setup
+- Download and install GraphDB: https://graphdb.ontotext.com/
+- Launch GraphDB and, in the user interface, create a new repository by navigating to **Setup → Repositories → Create new Repository → GraphDB Repository**.
+- You can leave all settings as default, except for the ruleset, which should be set to **OWL2-RL**. Then create the repository.
+- Add the ontology to GraphDB by navigating to **Import → Upload RDF Files** and selecting the file `resources/owl2bench_clean.owl`.
+- Since GraphDB performs reasoning during loading, this process may take some time. Once it is finished, you can execute SPARQL queries using the SPARQL Query Interface in GraphDB.
 
