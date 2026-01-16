@@ -263,12 +263,6 @@ class OwlLoader:
     registry: OwlInstancesRegistry
     graph: rdflib.Graph = field(default_factory=rdflib.Graph)
     anonymous_instances: Dict[URIRef, AnonymousClass] = field(default_factory=dict)
-    anonymous_instances_by_type: Dict[Type, Set[AnonymousClass]] = field(
-        default_factory=lambda: defaultdict(set)
-    )
-    obj_pred_subj_map: Dict[URIRef, Dict[str, Set[AnonymousClass]]] = field(
-        default_factory=lambda: defaultdict(lambda: defaultdict(list))
-    )
     literals: Dict[URIRef, Dict[str, Literal]] = field(
         default_factory=lambda: defaultdict(dict)
     )
@@ -319,10 +313,6 @@ class OwlLoader:
         self._index_triples()
         self._create_anonymous_instances_with_explicit_types()
         self._assign_all_properties_to_all_instances()
-        # results = self.infer_most_appropriate_types_for_anonymous_instances()
-        # for result in results:
-        #     instance = self.anonymous_instances[result.uri]
-        #     instance.final_sorted_types.append(result.type)
         self.infer_all_types()
         for instance in self.anonymous_instances.values():
             result = get_most_specific_types(tuple(instance.final_sorted_types))
@@ -492,41 +482,6 @@ class OwlLoader:
                             inferred=True,
                         )
 
-    @_type_rdr.decorator
-    def infer_most_appropriate_types_for_anonymous_instances(
-        self,
-    ) -> Set[URIType]:
-        """Infers the most appropriate Python types for anonymous instances based on their explicit types and
-        properties"""
-        return {
-            URIType(instance.uri, t)
-            for instance in self.anonymous_instances.values()
-            for t in get_most_specific_types(tuple(instance.types))
-        }
-
-    def get_inferred_types_from_descriptors_domains_of_instance(
-        self, instance: AnonymousClass
-    ) -> Set[Type]:
-        """Infers possible types from domains of property descriptors assigned to the instance."""
-        non_class_fields = get_non_class_attribute_names_of_instance(instance)
-        descriptors = [self.metadata.get_descriptor_base(f) for f in non_class_fields]
-        descriptors = [d for d in descriptors if d is not None]
-        inferred_types = set()
-        for d in descriptors:
-            nca = role_aware_nearest_common_ancestor(tuple(d.all_domains[d]))
-            if nca not in [object, None, ABC, Symbol, Role]:
-                inferred_types.add(nca)
-        pred_subjects = self.obj_pred_subj_map[instance.uri]
-        for pred in pred_subjects.keys():
-            ranges = PropertyDescriptor.all_ranges[
-                self.metadata.get_descriptor_base(pred)
-            ]
-            nca = role_aware_nearest_common_ancestor(tuple(ranges))
-            if nca not in [object, None, ABC, Symbol, Role]:
-                inferred_types.add(nca)
-        filtered_types = set(get_most_specific_types(inferred_types))
-        return filtered_types
-
     def _create_anonymous_instances_with_explicit_types(self):
         """Creates instances for all anonymous subjects in the graph."""
         for s in self.graph.subjects(RDF.type, OWL.NamedIndividual, unique=True):
@@ -536,7 +491,6 @@ class OwlLoader:
                 py_cls = self.metadata.get_python_class(o_class)
                 if py_cls:
                     ac.add_type(py_cls)
-                    self.anonymous_instances_by_type[py_cls].add(ac)
         if self.anonymous_instances:
             return
         for s, o_class in self.graph.subject_objects(RDF.type):
@@ -557,9 +511,6 @@ class OwlLoader:
             py_cls = self.metadata.get_python_class(o_class)
             if py_cls:
                 self.anonymous_instances[s].add_type(py_cls)
-                self.anonymous_instances_by_type[py_cls].add(
-                    self.anonymous_instances[s]
-                )
 
     def _assign_all_properties_to_all_instances(self):
         """Iterates through all properties of all instances and assigns properties to the instances."""
@@ -584,12 +535,6 @@ class OwlLoader:
                     setattr(instance, field_name, [obj_inst])
                 else:
                     getattr(instance, field_name).append(obj_inst)
-                if (
-                    obj not in self.obj_pred_subj_map
-                    or field_name not in self.obj_pred_subj_map[obj]
-                    or instance not in self.obj_pred_subj_map[obj][field_name]
-                ):
-                    self.obj_pred_subj_map[obj][field_name].append(instance)
 
     def _create_explicit_instances(self):
         """Creates instances for all subjects with an explicit rdf:type in the graph."""
@@ -598,14 +543,7 @@ class OwlLoader:
             for s, ai in self.anonymous_instances.items()
             for o_class in ai.final_sorted_types
         )
-        seen_s = set()
         for s, py_cls in so_iterator:
-            # if s not in seen_s:
-            #     seen_s.add(s)
-            # else:
-            #     import pdbpp
-            #
-            #     pdbpp.set_trace()
             existing_roles = self.registry.resolve(s)
             kwargs = self._get_common_role_taker_kwargs(existing_roles, py_cls)
             self.registry.get_or_create_for(s, py_cls, self.symbol_graph, **kwargs)

@@ -54,7 +54,7 @@ class AnonymousClass:
         return hash(self.uri)
 
     def __eq__(self, other):
-        return self.uri == other.uri
+        return hash(self) == hash(other)
 
 
 def get_super_axiom_and_candidate_var(
