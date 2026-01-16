@@ -383,13 +383,6 @@ class OwlLoader:
                         instance.final_sorted_types.append(py_cls)
 
             for desc in descriptors:
-                # if (
-                #     str(instance.uri) == "http://benchmark/OWL2Bench#U0C0D0AP0"
-                #     and desc.get_field_name() == "is_crazy_about"
-                # ):
-                #     import pdbpp
-                #
-                #     pdbpp.set_trace()
                 domains = desc.all_domains[desc]
                 if len(domains) == 1:
                     self._update_inferred_types_given_descriptor_domain_and_range(
