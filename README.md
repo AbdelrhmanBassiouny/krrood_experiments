@@ -21,7 +21,7 @@ Everything has been tested on Ubuntu 24.04.3 with python3.12.3, GraphDB 11.1.2 a
 
 2. **Set up a virtual environment**:
    ```bash
-   python -m venv .venv
+   python3.12 -m venv .venv
    source .venv/bin/activate
    ```
 
@@ -31,17 +31,40 @@ Everything has been tested on Ubuntu 24.04.3 with python3.12.3, GraphDB 11.1.2 a
    pip install -r requirements.txt
    ```
 
+    Install also the latest version of ripple down rules.
+    
+   ```bash
+    git clone https://github.com/AbdelrhmanBassiouny/ripple_down_rules.git
+    cd ripple_down_rules
+    pip install .
+     ```
+
+    Install the correct version of KRROOD.
+    
+   ```bash
+    git clone https://github.com/AbdelrhmanBassiouny/cognitive_robot_abstract_machine.git
+    cd cognitive_robot_abstract_machine
+    git checkout persistent_entity
+    cd krrood
+    pip install .
+     ```
+
 4. **Install the project in editable mode**:
    ```bash
+   cd ~/krrood_experiments
    pip install -e .
    ```
 
 ## Configuration
 
+Install a postgresql database. (https://www.postgresql.org/download/linux/ubuntu/)
+
+
+
 Set the following environment variable to point to your relational database:
 
 ```bash
-export KRROOD_EXPERIMENTS_DATABASE_URI="postgresql://user:password@localhost/dbname"
+  export KRROOD_EXPERIMENTS_DATABASE_URI="postgresql://user:password@localhost/dbname"
 ```
 
 ## Usage
