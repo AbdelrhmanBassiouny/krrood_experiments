@@ -10,6 +10,7 @@ from owlrl import DeductiveClosure, OWLRL_Semantics
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker, class_mapper
 
+from krrood_experiments.owl2bench.ontomatic.helpers import load_instances_for_owl2bench_with_predicates
 from krrood_experiments.owl2bench.ood.loader import WorldLoader
 from krrood_experiments.owl2bench.ood.orm.ormatic_interface import Base, WorldDAO
 from krrood_experiments.owl2bench.ood.performance_utils import (
@@ -192,6 +193,24 @@ def reason_reasoned_rdflib() -> float:
     return rdflib_loading_time
 
 
+def reason_raw_krrood() -> float:
+    start = time.time()
+    registry = load_instances_for_owl2bench_with_predicates(
+        rdf_unreasoned_file_path
+    )
+    result = time.time() - start
+    return result
+
+
+def reason_reasoned_krrood() -> float:
+    start = time.time()
+    registry = load_instances_for_owl2bench_with_predicates(
+        rdf_file_path
+    )
+    result = time.time() - start
+    return result
+
+
 def evaluate_loading(iterations: int = 1):
 
     raw_runtimes = {backend: [] for backend in Backend}
@@ -222,4 +241,4 @@ def evaluate_loading(iterations: int = 1):
 
 
 if __name__ == "__main__":
-    evaluate_loading()
+    ...
