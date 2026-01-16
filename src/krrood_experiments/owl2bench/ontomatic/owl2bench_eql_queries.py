@@ -18,33 +18,21 @@ from krrood.entity_query_language.entity_result_processors import (
 )
 from krrood.entity_query_language.predicate import symbolic_function
 from krrood.entity_query_language.symbol_graph import SymbolGraph
-from ripple_down_rules.utils import recursive_subclasses
 from typing_extensions import Any, Optional, Callable, Iterable
 
 from krrood_experiments.owl2bench.ontomatic.helpers import (
-    evaluate_eql,
     QueryWithSelectables,
-    load_instances_for_owl2bench_with_predicates,
+)
+from krrood_experiments.owl2bench.ontomatic.helpers import (
+    evaluate_eql,
 )
 from krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates import (
-    Department,
     Student,
     University,
-    Publication,
-    Professor,
     Person,
-    Chair,
-    AssociateProfessor,
-    ResearchGroup,
     Organization,
     T20CricketFan,
-    Science,
-    College,
-    WomanCollege,
-    LeisureStudent,
-    UGStudent,
     Faculty,
-    Engineering,
 )
 
 
@@ -54,16 +42,16 @@ def get_eql_queries(
     # 1 (No joining, just filtration of graduate students through taking a certain course)
     p = variable(Person, domain=None)
     o1 = variable_from(p.is_member_of)
-    q2 = a(set_of(p, o1).distinct(p.uri, o1.uri))
+    q2 = a(set_of(p, o1))
     q2 = QueryWithSelectables(q2, {"x": p, "y": o1}, 2)
 
     o1 = variable(Organization, domain=None)
     o2 = variable_from(o1.is_part_of)
-    q3 = an(set_of(o1, o2).distinct(o1.uri, o2.uri))
+    q3 = an(set_of(o1, o2))
     q3 = QueryWithSelectables(q3, {"x": o1, "y": o2}, 3)
 
     p = variable(Person, domain=None)
-    q4 = an(set_of(p, p.has_age).where(p.has_age))
+    q4 = an(set_of(p, p.has_age).where(p.has_age != None))
     q4 = QueryWithSelectables(q4, {"x": p, "y": p.has_age}, 4)
 
     p = variable(T20CricketFan, None)
@@ -103,7 +91,7 @@ def get_eql_queries(
     q15 = QueryWithSelectables(q15, {"x": p}, 15)
 
     o = variable(Organization, domain=None)
-    q16 = an(entity(o).where(length(o.has_head) > 0).distinct(o.uri))
+    q16 = an(entity(o).where(length(o.has_head) > 0))
     q16 = QueryWithSelectables(q16, {"x": o}, 16)
 
     p1 = variable(Faculty, domain=None)
@@ -172,3 +160,80 @@ def process_value_for_owl2bench_answer_comparison(value: Any):
 
             pdbpp.set_trace()
         return value
+
+
+def evaluate_eql_and_sparql_queries():
+    def instances_for_class(cls):
+        for instance in SymbolGraph().get_instances_of_type(cls):
+            yield instance
+
+    start_time = time.time()
+    queries_with_selectables = get_eql_queries(instances_for_class)
+    counts, results, times = evaluate_eql(queries_with_selectables)
+    end_time = time.time()
+    for i, (r, count_) in enumerate(zip(results, counts)):
+        print(f"{r}:{count_} ({times[i]} sec)")
+        # print([r for r in results[i - 1]])
+    print(f"Time elapsed: {end_time - start_time} seconds")
+
+    try:
+        # Initialize connection to GraphDB
+        sparql = SPARQLWrapper.SPARQLWrapper(
+            "http://localhost:7200/repositories/KRROOD"
+        )
+        sparql.setReturnFormat(SPARQLWrapper.JSON)
+
+        # Execute query
+        from krrood_experiments.owl2bench.sparql_queries import (
+            all_queries as sparql_queries,
+        )
+
+        sparql_answers = {}
+        for q in sparql_queries:
+            if q.number not in results:
+                continue
+            sparql.setQuery(q.raw_sparql_string)
+            res = sparql.query().convert()
+            sparql_answers[q.number] = []
+            for r in res["results"]["bindings"]:
+                flat_r = {k: v["value"] for k, v in r.items()}
+                sparql_answers[q.number].append(set(tuple(flat_r.items())))
+        for i, query_results in results.items():
+            if i not in sparql_answers:
+                continue
+            uri_results = []
+            for res in query_results:
+                for k, v in res.items():
+                    res[k] = process_value_for_owl2bench_answer_comparison(v)
+                uri_results.append(set(tuple(res.items())))
+            for sol in uri_results:
+                try:
+                    assert (
+                        sol in sparql_answers[i]
+                    ), f"{sol} not found in SPARQL answers, for query {i}"
+                except AssertionError as e:
+                    print(f"{sol} not found in SPARQL answers, for query {i}")
+                    # import pdbpp
+                    #
+                    # pdbpp.set_trace()
+            for gt_sol in sparql_answers[i]:
+                try:
+                    assert (
+                        gt_sol in uri_results
+                    ), f"{gt_sol} not found in EQL answers, for query {i}"
+                except AssertionError:
+                    print(f"{gt_sol} not found in EQL answers, for query {i}")
+                    # import pdbpp
+                    #
+                    # pdbpp.set_trace()
+            try:
+                assert len(sparql_answers[i]) == len(
+                    uri_results
+                ), f"Number of results mismatch for query {i}"
+            except AssertionError as e:
+                print(f"Number of results mismatch for query {i}")
+                # import pdbpp
+                #
+                # pdbpp.set_trace()
+    except Exception as e:
+        pass
