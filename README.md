@@ -89,12 +89,8 @@ Just for evaluation (recommended):
 - You can leave all settings as default, except for the ruleset, which should be set to **No Inference**. The name needs to be "KRROOD". Then create the repository.
 - Add the ontology to GraphDB by navigating to **Import → Upload RDF Files** and selecting the file `resources/owl2bench_statements_reasoned.rdf`.
 
-Be aware that you need a (free) license for GraphDB to be able to upload the ontology.
+Be aware that you need a (free) license for GraphDB to be able to upload the ontology. You can get one by scrolling down to the `Request GraphDB License` section here: https://www.ontotext.com/products/graphdb/
 You can check if the data was uploaded successfully by ensuring that the graph contains 1,502,966 statements.
-
-For evaluation and reasoning (not recommended):
-- You can leave all settings as default, except for the ruleset, which should be set to **OWL 2 RL (Optimized)**. The name needs to be "KRROOD". Then create the repository.
-- Add the ontology to GraphDB by navigating to **Import → Upload RDF Files** and selecting the file `resources/owl2bench_statements_reasoned.rdf`. This takes ~30 minutes.
 
 ## Usage
 
