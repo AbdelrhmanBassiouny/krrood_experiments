@@ -84,8 +84,6 @@ Now you have to upload that in GraphDB.
 
 - Download and install GraphDB: https://graphdb.ontotext.com/
 - Launch GraphDB and, in the user interface, create a new repository by navigating to **Setup → Repositories → Create new Repository → GraphDB Repository**.
-
-Just for evaluation (recommended):
 - You can leave all settings as default, except for the ruleset, which should be set to **No Inference**. The name needs to be "KRROOD". Then create the repository.
 - Add the ontology to GraphDB by navigating to **Import → Upload RDF Files** and selecting the file `resources/owl2bench_statements_reasoned.rdf`.
 
