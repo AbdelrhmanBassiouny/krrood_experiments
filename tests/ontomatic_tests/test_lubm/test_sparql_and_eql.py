@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import time
 
+import pytest
+
 from krrood_experiments.owl2bench.ontomatic.helpers import (
     load_instances_for_lubm_with_predicates,
     get_lubm_answers,
@@ -13,6 +15,7 @@ from krrood_experiments.lubm.lubm_eql_queries import (
 )
 
 
+@pytest.mark.skip("unclean ontologies are not supported anymore")
 def test_eql_counts_match_sparql():
     registry = load_instances_for_lubm_with_predicates()
     start_time = time.time()
