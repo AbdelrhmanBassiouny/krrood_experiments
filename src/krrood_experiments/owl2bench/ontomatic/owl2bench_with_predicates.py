@@ -900,6 +900,17 @@ class UGStudent(Student):
 class WomanCollege(College):
     ...
 
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(WomanCollege, cls, candidate)
+        return (HasAttribute(candidate_var, 'has_student'),
+				IsSubClassOf(variable_from(candidate_var.has_student.types), Woman)
+        )
+
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return hasattr(candidate, 'has_student') and any(issubclass(t, Woman) for attr in candidate.has_student for t in attr.types)
+
 
 @dataclass(eq=False)
 class BasketBallFan(SportsFan):

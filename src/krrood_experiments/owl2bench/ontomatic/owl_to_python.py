@@ -1030,10 +1030,6 @@ class InferenceEngine:
                         cls_info.role_taker = RoleTakerInfo(
                             rng_name, NamingRegistry.to_snake_case(rng_name)
                         )
-                        # if rng_name in cls_info.superclasses:
-                        #     cls_info.superclasses.remove(rng_name)
-                        #     cls_info.base_classes.remove(rng_name)
-                        #     cls_info.all_base_classes.remove(rng_name)
                     return True
                 if rng_name is None:
                     if self.onto.graph.value(value_type, OWL.complementOf):
@@ -1054,6 +1050,19 @@ class InferenceEngine:
                             return True
                     else:
                         return True
+                snake_prop_name = NamingRegistry.to_snake_case(prop_name)
+                self.onto.classes[for_class].axioms.extend(
+                    [
+                        f"HasAttribute(candidate_var, '{snake_prop_name}')",
+                        f"IsSubClassOf(variable_from(candidate_var.{snake_prop_name}.types), {rng_name})",
+                    ]
+                )
+                self.onto.classes[for_class].axioms_python.extend(
+                    [
+                        f"hasattr(candidate, '{snake_prop_name}')",
+                        f"any(issubclass(t, {rng_name}) for attr in candidate.{snake_prop_name} for t in attr.types)",
+                    ]
+                )
                 existing_ranges = self.property_maps.rng_map.get(prop_name, set())
                 contesting_ranges = set(existing_ranges)
                 for dom_cls, pred_obj in self.onto.property_restrictions.items():
@@ -1078,19 +1087,6 @@ class InferenceEngine:
                 self.onto.property_restrictions.setdefault(for_class, {}).setdefault(
                     prop_name, set()
                 ).add(rng_name)
-                snake_prop_name = NamingRegistry.to_snake_case(prop_name)
-                self.onto.classes[for_class].axioms.extend(
-                    [
-                        f"HasAttribute(candidate_var, '{snake_prop_name}')",
-                        f"IsSubClassOf(variable_from(candidate_var.{snake_prop_name}.types), {rng_name})",
-                    ]
-                )
-                self.onto.classes[for_class].axioms_python.extend(
-                    [
-                        f"hasattr(candidate, '{snake_prop_name}')",
-                        f"any(issubclass(t, {rng_name}) for attr in candidate.{snake_prop_name} for t in attr.types)",
-                    ]
-                )
                 for inverse in self.onto.properties[prop_name].inverses:
                     snake_inverse_name = NamingRegistry.to_snake_case(inverse)
                     self.onto.property_restrictions.setdefault(rng_name, {}).setdefault(
@@ -2244,4 +2240,12 @@ if __name__ == "__main__":
     )
 
     # generate_lubm_with_predicates(clean=True)
-    generate_owl2bench_with_predicates(clean=True)
+    resources_dir = os.path.join(
+        os.path.dirname(__file__), "..", "..", "..", "..", "resources"
+    )
+    file_path = os.path.join(resources_dir, "owl2bench_statements_unreasoned.rdf")
+    output_path = os.path.join(
+        os.path.dirname(__file__),
+        "owl2bench_with_predicates.py",
+    )
+    generate_owl2bench_with_predicates(file_path, output_path)

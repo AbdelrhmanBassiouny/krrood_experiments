@@ -12,7 +12,7 @@ from krrood.entity_query_language.symbolic import An, UnificationDict
 from owlrl import DeductiveClosure, OWLRL_Semantics
 from rdflib import Graph
 from sqlalchemy.sql.operators import contains
-from typing_extensions import Dict
+from typing_extensions import Dict, Optional
 
 from .owl_instances_loader import (
     OwlLoader,
@@ -58,7 +58,9 @@ def generate_lubm_with_predicates(clean: bool = False):
     converter.save_to_file(output_path)
 
 
-def generate_owl2bench_with_predicates(clean: bool = False, save_to_file: bool = True):
+def generate_owl2bench_with_predicates(
+    file_name: str, save_to_file: Optional[str] = None
+):
     # Provide default overrides for common LUBM datatype properties
     _default_overrides = {
         "Person": {
@@ -83,26 +85,10 @@ def generate_owl2bench_with_predicates(clean: bool = False, save_to_file: bool =
         },
     }
     converter = OwlToPythonConverter(predefined_data_types=_default_overrides)
-    resources_path = os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "..",
-        "owl2bench",
-        "resources",
-        "refactored_ontologies",
-    )
-    # base_name = "OWL2RL-1"
-    base_name = "owl2benchRlFixed"
-    suffix = ".owl"
-    suffix_reasoned = ".rdf"
-    file_name = f"{base_name}_clean.owl" if clean else f"{base_name}.owl"
-    converter.load_ontology(os.path.join(resources_path, file_name))
+    converter.load_ontology(file_name)
     if save_to_file:
         # Save into the package module so tests import the updated code
-        output_path = os.path.join(
-            os.path.dirname(__file__), "owl2bench/owl2bench_with_predicates.py"
-        )
-        converter.save_to_file(output_path)
+        converter.save_to_file(save_to_file)
     return
 
 
