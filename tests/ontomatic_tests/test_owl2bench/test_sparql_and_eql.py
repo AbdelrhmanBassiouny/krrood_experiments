@@ -93,22 +93,22 @@ def test_quantified_axiom():
     takes_1_course = AnonymousClass(uri="takes_1_course")
     takes_1_course.types = {Student}
     takes_1_course.takes_course = {
-        AnonymousClass(uri="http://benchmark/OWL2Bench#Course1")
+        AnonymousClass(uri="http://benchmark/OWL2Bench#Course1", types={Course})
     }
     assert has_solution(takes_1_course, LeisureStudent.axiom)
     assert LeisureStudent.axiom_python(takes_1_course)
     takes_2_courses = AnonymousClass(uri="takes_2_courses")
     takes_2_courses.types = {Student}
     takes_2_courses.takes_course = {
-        AnonymousClass(uri="http://benchmark/OWL2Bench#Course1"),
-        AnonymousClass(uri="http://benchmark/OWL2Bench#Course2"),
+        AnonymousClass(uri="http://benchmark/OWL2Bench#Course1", types={Course}),
+        AnonymousClass(uri="http://benchmark/OWL2Bench#Course2", types={Course}),
     }
     assert not has_solution(takes_2_courses, LeisureStudent.axiom)
     assert not LeisureStudent.axiom_python(takes_2_courses)
     not_a_student = AnonymousClass(uri="not_a_student")
     not_a_student.types = {Person}
     not_a_student.takes_course = {
-        AnonymousClass(uri="http://benchmark/OWL2Bench#Course1")
+        AnonymousClass(uri="http://benchmark/OWL2Bench#Course1", types={Course})
     }
     candidate_var = variable(AnonymousClass, [not_a_student])
     candidate_types = variable_from(candidate_var.types)
@@ -119,3 +119,32 @@ def test_quantified_axiom():
     assert not list(existential._evaluate__())
     assert not has_solution(not_a_student, LeisureStudent.axiom)
     assert not LeisureStudent.axiom_python(not_a_student)
+    not_a_course = AnonymousClass(uri="not_a_course")
+    not_a_course.types = {Person}
+    takes_1_course_not_course = AnonymousClass(uri="takes_1_course_not_course")
+    takes_1_course_not_course.types = {Student}
+    takes_1_course_not_course.takes_course = {not_a_course}
+    candidate_var = variable(AnonymousClass, [takes_1_course_not_course])
+    existential = exists(
+        candidate_var,
+        IsSubClassOrRole(variable_from(candidate_var.takes_course.types), Course),
+    )
+    assert not list(existential._evaluate__())
+    assert LeisureStudent.axiom_python(takes_1_course_not_course)
+    assert has_solution(takes_1_course_not_course, LeisureStudent.axiom)
+    takes_1_course_and_1_not_course = AnonymousClass(
+        uri="takes_1_course_and_1_not_course"
+    )
+    takes_1_course_and_1_not_course.types = {Student}
+    takes_1_course_and_1_not_course.takes_course = {
+        AnonymousClass(uri="http://benchmark/OWL2Bench#Course1", types={Course}),
+        not_a_course,
+    }
+    candidate_var = variable(AnonymousClass, [takes_1_course_and_1_not_course])
+    existential = exists(
+        candidate_var,
+        IsSubClassOrRole(variable_from(candidate_var.takes_course.types), Course),
+    )
+    assert list(existential._evaluate__())
+    assert LeisureStudent.axiom_python(takes_1_course_and_1_not_course)
+    assert has_solution(takes_1_course_and_1_not_course, LeisureStudent.axiom)

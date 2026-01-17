@@ -444,7 +444,7 @@ class MinCardinalityAxiomInfo(QuantifiedAxiomInfo):
 
 
 @dataclass
-class QualifiedCardinalityAxiomInfo(CardinalityAxiomInfo, QualifiedAxiomInfoMixin):
+class QuantifiedQualifiedAxiomInfo(QuantifiedAxiomInfo, QualifiedAxiomInfoMixin):
     """
     Information about a qualified cardinality axiom. (i.e., must have exactly N values of a certain class)
     """
@@ -466,21 +466,30 @@ class QualifiedCardinalityAxiomInfo(CardinalityAxiomInfo, QualifiedAxiomInfoMixi
 
 
 @dataclass
-class MaxQualifiedCardinalityAxiomInfo(
-    MaxCardinalityAxiomInfo, QualifiedAxiomInfoMixin
-):
+class QualifiedCardinalityAxiomInfo(QuantifiedQualifiedAxiomInfo):
+    """
+    Information about a qualified cardinality axiom. (i.e., must have exactly N values of a certain class)
+    """
+
+    comparison_operator = "=="
+
+
+@dataclass
+class MaxQualifiedCardinalityAxiomInfo(QuantifiedQualifiedAxiomInfo):
     """
     Information about a qualified max cardinality axiom.
     """
 
+    comparison_operator = "<="
+
 
 @dataclass
-class MinQualifiedCardinalityAxiomInfo(
-    MinCardinalityAxiomInfo, QualifiedAxiomInfoMixin
-):
+class MinQualifiedCardinalityAxiomInfo(QuantifiedQualifiedAxiomInfo):
     """
     Information about a qualified min cardinality axiom.
     """
+
+    comparison_operator = ">="
 
 
 @dataclass

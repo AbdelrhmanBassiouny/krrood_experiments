@@ -5,7 +5,7 @@ from typing import Set, Type, List
 
 from krrood.entity_query_language.entity import variable
 from krrood.entity_query_language.symbolic import Variable
-from krrood.class_diagrams.utils import issubclass_or_role
+from krrood.class_diagrams.utils import issubclass_or_role, Role
 from krrood.utils import inheritance_path_length
 from rdflib import URIRef
 from typing_extensions import Type, Set, List, Iterable, Any
@@ -66,7 +66,11 @@ def get_super_axiom_and_candidate_var(
         else variable(AnonymousClass, [candidate])
     )
 
-    sup = super(owner, cls)
+    sup = (
+        super(owner, cls)
+        if not issubclass(owner, Role)
+        else owner.get_role_taker_type()
+    )
     axiom = getattr(sup, "axiom", None)
     super_axiom = axiom(candidate_var) if axiom else ()
 
