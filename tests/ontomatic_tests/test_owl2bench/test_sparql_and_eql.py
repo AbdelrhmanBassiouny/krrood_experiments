@@ -2,6 +2,16 @@ import os
 import time
 
 import pytest
+from krrood.entity_query_language.entity import (
+    variable,
+    has_solution,
+    to_str,
+    exists,
+    entity,
+    variable_from,
+)
+from krrood.entity_query_language.entity_result_processors import an
+from krrood.entity_query_language.predicate import HasAttribute, IsSubClassOrRole
 
 from krrood_experiments.owl2bench.ontomatic.helpers import (
     load_instances_for_owl2bench_with_predicates,
@@ -9,6 +19,8 @@ from krrood_experiments.owl2bench.ontomatic.helpers import (
 from krrood_experiments.owl2bench.ontomatic.owl2bench_eql_queries import (
     evaluate_eql_and_sparql_queries,
 )
+from krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates import *
+from krrood_experiments.owl2bench.ontomatic.utils import AnonymousClass
 
 
 @pytest.fixture
@@ -48,3 +60,62 @@ def test_owl2bench_statements_unreasoned(unreasoned_owl2bench_file_path):
     print(f"Loading time: {loading_time} seconds")
 
     evaluate_eql_and_sparql_queries()
+
+
+def test_eql_axiom_descriptor_participation_extraction():
+    t20_fan = AnonymousClass(uri="T20Fan")
+    t20_fan.is_crazy_about = {
+        AnonymousClass(uri="http://benchmark/OWL2Bench#T20Cricket")
+    }
+    candidate_var = variable(AnonymousClass, [t20_fan])
+    query = an(
+        entity(candidate_var).where(
+            HasAttribute(candidate_var, "is_crazy_about"),
+            exists(
+                candidate_var,
+                to_str(candidate_var.is_crazy_about.uri)
+                == "http://benchmark/OWL2Bench#T20Cricket",
+            ),
+        )
+    )
+    assert len(list(query.evaluate())) == 1
+    assert has_solution(t20_fan, T20CricketFan.axiom)
+    assert T20CricketFan.axiom_python(t20_fan)
+    not_t20_fan = AnonymousClass(uri="NotT20Fan")
+    not_t20_fan.is_crazy_about = {
+        AnonymousClass(uri="http://benchmark/OWL2Bench#NotT20Cricket")
+    }
+    assert not has_solution(not_t20_fan, T20CricketFan.axiom)
+    assert not T20CricketFan.axiom_python(not_t20_fan)
+
+
+def test_quantified_axiom():
+    takes_1_course = AnonymousClass(uri="takes_1_course")
+    takes_1_course.types = {Student}
+    takes_1_course.takes_course = {
+        AnonymousClass(uri="http://benchmark/OWL2Bench#Course1")
+    }
+    assert has_solution(takes_1_course, LeisureStudent.axiom)
+    assert LeisureStudent.axiom_python(takes_1_course)
+    takes_2_courses = AnonymousClass(uri="takes_2_courses")
+    takes_2_courses.types = {Student}
+    takes_2_courses.takes_course = {
+        AnonymousClass(uri="http://benchmark/OWL2Bench#Course1"),
+        AnonymousClass(uri="http://benchmark/OWL2Bench#Course2"),
+    }
+    assert not has_solution(takes_2_courses, LeisureStudent.axiom)
+    assert not LeisureStudent.axiom_python(takes_2_courses)
+    not_a_student = AnonymousClass(uri="not_a_student")
+    not_a_student.types = {Person}
+    not_a_student.takes_course = {
+        AnonymousClass(uri="http://benchmark/OWL2Bench#Course1")
+    }
+    candidate_var = variable(AnonymousClass, [not_a_student])
+    candidate_types = variable_from(candidate_var.types)
+    existential = exists(
+        candidate_var,
+        IsSubClassOrRole(candidate_types, Student),
+    )
+    assert not list(existential._evaluate__())
+    assert not has_solution(not_a_student, LeisureStudent.axiom)
+    assert not LeisureStudent.axiom_python(not_a_student)

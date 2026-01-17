@@ -133,16 +133,6 @@ class Article(Publication):
 
 
 @dataclass(eq=False)
-class BasketBallFan(PersonMixinProtocol, Symbol):
-
-
-
-@dataclass(eq=False)
-class BasketBallLover(PersonMixinProtocol, Symbol):
-
-
-
-@dataclass(eq=False)
 class Book(Publication):
     ...
 
@@ -336,11 +326,13 @@ class Sports(Interest):
 
 @dataclass(eq=False)
 class SportsFan(PersonMixinProtocol, Symbol):
+    is_crazy_about: Set[Sports] = field(default_factory=set)
 
 
 
 @dataclass(eq=False)
 class SportsLover(PersonMixinProtocol, Symbol):
+    loves: Set[Sports] = field(default_factory=set)
 
 
 
@@ -439,6 +431,18 @@ class Badminton(Sports):
 @dataclass(eq=False)
 class BasketBall(Sports):
     ...
+
+
+
+@dataclass(eq=False)
+class BasketBallFan(SportsFan):
+    is_crazy_about: Set[BasketBall] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
+class BasketBallLover(SportsLover):
+    loves: Set[BasketBall] = field(default_factory=set)
 
 
 

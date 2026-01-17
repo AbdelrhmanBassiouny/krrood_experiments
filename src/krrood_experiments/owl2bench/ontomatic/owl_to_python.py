@@ -28,15 +28,16 @@ from krrood.entity_query_language.entity import (
     contains,
     for_all,
 )
-from krrood.entity_query_language.predicate import IsSubClassOf, HasAttribute
+from krrood.entity_query_language.predicate import IsSubClassOrRole, HasAttribute
 from krrood.entity_query_language.symbolic import Variable
 from krrood.entity_query_language.utils import is_iterable
 from krrood.ormatic.utils import T
+from rdflib import URIRef
 from ripple_down_rules import CaseQuery
 from jinja2 import Environment, FileSystemLoader
 from jinja2.ext import loopcontrols
 from krrood import logger
-from krrood.class_diagrams.utils import Role
+from krrood.class_diagrams.utils import Role, issubclass_or_role
 from krrood.ontomatic.property_descriptor.mixins import (
     TransitiveProperty,
     HasInverseProperty,
@@ -89,6 +90,40 @@ class RoleTakerInfo:
 
     class_name: str
     field_name: str
+
+
+@dataclass
+class AxiomInfo(ABC):
+    """
+    Base class for axiom information.
+    """
+
+    @abstractmethod
+    def conditions_eql(self) -> List[str]:
+        pass
+
+    @abstractmethod
+    def conditions_python(self) -> List[str]:
+        pass
+
+
+@dataclass
+class SubClassAxiomInfo(AxiomInfo):
+    """
+    Represents a subclass axiom between two classes.
+    """
+
+    sub_class: str
+
+    def conditions_eql(self):
+        return [
+            f"exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.types), {self.sub_class}))"
+        ]
+
+    def conditions_python(self):
+        return [
+            f"any(issubclass_or_role(t, {self.sub_class}) for t in candidate.types)"
+        ]
 
 
 @dataclass
@@ -159,7 +194,9 @@ class QualifiedAxiomMixin(ABC):
     on_class: Type
 
     def qualification_eql(self, prop_var):
-        return exists(IsSubClassOf(variable_from(prop_var.types), self.on_class))
+        return exists(
+            prop_var, IsSubClassOrRole(variable_from(prop_var.types), self.on_class)
+        )
 
 
 @dataclass
@@ -210,7 +247,7 @@ class QualifiedCardinalityAxiom(CardinalityAxiom, QualifiedAxiomMixin):
                 [
                     v
                     for v in getattr(self.candidate, self.property_name)
-                    if any(issubclass(t, self.on_class) for t in v.types)
+                    if any(issubclass_or_role(t, self.on_class) for t in v.types)
                 ]
             ),
             self.quantity,
@@ -246,7 +283,7 @@ class HasValueAxiom(PropertyAxiom):
         if is_iterable(attr):
             base_conditions.append(contains(self.prop_var, self.value))
         else:
-            base_conditions.append(exists(self.prop_var == self.value))
+            base_conditions.append(exists(self.prop_var, self.prop_var == self.value))
         return base_conditions
 
     def conditions_python(self):
@@ -280,7 +317,7 @@ class SomeValuesFromAxiom(PropertyAxiom, QualifiedAxiomMixin):
         base_conditions = super().conditions_python()
         base_conditions.append(
             any(
-                issubclass(t, self.on_class)
+                issubclass_or_role(t, self.on_class)
                 for attr in getattr(self.candidate, self.property_name)
                 for t in attr.types
             )
@@ -300,7 +337,10 @@ class AllValuesFromAxiomInfo(PropertyAxiom, QualifiedAxiomMixin):
         base_conditions.append(
             for_all(
                 prop_value,
-                exists(IsSubClassOf(variable_from(prop_value.types), self.on_class)),
+                exists(
+                    prop_value,
+                    IsSubClassOrRole(variable_from(prop_value.types), self.on_class),
+                ),
             )
         )
         return base_conditions
@@ -309,7 +349,7 @@ class AllValuesFromAxiomInfo(PropertyAxiom, QualifiedAxiomMixin):
         base_conditions = super().conditions_python()
         base_conditions.append(
             all(
-                any(issubclass(t, self.on_class) for t in attr.types)
+                any(issubclass_or_role(t, self.on_class) for t in attr.types)
                 for attr in getattr(self.candidate, self.property_name)
             )
         )
@@ -317,7 +357,7 @@ class AllValuesFromAxiomInfo(PropertyAxiom, QualifiedAxiomMixin):
 
 
 @dataclass
-class PropertyAxiomInfo:
+class PropertyAxiomInfo(AxiomInfo):
     """
     Information about a property axiom.
     """
@@ -331,7 +371,7 @@ class PropertyAxiomInfo:
         return NamingRegistry.to_snake_case(self.property_name)
 
     def setup_statements(self):
-        return [f"candidate_var = variable({AnonymousClass.__name__}, [candidate])"]
+        return []
 
     def conditions_eql(self):
         return [f"HasAttribute(candidate_var, '{self.snake_property_name}')"]
@@ -352,7 +392,7 @@ class QuantifiedAxiomInfo(PropertyAxiomInfo, ABC):
     def conditions_eql(self):
         base_conditions = super().conditions_eql()
         base_conditions.append(
-            f"length(candidate_var.{self.snake_property_name} {self.comparison_operator} {self.quantity})"
+            f"length(candidate_var.{self.snake_property_name}) {self.comparison_operator} {self.quantity}"
         )
         return base_conditions
 
@@ -373,7 +413,7 @@ class QualifiedAxiomInfoMixin:
     on_class: str
 
     def qualification_eql(self, snake_property_name):
-        return f"exists(IsSubClassOf(variable_from(candidate_var.{snake_property_name}.types), {self.on_class}))"
+        return f"exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.{snake_property_name}.types), {self.on_class}))"
 
 
 @dataclass
@@ -450,37 +490,47 @@ class HasValueAxiomInfo(PropertyAxiomInfo):
     """
 
     value: Any
+    value_str: str = field(init=False)
+
+    def __post_init__(self):
+        self.value_str = self.value
+        if isinstance(self.value, str):
+            self.value_str = f'"{self.value}"'
 
     def conditions_eql(self):
         base_conditions = super().conditions_eql()
-        prop_info = self.onto.properties[self.snake_property_name]
+        prop_info = self.onto.properties[self.property_name]
+        prop = f"candidate_var.{self.snake_property_name}"
+        if isinstance(self.value, URIRef):
+            prop = f"to_str({prop}.uri)"
+            self.value_str = f"'{str(self.value)}'"
         if (
-            prop_info.type == PropertyType.OBJECT_PROPERTY
+            not isinstance(self.value, URIRef)
+            and prop_info.type == PropertyType.OBJECT_PROPERTY
             and not prop_info.is_functional
         ):
-            base_conditions.append(
-                f"contains(candidate_var.{self.snake_property_name}, {self.value})"
-            )
+            base_conditions.append(f"contains({prop}, {self.value_str})")
         else:
-            base_conditions.append(
-                f"exists(candidate_var.{self.snake_property_name} == {self.value})"
-            )
+            base_conditions.append(f"exists(candidate_var, {prop} == {self.value_str})")
         return base_conditions
 
     def conditions_python(self):
         base_conditions = super().conditions_python()
-        prop_info = self.onto.properties[self.snake_property_name]
+        prop_info = self.onto.properties[self.property_name]
+        prop = f"candidate.{self.snake_property_name}"
+        if isinstance(self.value, URIRef):
+            self.value_str = f"'{str(self.value)}'"
         if (
             prop_info.type == PropertyType.OBJECT_PROPERTY
             and not prop_info.is_functional
         ):
-            base_conditions.append(
-                f"({self.value} in candidate.{self.snake_property_name})"
-            )
+            if isinstance(self.value, URIRef):
+                prop = f"map(lambda x: str(x.uri), {prop})"
+            base_conditions.append(f"({self.value_str} in {prop})")
         else:
-            base_conditions.append(
-                f"(candidate.'{self.snake_property_name}' == {self.value})"
-            )
+            if isinstance(self.value, URIRef):
+                prop = f"str({prop}.uri)"
+            base_conditions.append(f"({prop} == {self.value_str})")
         return base_conditions
 
 
@@ -521,7 +571,7 @@ class AllValuesFromAxiomInfo(PropertyAxiomInfo, QualifiedAxiomInfoMixin):
     def conditions_eql(self):
         base_conditions = super().conditions_eql()
         base_conditions.append(
-            f"for_all(candidate_{self.snake_property_name}, exists(IsSubClassOf(variable_from(candidate_{self.snake_property_name}.types), {self.on_class})))"
+            f"for_all(candidate_{self.snake_property_name}, exists(candidate_var, IsSubClassOrRole(variable_from(candidate_{self.snake_property_name}.types), {self.on_class})))"
         )
         return base_conditions
 
@@ -1400,6 +1450,8 @@ class InferenceEngine:
             # if isinstance(cls_uri, rdflib.BNode):
             #     continue
             cls_name = NamingRegistry.uri_to_python_name(cls_uri, self.onto.graph)
+            for_class = self.onto.description_for(cls_name) or cls_name
+
             # direct subclass restrictions
             for restr in self.onto.graph.objects(cls_uri, RDFS.subClassOf):
                 self._restrictions_handler(cls_name, restr)
@@ -1413,6 +1465,7 @@ class InferenceEngine:
                     self.property_maps.declared_dom_map[prop_name].add(cls_name)
 
             # restrictions inside intersectionOf
+            intersection = []
             for coll in self.onto.graph.objects(cls_uri, OWL.intersectionOf):
                 node = coll
                 while node and node != RDF.nil:
@@ -1426,8 +1479,27 @@ class InferenceEngine:
                         prop_name = NamingRegistry.uri_to_python_name(
                             on_prop, self.onto.graph
                         )
-                        for_class = self.onto.description_for(cls_name) or cls_name
                         self.property_maps.declared_dom_map[prop_name].add(for_class)
+                    elif (
+                        on_prop
+                        and intersection
+                        and intersection[0] in self.onto.classes
+                        and self.onto.classes[for_class].axioms
+                    ):
+                        subclass_axiom = SubClassAxiomInfo(intersection[0])
+                        self.onto.classes[for_class].axioms.insert(
+                            0,
+                            subclass_axiom.conditions_eql()[0],
+                        )
+                        self.onto.classes[for_class].axioms_python.insert(
+                            0,
+                            subclass_axiom.conditions_python()[0],
+                        )
+                    else:
+                        first_name = NamingRegistry.uri_to_python_name(
+                            first, self.onto.graph
+                        )
+                        intersection.append(first_name)
                     node = self.onto.graph.value(node, RDF.rest)
         # Standalone Restrictions
         for restr in self.onto.graph.subjects(RDF.type, OWL.Restriction):
@@ -1435,7 +1507,7 @@ class InferenceEngine:
                 continue
             covered_restrictions.add(restr)
             on_prop = self.onto.graph.value(restr, OWL.onProperty)
-            if not on_prop:
+            if on_prop is None:
                 continue
             for_class = None
             for subj, pred in self.onto.graph.subject_predicates(restr):
@@ -1556,8 +1628,12 @@ class InferenceEngine:
                 self.onto.classes[for_class].axioms_python.extend(
                     axiom.conditions_python()
                 )
+                if rng_name is None:
+                    if self.onto.original_properties[prop_name].ranges:
+                        rng_name = self.onto.original_properties[prop_name].ranges[0]
+                    else:
+                        return True
                 existing_ranges = self.property_maps.rng_map.get(prop_name, set())
-                existing_domains = self.property_maps.dom_map.get(prop_name, set())
                 contesting_ranges = set(existing_ranges)
                 for dom_cls, pred_obj in self.onto.property_restrictions.items():
                     if prop_name in pred_obj:
@@ -1566,7 +1642,10 @@ class InferenceEngine:
                                 contesting_ranges.remove(er)
                 if self.onto.classes[for_class].role_taker:
                     role_taker = self.onto.classes[for_class].role_taker.class_name
-                    if role_taker in existing_domains:
+                    if (
+                        role_taker in self.onto.original_properties[prop_name].domains
+                        and rng_name in self.onto.original_properties[prop_name].ranges
+                    ):
                         self.property_maps.dom_map[prop_name].remove(for_class)
                         return False
                 if contesting_ranges and not any(

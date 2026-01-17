@@ -354,6 +354,10 @@ class OwlLoader:
         for instance in self.anonymous_instances.values():
             instance.final_sorted_types = get_most_specific_types(tuple(instance.types))
         for instance in self.anonymous_instances.values():
+            # if str(instance.uri) == "http://benchmark/OWL2Bench#T20Cricket":
+            #     import pdbpp
+            #
+            #     pdbpp.set_trace()
             descriptors = self.get_descriptors_of_instance(instance)
             if len(descriptors) == 0:
                 py_cls = self.metadata.get_python_class(
@@ -380,6 +384,13 @@ class OwlLoader:
                         )
                     )
                 )
+                if desc.__name__ == "IsCrazyAbout" and any(
+                    "T20Cricket" in str(t.uri)
+                    for t in getattr(instance, desc.get_field_name())
+                ):
+                    import pdbpp
+
+                    pdbpp.set_trace()
                 for dom in domains:
                     if hasattr(dom, "axiom_python") and dom.axiom_python(instance):
                         self._update_inferred_types_given_descriptor_domain_and_range(
