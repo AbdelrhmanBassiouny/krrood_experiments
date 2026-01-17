@@ -8,9 +8,10 @@ from __future__ import annotations
 
 import os
 import re
+from abc import ABC
 from collections import defaultdict
 from copy import deepcopy, copy
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field, asdict, MISSING
 from enum import Enum
 from functools import cached_property, lru_cache
 from symtable import Symbol
@@ -40,6 +41,8 @@ from ripple_down_rules import GeneralRDR
 from ripple_down_rules.rdr_decorators import fit_rdr_func
 from sqlalchemy.util import OrderedSet
 from typing_extensions import Tuple
+
+from krrood_experiments.owl2bench.ontomatic.utils import AnonymousClass
 
 
 class SubsumptionType(Enum):
@@ -72,6 +75,213 @@ class RoleTakerInfo:
 
     class_name: str
     field_name: str
+
+
+@dataclass
+class PropertyAxiomInfo(ABC):
+    """
+    Information about an axiom associated with a class or property.
+    """
+
+    property_name: str
+    for_class: str
+    onto: OntologyInfo
+
+    def setup_statements(self):
+        return [f"candidate_var = variable({self.for_class}, domain=[candidate])"]
+
+    def conditions_eql(self):
+        return [f"HasAttribute(candidate_var, '{self.property_name}')"]
+
+    def conditions_python(self):
+        return [f"hasattr(candidate, '{self.property_name}')"]
+
+
+@dataclass
+class QuantifiedAxiomInfo(PropertyAxiomInfo):
+    """
+    Information about a quantified axiom.
+    """
+
+    quantity: int
+
+
+@dataclass
+class QualifiedAxiomMixin:
+    """
+    Information about a qualified cardinality axiom.
+    """
+
+    on_class: str
+    comparison_operator: ClassVar[str] = ""
+
+    def qualification_eql(self, property_name):
+        return f"exists(IsSubClassOf(variable_from(candidate.{property_name}.types), {self.on_class}))"
+
+
+@dataclass
+class CardinalityAxiomInfo(QuantifiedAxiomInfo):
+    """
+    Information about a cardinality axiom. (i.e., must have exactly N values)
+    """
+
+    comparison_operator: ClassVar[str] = "=="
+
+    def conditions_eql(self):
+        base_conditions = super().conditions_eql()
+        base_conditions.append(
+            f"length(candidate.{self.property_name} {self.comparison_operator} {self.quantity}"
+        )
+        return base_conditions
+
+    def conditions_python(self):
+        base_conditions = super().conditions_python()
+        base_conditions.append(
+            f"(len(getattr(candidate, '{self.property_name}', [])) {self.comparison_operator} {self.quantity})"
+        )
+        return base_conditions
+
+
+@dataclass
+class MaxCardinalityAxiomInfo(QuantifiedAxiomInfo):
+    """
+    Information about a max cardinality axiom.
+    """
+
+    comparison_operator: ClassVar[str] = "<="
+
+
+@dataclass
+class MinCardinalityAxiomInfo(QuantifiedAxiomInfo):
+    """
+    Information about a min cardinality axiom.
+    """
+
+    comparison_operator: ClassVar[str] = ">="
+
+
+@dataclass
+class QualifiedCardinalityAxiomInfo(CardinalityAxiomInfo, QualifiedAxiomMixin):
+    """
+    Information about a qualified cardinality axiom. (i.e., must have exactly N values of a certain class)
+    """
+
+    def conditions_eql(self):
+        base_conditions = super().conditions_eql()
+        base_conditions.insert(
+            1,
+            self.qualification_eql(self.property_name),
+        )
+        return base_conditions
+
+    def conditions_python(self):
+        base_conditions = super().conditions_python()
+        base_conditions[1] = (
+            f"(len([v for v in candidate.{self.property_name} if any(issubclass(t, {self.on_class}) for t in v.types) ]) {self.comparison_operator} {self.quantity})"
+        )
+        return base_conditions
+
+
+@dataclass
+class MaxQualifiedCardinalityAxiomInfo(MaxCardinalityAxiomInfo, QualifiedAxiomMixin):
+    """
+    Information about a qualified max cardinality axiom.
+    """
+
+
+@dataclass
+class MinQualifiedCardinalityAxiomInfo(MinCardinalityAxiomInfo, QualifiedAxiomMixin):
+    """
+    Information about a qualified min cardinality axiom.
+    """
+
+
+@dataclass
+class HasValueAxiomInfo(PropertyAxiomInfo):
+    """
+    Information about a has value axiom.
+    """
+
+    value: Any
+
+    def conditions_eql(self):
+        base_conditions = super().conditions_eql()
+        prop_info = self.onto.properties[self.property_name]
+        if (
+            prop_info.type == PropertyType.OBJECT_PROPERTY
+            and not prop_info.is_functional
+        ):
+            base_conditions.append(
+                f"contains(candidate.{self.property_name}, {self.value})"
+            )
+        else:
+            base_conditions.append(
+                f"exists(candidate.{self.property_name} == {self.value})"
+            )
+        return base_conditions
+
+    def conditions_python(self):
+        base_conditions = super().conditions_python()
+        prop_info = self.onto.properties[self.property_name]
+        if (
+            prop_info.type == PropertyType.OBJECT_PROPERTY
+            and not prop_info.is_functional
+        ):
+            base_conditions.append(f"({self.value} in candidate.{self.property_name})")
+        else:
+            base_conditions.append(
+                f"(candidate.'{self.property_name}' == {self.value})"
+            )
+        return base_conditions
+
+
+@dataclass
+class SomeValuesFromAxiomInfo(PropertyAxiomInfo, QualifiedAxiomMixin):
+    """
+    Information about a some values from axiom.
+    """
+
+    def conditions_eql(self):
+        base_conditions = super().conditions_eql()
+        base_conditions.append(
+            self.qualification_eql(self.property_name),
+        )
+        return base_conditions
+
+    def conditions_python(self):
+        base_conditions = super().conditions_python()
+        base_conditions.append(
+            f"any(issubclass(t, {self.on_class}) for attr in candidate.{self.property_name} for t in attr.types)"
+        )
+        return base_conditions
+
+
+@dataclass
+class AllValuesFromAxiomInfo(PropertyAxiomInfo, QualifiedAxiomMixin):
+    """
+    Information about an all values from axiom.
+    """
+
+    def setup_statements(self):
+        base_setup = super().setup_statements()
+        base_setup.append(
+            f"candidate_{self.property_name} = variable_from(candidate.{self.property_name})"
+        )
+        return base_setup
+
+    def conditions_eql(self):
+        base_conditions = super().conditions_eql()
+        base_conditions.append(
+            f"for_all(candidate_{self.property_name}, exists(IsSubClassOf(variable_from(candidate_{self.property_name}.types), {self.on_class})))"
+        )
+        return base_conditions
+
+    def conditions_python(self):
+        base_conditions = super().conditions_python()
+        base_conditions.append(
+            f"all(any(issubclass(t, {self.on_class}) for t in attr.types) for attr in candidate.{self.property_name})"
+        )
+        return base_conditions
 
 
 @dataclass
@@ -146,6 +356,7 @@ class PropertyInfo:
     inverse_of: Optional[str] = None
     inverse_target_is_prior: bool = False
     is_transitive: bool = False
+    is_functional: bool = False
     is_specialized: bool = False
     declared_domains: List[str] = field(default_factory=list)
     _overrides_for: List[str] = field(default_factory=list)
@@ -663,6 +874,8 @@ class PropertyExtractor:
                 is_reflexive = True
             if prop_type_uri == OWL.IrreflexiveProperty:
                 is_irreflexive = True
+            if prop_type == OWL.FunctionalProperty:
+                is_functional = True
 
         # Choose a single inverse if any (stable order)
         inverse_of = None
@@ -690,6 +903,7 @@ class PropertyExtractor:
             is_asymmetric=is_asymmetric,
             is_reflexive=is_reflexive,
             is_irreflexive=is_irreflexive,
+            is_functional=is_functional,
             is_specialized=False,
         )
 
@@ -1015,6 +1229,18 @@ class InferenceEngine:
                 if v != OWL.NamedIndividual
             ][0]
             value_type = NamingRegistry.uri_to_python_name(value_type, self.onto.graph)
+        elif self.onto.graph.value(node, OWL.maxQualifiedCardinality):
+            literal_value = self.onto.graph.value(node, OWL.maxQualifiedCardinality)
+            max_value = literal_value.toPython()
+            clazz_uri = self.onto.graph.value(node, OWL.onClass)
+            value_type = NamingRegistry.uri_to_python_name(clazz_uri, self.onto.graph)
+            axiom = MaxQualifiedCardinalityAxiomInfo(
+                property_name=prop_name,
+                quantity=max_value,
+                on_class=value_type,
+                for_class=for_class,
+                onto=self.onto,
+            )
         else:
             value_type = self.onto.graph.value(
                 node, OWL.someValuesFrom
