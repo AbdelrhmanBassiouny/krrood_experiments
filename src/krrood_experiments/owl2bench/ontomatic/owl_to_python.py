@@ -412,8 +412,12 @@ class QualifiedAxiomInfoMixin:
 
     on_class: str
 
-    def qualification_eql(self, snake_property_name):
-        return f"exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.{snake_property_name}.types), {self.on_class}))"
+    def qualification_eql(self, snake_property_name, existential: bool = True):
+        subclass_cond = f"IsSubClassOrRole(variable_from(candidate_var.{snake_property_name}.types), {self.on_class})"
+        if existential:
+            return f"exists(candidate_var, {subclass_cond})"
+        else:
+            return subclass_cond
 
 
 @dataclass
@@ -451,15 +455,15 @@ class QuantifiedQualifiedAxiomInfo(QuantifiedAxiomInfo, QualifiedAxiomInfoMixin)
 
     def conditions_eql(self):
         base_conditions = super().conditions_eql()
-        base_conditions.insert(
-            1,
-            self.qualification_eql(self.snake_property_name),
+        base_conditions[-1] = (
+            f"count({self.qualification_eql(self.snake_property_name, existential=False)}) {self.comparison_operator} "
+            f"{self.quantity}"
         )
         return base_conditions
 
     def conditions_python(self):
         base_conditions = super().conditions_python()
-        base_conditions[1] = (
+        base_conditions[-1] = (
             f"(len([v for v in candidate.{self.snake_property_name} if any(issubclass(t, {self.on_class}) for t in v.types) ]) {self.comparison_operator} {self.quantity})"
         )
         return base_conditions
