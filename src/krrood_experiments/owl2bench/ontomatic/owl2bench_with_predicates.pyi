@@ -329,7 +329,6 @@ class StudentMixinProtocol(PersonMixinProtocol, Symbol):
     enroll_for: Set[Program]
     enroll_in: Set[Department]
     is_student_of: Set[Organization]
-    takes_course: Set[Course]
 
 
 @dataclass(eq=False)
@@ -340,6 +339,11 @@ class Student(StudentMixinProtocol):
 @dataclass(eq=False)
 class StudentEvaluationCommittee(EvaluationCommittee):
     ...
+
+
+
+@dataclass(eq=False)
+class T20CricketFan(PersonMixinProtocol, Symbol):
 
 
 
@@ -580,6 +584,7 @@ class LatinArts(FineArts):
 
 @dataclass(eq=False)
 class LeisureStudent(StudentMixinProtocol, Symbol):
+    takes_course: Set[Course] = field(default_factory=set)
 
 
 
@@ -881,12 +886,6 @@ class Professor(ProfessorMixinProtocol):
 @dataclass(eq=False)
 class SystemStaff(SupportingStaff):
     ...
-
-
-
-@dataclass(eq=False)
-class T20CricketFan(SportsFan):
-    is_crazy_about: Set[Cricket] = field(default_factory=set)
 
 
 

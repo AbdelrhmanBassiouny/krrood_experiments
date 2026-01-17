@@ -6,9 +6,10 @@ and generating Python code using Jinja2 templates.
 
 from __future__ import annotations
 
+import operator
 import os
 import re
-from abc import ABC
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from copy import deepcopy, copy
 from dataclasses import dataclass, field, asdict, MISSING
@@ -18,6 +19,19 @@ from symtable import Symbol
 from typing import Dict, List, Optional, Any, Set, ClassVar
 
 import rdflib
+from krrood.entity_query_language.entity import (
+    variable,
+    exists,
+    variable_from,
+    ConditionType,
+    length,
+    contains,
+    for_all,
+)
+from krrood.entity_query_language.predicate import IsSubClassOf, HasAttribute
+from krrood.entity_query_language.symbolic import Variable
+from krrood.entity_query_language.utils import is_iterable
+from krrood.ormatic.utils import T
 from ripple_down_rules import CaseQuery
 from jinja2 import Environment, FileSystemLoader
 from jinja2.ext import loopcontrols
@@ -40,7 +54,7 @@ from rdflib.namespace import RDF, RDFS, OWL, XSD
 from ripple_down_rules import GeneralRDR
 from ripple_down_rules.rdr_decorators import fit_rdr_func
 from sqlalchemy.util import OrderedSet
-from typing_extensions import Tuple
+from typing_extensions import Tuple, Type, Callable
 
 from krrood_experiments.owl2bench.ontomatic.utils import AnonymousClass
 
@@ -78,45 +92,288 @@ class RoleTakerInfo:
 
 
 @dataclass
-class PropertyAxiomInfo(ABC):
+class PropertyAxiom(ABC):
     """
-    Information about an axiom associated with a class or property.
+    Base class for axioms associated with a class or property.
+    """
+
+    candidate: AnonymousClass
+    property_name: str
+    for_class: Type
+
+    @cached_property
+    def candidate_var(self):
+        return variable(self.for_class, domain=[self.candidate])
+
+    @cached_property
+    def prop_var(self):
+        return getattr(self.candidate_var, self.property_name)
+
+    def conditions_eql(self) -> List[ConditionType]:
+        """
+        Generate EQL conditions for this axiom.
+        :return: List of EQL condition strings.
+        """
+        return [HasAttribute(self.candidate_var, self.property_name)]
+
+    def conditions_python(self) -> List[bool]:
+        """
+        Generate Python conditions for this axiom.
+        :return: List of Python condition strings.
+        """
+        return [hasattr(self.candidate, self.property_name)]
+
+
+@dataclass
+class QuantifiedAxiom(PropertyAxiom, ABC):
+    """
+    Base class for quantified axioms.
+    """
+
+    quantity: int
+    comparison_operator: ClassVar[Callable]
+
+    def conditions_eql(self):
+        base_conditions = super().conditions_eql()
+        base_conditions.append(
+            self.comparison_operator(length(self.prop_var), self.quantity)
+        )
+        return base_conditions
+
+    def conditions_python(self):
+        base_conditions = super().conditions_python()
+        base_conditions.append(
+            self.comparison_operator(
+                len(getattr(self.candidate, self.property_name, [])), self.quantity
+            )
+        )
+        return base_conditions
+
+
+@dataclass
+class QualifiedAxiomMixin(ABC):
+    """
+    A qualified cardinality axiom.
+    """
+
+    on_class: Type
+
+    def qualification_eql(self, prop_var):
+        return exists(IsSubClassOf(variable_from(prop_var.types), self.on_class))
+
+
+@dataclass
+class CardinalityAxiom(QuantifiedAxiom):
+    """
+    A cardinality axiom. (i.e., must have exactly N values)
+    """
+
+    comparison_operator: ClassVar[Callable] = operator.eq
+
+
+@dataclass
+class MaxCardinalityAxiom(QuantifiedAxiom):
+    """
+    A max cardinality axiom.
+    """
+
+    comparison_operator: ClassVar[Callable] = operator.le
+
+
+@dataclass
+class MinCardinalityAxiom(QuantifiedAxiom):
+    """
+    A min cardinality axiom.
+    """
+
+    comparison_operator: ClassVar[Callable] = operator.ge
+
+
+@dataclass
+class QualifiedCardinalityAxiom(CardinalityAxiom, QualifiedAxiomMixin):
+    """
+    A qualified cardinality axiom. (i.e., must have exactly N values of a certain class)
+    """
+
+    def conditions_eql(self):
+        base_conditions = super().conditions_eql()
+        base_conditions.insert(
+            1,
+            self.qualification_eql(self.prop_var),
+        )
+        return base_conditions
+
+    def conditions_python(self):
+        base_conditions = super().conditions_python()
+        base_conditions[1] = self.comparison_operator(
+            len(
+                [
+                    v
+                    for v in getattr(self.candidate, self.property_name)
+                    if any(issubclass(t, self.on_class) for t in v.types)
+                ]
+            ),
+            self.quantity,
+        )
+        return base_conditions
+
+
+@dataclass
+class MaxQualifiedCardinalityAxiom(MaxCardinalityAxiom, QualifiedAxiomMixin):
+    """
+    A qualified max cardinality axiom.
+    """
+
+
+@dataclass
+class MinQualifiedCardinalityAxiom(MinCardinalityAxiom, QualifiedAxiomMixin):
+    """
+    A qualified min cardinality axiom.
+    """
+
+
+@dataclass
+class HasValueAxiom(PropertyAxiom):
+    """
+    A has value axiom.
+    """
+
+    value: Any
+
+    def conditions_eql(self):
+        base_conditions = super().conditions_eql()
+        attr = getattr(self.candidate, self.property_name)
+        if is_iterable(attr):
+            base_conditions.append(contains(self.prop_var, self.value))
+        else:
+            base_conditions.append(exists(self.prop_var == self.value))
+        return base_conditions
+
+    def conditions_python(self):
+        base_conditions = super().conditions_python()
+        attr = getattr(self.candidate, self.property_name)
+        if is_iterable(attr):
+            base_conditions.append(
+                self.value in getattr(self.candidate, self.property_name)
+            )
+        else:
+            base_conditions.append(
+                getattr(self.candidate, self.property_name) == self.value
+            )
+        return base_conditions
+
+
+@dataclass
+class SomeValuesFromAxiom(PropertyAxiom, QualifiedAxiomMixin):
+    """
+    A SomeValuesFrom axiom.
+    """
+
+    def conditions_eql(self):
+        base_conditions = super().conditions_eql()
+        base_conditions.append(
+            self.qualification_eql(self.prop_var),
+        )
+        return base_conditions
+
+    def conditions_python(self):
+        base_conditions = super().conditions_python()
+        base_conditions.append(
+            any(
+                issubclass(t, self.on_class)
+                for attr in getattr(self.candidate, self.property_name)
+                for t in attr.types
+            )
+        )
+        return base_conditions
+
+
+@dataclass
+class AllValuesFromAxiomInfo(PropertyAxiom, QualifiedAxiomMixin):
+    """
+    An AllValuesFrom axiom.
+    """
+
+    def conditions_eql(self):
+        prop_value = variable_from(self.prop_var)
+        base_conditions = super().conditions_eql()
+        base_conditions.append(
+            for_all(
+                prop_value,
+                exists(IsSubClassOf(variable_from(prop_value.types), self.on_class)),
+            )
+        )
+        return base_conditions
+
+    def conditions_python(self):
+        base_conditions = super().conditions_python()
+        base_conditions.append(
+            all(
+                any(issubclass(t, self.on_class) for t in attr.types)
+                for attr in getattr(self.candidate, self.property_name)
+            )
+        )
+        return base_conditions
+
+
+@dataclass
+class PropertyAxiomInfo:
+    """
+    Information about a property axiom.
     """
 
     property_name: str
     for_class: str
     onto: OntologyInfo
 
+    @cached_property
+    def snake_property_name(self):
+        return NamingRegistry.to_snake_case(self.property_name)
+
     def setup_statements(self):
-        return [f"candidate_var = variable({self.for_class}, domain=[candidate])"]
+        return [f"candidate_var = variable({AnonymousClass.__name__}, [candidate])"]
 
     def conditions_eql(self):
-        return [f"HasAttribute(candidate_var, '{self.property_name}')"]
+        return [f"HasAttribute(candidate_var, '{self.snake_property_name}')"]
 
     def conditions_python(self):
-        return [f"hasattr(candidate, '{self.property_name}')"]
+        return [f"hasattr(candidate, '{self.snake_property_name}')"]
 
 
 @dataclass
-class QuantifiedAxiomInfo(PropertyAxiomInfo):
+class QuantifiedAxiomInfo(PropertyAxiomInfo, ABC):
     """
     Information about a quantified axiom.
     """
 
     quantity: int
+    comparison_operator: ClassVar[str]
+
+    def conditions_eql(self):
+        base_conditions = super().conditions_eql()
+        base_conditions.append(
+            f"length(candidate_var.{self.snake_property_name} {self.comparison_operator} {self.quantity})"
+        )
+        return base_conditions
+
+    def conditions_python(self):
+        base_conditions = super().conditions_python()
+        base_conditions.append(
+            f"(len(candidate.{self.snake_property_name}) {self.comparison_operator} {self.quantity})"
+        )
+        return base_conditions
 
 
 @dataclass
-class QualifiedAxiomMixin:
+class QualifiedAxiomInfoMixin:
     """
     Information about a qualified cardinality axiom.
     """
 
     on_class: str
-    comparison_operator: ClassVar[str] = ""
 
-    def qualification_eql(self, property_name):
-        return f"exists(IsSubClassOf(variable_from(candidate.{property_name}.types), {self.on_class}))"
+    def qualification_eql(self, snake_property_name):
+        return f"exists(IsSubClassOf(variable_from(candidate_var.{snake_property_name}.types), {self.on_class}))"
 
 
 @dataclass
@@ -126,20 +383,6 @@ class CardinalityAxiomInfo(QuantifiedAxiomInfo):
     """
 
     comparison_operator: ClassVar[str] = "=="
-
-    def conditions_eql(self):
-        base_conditions = super().conditions_eql()
-        base_conditions.append(
-            f"length(candidate.{self.property_name} {self.comparison_operator} {self.quantity}"
-        )
-        return base_conditions
-
-    def conditions_python(self):
-        base_conditions = super().conditions_python()
-        base_conditions.append(
-            f"(len(getattr(candidate, '{self.property_name}', [])) {self.comparison_operator} {self.quantity})"
-        )
-        return base_conditions
 
 
 @dataclass
@@ -161,7 +404,7 @@ class MinCardinalityAxiomInfo(QuantifiedAxiomInfo):
 
 
 @dataclass
-class QualifiedCardinalityAxiomInfo(CardinalityAxiomInfo, QualifiedAxiomMixin):
+class QualifiedCardinalityAxiomInfo(CardinalityAxiomInfo, QualifiedAxiomInfoMixin):
     """
     Information about a qualified cardinality axiom. (i.e., must have exactly N values of a certain class)
     """
@@ -170,27 +413,31 @@ class QualifiedCardinalityAxiomInfo(CardinalityAxiomInfo, QualifiedAxiomMixin):
         base_conditions = super().conditions_eql()
         base_conditions.insert(
             1,
-            self.qualification_eql(self.property_name),
+            self.qualification_eql(self.snake_property_name),
         )
         return base_conditions
 
     def conditions_python(self):
         base_conditions = super().conditions_python()
         base_conditions[1] = (
-            f"(len([v for v in candidate.{self.property_name} if any(issubclass(t, {self.on_class}) for t in v.types) ]) {self.comparison_operator} {self.quantity})"
+            f"(len([v for v in candidate.{self.snake_property_name} if any(issubclass(t, {self.on_class}) for t in v.types) ]) {self.comparison_operator} {self.quantity})"
         )
         return base_conditions
 
 
 @dataclass
-class MaxQualifiedCardinalityAxiomInfo(MaxCardinalityAxiomInfo, QualifiedAxiomMixin):
+class MaxQualifiedCardinalityAxiomInfo(
+    MaxCardinalityAxiomInfo, QualifiedAxiomInfoMixin
+):
     """
     Information about a qualified max cardinality axiom.
     """
 
 
 @dataclass
-class MinQualifiedCardinalityAxiomInfo(MinCardinalityAxiomInfo, QualifiedAxiomMixin):
+class MinQualifiedCardinalityAxiomInfo(
+    MinCardinalityAxiomInfo, QualifiedAxiomInfoMixin
+):
     """
     Information about a qualified min cardinality axiom.
     """
@@ -206,37 +453,39 @@ class HasValueAxiomInfo(PropertyAxiomInfo):
 
     def conditions_eql(self):
         base_conditions = super().conditions_eql()
-        prop_info = self.onto.properties[self.property_name]
+        prop_info = self.onto.properties[self.snake_property_name]
         if (
             prop_info.type == PropertyType.OBJECT_PROPERTY
             and not prop_info.is_functional
         ):
             base_conditions.append(
-                f"contains(candidate.{self.property_name}, {self.value})"
+                f"contains(candidate_var.{self.snake_property_name}, {self.value})"
             )
         else:
             base_conditions.append(
-                f"exists(candidate.{self.property_name} == {self.value})"
+                f"exists(candidate_var.{self.snake_property_name} == {self.value})"
             )
         return base_conditions
 
     def conditions_python(self):
         base_conditions = super().conditions_python()
-        prop_info = self.onto.properties[self.property_name]
+        prop_info = self.onto.properties[self.snake_property_name]
         if (
             prop_info.type == PropertyType.OBJECT_PROPERTY
             and not prop_info.is_functional
         ):
-            base_conditions.append(f"({self.value} in candidate.{self.property_name})")
+            base_conditions.append(
+                f"({self.value} in candidate.{self.snake_property_name})"
+            )
         else:
             base_conditions.append(
-                f"(candidate.'{self.property_name}' == {self.value})"
+                f"(candidate.'{self.snake_property_name}' == {self.value})"
             )
         return base_conditions
 
 
 @dataclass
-class SomeValuesFromAxiomInfo(PropertyAxiomInfo, QualifiedAxiomMixin):
+class SomeValuesFromAxiomInfo(PropertyAxiomInfo, QualifiedAxiomInfoMixin):
     """
     Information about a some values from axiom.
     """
@@ -244,20 +493,20 @@ class SomeValuesFromAxiomInfo(PropertyAxiomInfo, QualifiedAxiomMixin):
     def conditions_eql(self):
         base_conditions = super().conditions_eql()
         base_conditions.append(
-            self.qualification_eql(self.property_name),
+            self.qualification_eql(self.snake_property_name),
         )
         return base_conditions
 
     def conditions_python(self):
         base_conditions = super().conditions_python()
         base_conditions.append(
-            f"any(issubclass(t, {self.on_class}) for attr in candidate.{self.property_name} for t in attr.types)"
+            f"any(issubclass(t, {self.on_class}) for attr in candidate.{self.snake_property_name} for t in attr.types)"
         )
         return base_conditions
 
 
 @dataclass
-class AllValuesFromAxiomInfo(PropertyAxiomInfo, QualifiedAxiomMixin):
+class AllValuesFromAxiomInfo(PropertyAxiomInfo, QualifiedAxiomInfoMixin):
     """
     Information about an all values from axiom.
     """
@@ -265,21 +514,21 @@ class AllValuesFromAxiomInfo(PropertyAxiomInfo, QualifiedAxiomMixin):
     def setup_statements(self):
         base_setup = super().setup_statements()
         base_setup.append(
-            f"candidate_{self.property_name} = variable_from(candidate.{self.property_name})"
+            f"candidate_{self.snake_property_name} = variable_from(candidate_var.{self.snake_property_name})"
         )
         return base_setup
 
     def conditions_eql(self):
         base_conditions = super().conditions_eql()
         base_conditions.append(
-            f"for_all(candidate_{self.property_name}, exists(IsSubClassOf(variable_from(candidate_{self.property_name}.types), {self.on_class})))"
+            f"for_all(candidate_{self.snake_property_name}, exists(IsSubClassOf(variable_from(candidate_{self.snake_property_name}.types), {self.on_class})))"
         )
         return base_conditions
 
     def conditions_python(self):
         base_conditions = super().conditions_python()
         base_conditions.append(
-            f"all(any(issubclass(t, {self.on_class}) for t in attr.types) for attr in candidate.{self.property_name})"
+            f"all(any(issubclass(t, {self.on_class}) for t in attr.types) for attr in candidate.{self.snake_property_name})"
         )
         return base_conditions
 
@@ -309,6 +558,7 @@ class ClassInfo:
     declared_properties: List[str] = field(default_factory=list)
     axioms: List[str] = field(default_factory=list)
     axioms_python: List[str] = field(default_factory=list)
+    axioms_setup: List[str] = field(default_factory=list)
     onto: Optional[OntologyInfo] = field(default=None, repr=False)
 
     def __deepcopy__(self, memo):
@@ -814,6 +1064,7 @@ class PropertyExtractor:
         is_asymmetric = False
         is_reflexive = False
         is_irreflexive = False
+        is_functional = False
 
         for domain in self.graph.objects(property_uri, RDFS.domain):
             domains.append(NamingRegistry.uri_to_python_name(domain))
@@ -1221,14 +1472,15 @@ class InferenceEngine:
         prop_name = NamingRegistry.uri_to_python_name(on_prop, self.onto.graph)
         if prop_name in self.onto.properties:
             self.property_maps.dom_map[prop_name].add(for_class)
-        has_value = self.onto.graph.value(node, OWL.hasValue)
-        if has_value:
-            value_type = [
-                v
-                for v in self.onto.graph.objects(has_value, RDF.type)
-                if v != OWL.NamedIndividual
-            ][0]
-            value_type = NamingRegistry.uri_to_python_name(value_type, self.onto.graph)
+        axiom = None
+        if self.onto.graph.value(node, OWL.hasValue):
+            has_value = self.onto.graph.value(node, OWL.hasValue)
+            axiom = HasValueAxiomInfo(
+                property_name=prop_name,
+                value=has_value,
+                for_class=for_class,
+                onto=self.onto,
+            )
         elif self.onto.graph.value(node, OWL.maxQualifiedCardinality):
             literal_value = self.onto.graph.value(node, OWL.maxQualifiedCardinality)
             max_value = literal_value.toPython()
@@ -1241,15 +1493,55 @@ class InferenceEngine:
                 for_class=for_class,
                 onto=self.onto,
             )
-        else:
-            value_type = self.onto.graph.value(
-                node, OWL.someValuesFrom
-            ) or self.onto.graph.value(node, OWL.allValuesFrom)
-        if value_type:
+        elif self.onto.graph.value(node, OWL.minQualifiedCardinality):
+            literal_value = self.onto.graph.value(node, OWL.minQualifiedCardinality)
+            min_value = literal_value.toPython()
+            clazz_uri = self.onto.graph.value(node, OWL.onClass)
+            value_type = NamingRegistry.uri_to_python_name(clazz_uri, self.onto.graph)
+            axiom = MinQualifiedCardinalityAxiomInfo(
+                property_name=prop_name,
+                quantity=min_value,
+                on_class=value_type,
+                for_class=for_class,
+                onto=self.onto,
+            )
+        elif self.onto.graph.value(node, OWL.qualifiedCardinality):
+            literal_value = self.onto.graph.value(node, OWL.qualifiedCardinality)
+            exact_value = literal_value.toPython()
+            clazz_uri = self.onto.graph.value(node, OWL.onClass)
+            value_type = NamingRegistry.uri_to_python_name(clazz_uri, self.onto.graph)
+            axiom = QualifiedCardinalityAxiomInfo(
+                property_name=prop_name,
+                quantity=exact_value,
+                on_class=value_type,
+                for_class=for_class,
+                onto=self.onto,
+            )
+        elif self.onto.graph.value(node, OWL.someValuesFrom):
+            value_type = self.onto.graph.value(node, OWL.someValuesFrom)
+            axiom = SomeValuesFromAxiomInfo(
+                property_name=prop_name,
+                on_class=NamingRegistry.uri_to_python_name(value_type, self.onto.graph),
+                for_class=for_class,
+                onto=self.onto,
+            )
+        elif self.onto.graph.value(node, OWL.allValuesFrom):
+            value_type = self.onto.graph.value(node, OWL.allValuesFrom)
+            axiom = AllValuesFromAxiomInfo(
+                property_name=prop_name,
+                on_class=NamingRegistry.uri_to_python_name(value_type, self.onto.graph),
+                for_class=for_class,
+                onto=self.onto,
+            )
+        if axiom:
             try:
-                rng_name = NamingRegistry.uri_to_python_name(
-                    value_type, self.onto.graph
-                )
+                rng_name = None
+                value_type = None
+                if isinstance(axiom, QualifiedAxiomInfoMixin):
+                    value_type = axiom.on_class
+                    rng_name = NamingRegistry.uri_to_python_name(
+                        value_type, self.onto.graph
+                    )
                 if prop_name == "roleFor":
                     cls_info = self.onto.classes.get(for_class)
                     if cls_info:
@@ -1257,37 +1549,12 @@ class InferenceEngine:
                             rng_name, NamingRegistry.to_snake_case(rng_name)
                         )
                     return True
-                if rng_name is None:
-                    if self.onto.graph.value(value_type, OWL.complementOf):
-                        complement_of = self.onto.graph.value(
-                            value_type, OWL.complementOf
-                        )
-                        complement_rng_name = NamingRegistry.uri_to_python_name(
-                            complement_of, self.onto.graph
-                        )
-                        if (
-                            complement_rng_name in self.onto.classes
-                            and self.onto.classes[complement_rng_name].disjoint_with
-                        ):
-                            rng_name = self.onto.classes[
-                                complement_rng_name
-                            ].disjoint_with[0]
-                        else:
-                            return True
-                    else:
-                        return True
-                snake_prop_name = NamingRegistry.to_snake_case(prop_name)
-                self.onto.classes[for_class].axioms.extend(
-                    [
-                        f"HasAttribute(candidate_var, '{snake_prop_name}')",
-                        f"IsSubClassOf(variable_from(candidate_var.{snake_prop_name}.types), {rng_name})",
-                    ]
+                self.onto.classes[for_class].axioms_setup.extend(
+                    axiom.setup_statements()
                 )
+                self.onto.classes[for_class].axioms.extend(axiom.conditions_eql())
                 self.onto.classes[for_class].axioms_python.extend(
-                    [
-                        f"hasattr(candidate, '{snake_prop_name}')",
-                        f"any(issubclass(t, {rng_name}) for attr in candidate.{snake_prop_name} for t in attr.types)",
-                    ]
+                    axiom.conditions_python()
                 )
                 existing_ranges = self.property_maps.rng_map.get(prop_name, set())
                 contesting_ranges = set(existing_ranges)
@@ -1314,22 +1581,22 @@ class InferenceEngine:
                     prop_name, set()
                 ).add(rng_name)
                 for inverse in self.onto.properties[prop_name].inverses:
-                    snake_inverse_name = NamingRegistry.to_snake_case(inverse)
                     self.onto.property_restrictions.setdefault(rng_name, {}).setdefault(
                         inverse, set()
                     ).add(for_class)
-                    self.onto.classes[rng_name].axioms.extend(
-                        [
-                            f"HasAttribute(candidate_var, '{snake_inverse_name}')",
-                            f"IsSubClassOf(variable_from(candidate_var.{snake_inverse_name}.types), {for_class})",
-                        ]
-                    )
-                    self.onto.classes[rng_name].axioms_python.extend(
-                        [
-                            f"hasattr(candidate, '{snake_inverse_name}')",
-                            f"any(issubclass(t, {for_class}) for attr in candidate.{snake_inverse_name} for t in attr.types)",
-                        ]
-                    )
+                    if inverse and isinstance(axiom, QualifiedAxiomInfoMixin):
+                        inverse_axiom = copy(axiom)
+                        inverse_axiom.on_class = for_class
+                        inverse_axiom.for_class = rng_name
+                        self.onto.classes[rng_name].axioms_setup.extend(
+                            inverse_axiom.setup_statements()
+                        )
+                        self.onto.classes[rng_name].axioms.extend(
+                            inverse_axiom.conditions_eql()
+                        )
+                        self.onto.classes[rng_name].axioms_python.extend(
+                            inverse_axiom.conditions_python()
+                        )
             except Exception as e:
                 logger.warning(f"[owl_to_python] Error processing restriction: {e}")
             return True
@@ -2150,6 +2417,9 @@ class CodeGenerator:
                 for python_axiom in self.onto.classes[eq_cls].axioms_python:
                     if python_axiom not in cls_info.axioms_python:
                         cls_info.axioms_python.append(python_axiom)
+                for axiom_setup in self.onto.classes[eq_cls].axioms_setup:
+                    if axiom_setup not in cls_info.axioms_setup:
+                        cls_info.axioms_setup.append(axiom_setup)
         for rc in removed_cls:
             if rc in self.onto.classes:
                 del self.onto.classes[rc]
