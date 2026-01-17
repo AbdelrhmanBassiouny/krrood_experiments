@@ -91,6 +91,7 @@ class PersonMixinProtocol(OWL2BenchThing):
     is_dean_of: Set[Organization]
     is_head_of: Set[Organization]
     is_member_of: Set[Organization]
+    likes: Set[Interest]
     loves: Set[Interest]
 
 
@@ -128,6 +129,16 @@ class Work(OWL2BenchThing):
 @dataclass(eq=False)
 class Article(Publication):
     ...
+
+
+
+@dataclass(eq=False)
+class BasketBallFan(PersonMixinProtocol, Symbol):
+
+
+
+@dataclass(eq=False)
+class BasketBallLover(PersonMixinProtocol, Symbol):
 
 
 
@@ -269,7 +280,6 @@ class Painting(Interest):
 
 @dataclass(eq=False)
 class PeopleWithHobby(PersonMixinProtocol, Symbol):
-    likes: Set[Interest] = field(default_factory=set)
 
 
 
@@ -325,10 +335,21 @@ class Sports(Interest):
 
 
 @dataclass(eq=False)
+class SportsFan(PersonMixinProtocol, Symbol):
+
+
+
+@dataclass(eq=False)
+class SportsLover(PersonMixinProtocol, Symbol):
+
+
+
+@dataclass(eq=False)
 class StudentMixinProtocol(PersonMixinProtocol, Symbol):
     enroll_for: Set[Program]
     enroll_in: Set[Department]
     is_student_of: Set[Organization]
+    takes_course: Set[Course]
 
 
 @dataclass(eq=False)
@@ -584,7 +605,6 @@ class LatinArts(FineArts):
 
 @dataclass(eq=False)
 class LeisureStudent(StudentMixinProtocol, Symbol):
-    takes_course: Set[Course] = field(default_factory=set)
 
 
 
@@ -751,18 +771,6 @@ class ScienceStudent(Student):
 
 
 @dataclass(eq=False)
-class SportsFan(PeopleWithHobby):
-    is_crazy_about: Set[Sports] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
-class SportsLover(PeopleWithHobby):
-    loves: Set[Sports] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
 class Statistics(Science):
     ...
 
@@ -833,18 +841,6 @@ class UGStudent(Student):
 @dataclass(eq=False)
 class WomanCollege(College):
     ...
-
-
-
-@dataclass(eq=False)
-class BasketBallFan(SportsFan):
-    is_crazy_about: Set[BasketBall] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
-class BasketBallLover(SportsLover):
-    loves: Set[BasketBall] = field(default_factory=set)
 
 
 

@@ -1557,12 +1557,18 @@ class InferenceEngine:
                     axiom.conditions_python()
                 )
                 existing_ranges = self.property_maps.rng_map.get(prop_name, set())
+                existing_domains = self.property_maps.dom_map.get(prop_name, set())
                 contesting_ranges = set(existing_ranges)
                 for dom_cls, pred_obj in self.onto.property_restrictions.items():
                     if prop_name in pred_obj:
                         for er in existing_ranges:
                             if er in pred_obj[prop_name]:
                                 contesting_ranges.remove(er)
+                if self.onto.classes[for_class].role_taker:
+                    role_taker = self.onto.classes[for_class].role_taker.class_name
+                    if role_taker in existing_domains:
+                        self.property_maps.dom_map[prop_name].remove(for_class)
+                        return False
                 if contesting_ranges and not any(
                     cr in self.onto.classes[rng_name].all_base_classes + [rng_name]
                     for cr in contesting_ranges
