@@ -579,8 +579,7 @@ class LatinArts(FineArts):
 
 
 @dataclass(eq=False)
-class LeisureStudent(Student):
-    ...
+class LeisureStudent(StudentMixinProtocol, Symbol):
 
 
 

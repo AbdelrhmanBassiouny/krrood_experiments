@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, fields, Field
 from functools import lru_cache
-from typing_extensions import Tuple
+from typing_extensions import Tuple, ClassVar
 
 from krrood.class_diagrams.utils import Role
 from krrood.entity_query_language.entity import contains, ConditionType, variable_from
@@ -19,22 +19,24 @@ from .owl2bench_with_predicates_base import *
 # Generated classes
 @dataclass(eq=False)
 class CollegeDiscipline(OWL2BenchThing):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#CollegeDiscipline"
 
 
 @dataclass(eq=False)
 class EvaluationCommittee(OWL2BenchThing):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#EvaluationCommittee"
     evaluates: Set[Person] = field(kw_only=True, default_factory=set)
     has_committee_members: Set[Person] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
 class Interest(OWL2BenchThing):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Interest"
 
 
 @dataclass(eq=False)
 class Organization(OWL2BenchThing):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Organization"
     has_dean: Set[Person] = field(kw_only=True, default_factory=set)
     has_employee_evaluation_committee: Set[EmployeeEvaluationCommittee] = field(kw_only=True, default_factory=set)
     has_employee: Set[Employee] = field(kw_only=True, default_factory=set)
@@ -68,6 +70,7 @@ class Organization(OWL2BenchThing):
 
 @dataclass(eq=False)
 class Person(OWL2BenchThing):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Person"
     dislikes: Set[Interest] = field(kw_only=True, default_factory=set)
     evaluated_by: Set[EvaluationCommittee] = field(kw_only=True, default_factory=set)
     has_advisor: Set[Professor] = field(kw_only=True, default_factory=set)
@@ -94,6 +97,7 @@ class Person(OWL2BenchThing):
 @dataclass(eq=False)
 class Program(OWL2BenchThing):
     """Different programs offered in a department. UG, PG or PhD"""
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Program"
     has_head: Set[Director] = field(kw_only=True, default_factory=set)
 
     @classmethod
@@ -110,32 +114,34 @@ class Program(OWL2BenchThing):
 
 @dataclass(eq=False)
 class Publication(OWL2BenchThing):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Publication"
     has_author: Set[Person] = field(kw_only=True, default_factory=set)
     publication_research: Set[OWL2BenchThing] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
 class Thing(OWL2BenchThing):
-    ...
+    cls_uri: ClassVar[str] = "http://www.w3.org/2002/07/owl#Thing"
 
 
 @dataclass(eq=False)
 class Work(OWL2BenchThing):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Work"
 
 
 @dataclass(eq=False)
 class Article(Publication):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Article"
 
 
 @dataclass(eq=False)
 class Book(Publication):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Book"
 
 
 @dataclass(eq=False)
 class College(Organization):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#College"
     has_college_discipline: Set[CollegeDiscipline] = field(kw_only=True, default_factory=set)
     has_department: Set[Department] = field(kw_only=True, default_factory=set)
     has_head: Set[Dean] = field(kw_only=True, default_factory=set)
@@ -158,6 +164,7 @@ School = College
 
 @dataclass(eq=False)
 class Course(Work):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Course"
     is_taught_by: Set[Faculty] = field(kw_only=True, default_factory=set)
 
     @classmethod
@@ -177,6 +184,7 @@ TeachingCourse = Course
 
 @dataclass(eq=False)
 class Department(Organization):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Department"
     has_assistant_professor: Set[AssistantProfessor] = field(kw_only=True, default_factory=set)
     has_associate_professor: Set[AssociateProfessor] = field(kw_only=True, default_factory=set)
     has_clerical_staff: Set[ClericalStaff] = field(kw_only=True, default_factory=set)
@@ -210,6 +218,7 @@ class Department(Organization):
 
 @dataclass(eq=False)
 class Employee(Role[Person], Symbol):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Employee"
     # Role taker
     person: Person
     has_work: Set[Work] = field(kw_only=True, default_factory=set)
@@ -239,73 +248,74 @@ class Employee(Role[Person], Symbol):
 
 @dataclass(eq=False)
 class EmployeeEvaluationCommittee(EvaluationCommittee):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#EmployeeEvaluationCommittee"
 
 
 @dataclass(eq=False)
 class Engineering(CollegeDiscipline):
     """Engineering"""
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Engineering"
 
 
 @dataclass(eq=False)
 class FineArts(CollegeDiscipline):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#FineArts"
 
 
 @dataclass(eq=False)
 class Game(Interest):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Game"
 
 
 @dataclass(eq=False)
 class HumanitiesAndSocial(CollegeDiscipline):
     """HumanitiesAndSocial"""
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#HumanitiesAndSocial"
 
 
 @dataclass(eq=False)
 class Institute(Organization):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Institute"
 
 
 @dataclass(eq=False)
 class Man(Person):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Man"
 
 
 @dataclass(eq=False)
 class Management(CollegeDiscipline):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Management"
 
 
 @dataclass(eq=False)
 class Manual(Publication):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Manual"
 
 
 @dataclass(eq=False)
 class Movie(Interest):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Movie"
 
 
 @dataclass(eq=False)
 class Music(Interest):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Music"
 
 
 @dataclass(eq=False)
 class PGProgram(Program):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#PGProgram"
 
 
 @dataclass(eq=False)
 class Painting(Interest):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Painting"
 
 
 @dataclass(eq=False)
 class PeopleWithHobby(Role[Person], Symbol):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#PeopleWithHobby"
     # Role taker
     person: Person
     likes: Set[Interest] = field(kw_only=True, default_factory=set)
@@ -329,16 +339,17 @@ class PeopleWithHobby(Role[Person], Symbol):
 
 @dataclass(eq=False)
 class PhDProgram(Program):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#PhDProgram"
 
 
 @dataclass(eq=False)
 class Reading(Interest):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Reading"
 
 
 @dataclass(eq=False)
 class ResearchGroup(Organization):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#ResearchGroup"
     has_research_assistant: Set[ResearchAssistant] = field(kw_only=True, default_factory=set)
     has_research_project: Set[ResearchProject] = field(kw_only=True, default_factory=set)
     is_research_group_of: Set[University] = field(kw_only=True, default_factory=set)
@@ -346,32 +357,33 @@ class ResearchGroup(Organization):
 
 @dataclass(eq=False)
 class ResearchProject(Work):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#ResearchProject"
 
 
 @dataclass(eq=False)
 class Science(CollegeDiscipline):
     """Science"""
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Science"
 
 
 @dataclass(eq=False)
 class Software(Publication):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Software"
 
 
 @dataclass(eq=False)
 class Specification(Publication):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Specification"
 
 
 @dataclass(eq=False)
 class Sports(Interest):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Sports"
 
 
 @dataclass(eq=False)
 class Student(Role[Person], Symbol):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Student"
     # Role taker
     person: Person
     enroll_for: Set[Program] = field(kw_only=True, default_factory=set)
@@ -398,21 +410,22 @@ class Student(Role[Person], Symbol):
 
 @dataclass(eq=False)
 class StudentEvaluationCommittee(EvaluationCommittee):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#StudentEvaluationCommittee"
 
 
 @dataclass(eq=False)
 class Travelling(Interest):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Travelling"
 
 
 @dataclass(eq=False)
 class UGProgram(Program):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#UGProgram"
 
 
 @dataclass(eq=False)
 class University(Organization):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#University"
     has_alumnus: Set[Person] = field(kw_only=True, default_factory=set)
     has_college: Set[College] = field(kw_only=True, default_factory=set)
     has_research_group: Set[ResearchGroup] = field(kw_only=True, default_factory=set)
@@ -420,131 +433,132 @@ class University(Organization):
 
 @dataclass(eq=False)
 class UnofficialPublication(Publication):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#UnofficialPublication"
 
 
 @dataclass(eq=False)
 class Woman(Person):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Woman"
 
 
 @dataclass(eq=False)
 class AeronauticalEngineering(Engineering):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#AeronauticalEngineering"
 
 
 @dataclass(eq=False)
 class Anthropology(HumanitiesAndSocial):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Anthropology"
 
 
 @dataclass(eq=False)
 class Architecture(FineArts):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Architecture"
 
 
 @dataclass(eq=False)
 class AsianArts(FineArts):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#AsianArts"
 
 
 @dataclass(eq=False)
 class Astronomy(Science):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Astronomy"
 
 
 @dataclass(eq=False)
 class Badminton(Sports):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Badminton"
 
 
 @dataclass(eq=False)
 class BasketBall(Sports):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#BasketBall"
 
 
 @dataclass(eq=False)
 class Biology(Science):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Biology"
 
 
 @dataclass(eq=False)
 class BiomedicalEngineering(Engineering):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#BiomedicalEngineering"
 
 
 @dataclass(eq=False)
 class ChemicalEngineering(Engineering):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#ChemicalEngineering"
 
 
 @dataclass(eq=False)
 class Chemistry(Science):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Chemistry"
 
 
 @dataclass(eq=False)
 class CivilEngineering(Engineering):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#CivilEngineering"
 
 
 @dataclass(eq=False)
 class CoEdCollege(College):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#CoEdCollege"
 
 
 @dataclass(eq=False)
 class ComputerEngineering(Engineering):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#ComputerEngineering"
 
 
 @dataclass(eq=False)
 class ComputerScience(Science):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#ComputerScience"
 
 
 @dataclass(eq=False)
 class ConferencePaper(Article):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#ConferencePaper"
 
 
 @dataclass(eq=False)
 class Cricket(Sports):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Cricket"
 
 
 @dataclass(eq=False)
 class DesignManagement(Management):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#DesignManagement"
 
 
 @dataclass(eq=False)
 class Drama(FineArts):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Drama"
 
 
 @dataclass(eq=False)
 class Economics(HumanitiesAndSocial):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Economics"
 
 
 @dataclass(eq=False)
 class ElectiveCourse(Course):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#ElectiveCourse"
 
 
 @dataclass(eq=False)
 class ElectricalEngineering(Engineering):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#ElectricalEngineering"
 
 
 @dataclass(eq=False)
 class English(HumanitiesAndSocial):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#English"
 
 
 @dataclass(eq=False)
 class Faculty(Employee):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Faculty"
     is_faculty_of: Set[Organization] = field(kw_only=True, default_factory=set)
     teaches_course: Set[Course] = field(kw_only=True, default_factory=set)
 
@@ -562,121 +576,129 @@ class Faculty(Employee):
 
 @dataclass(eq=False)
 class FinancialAndAccountingManagement(Management):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#FinancialAndAccountingManagement"
 
 
 @dataclass(eq=False)
 class FootBall(Sports):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#FootBall"
 
 
 @dataclass(eq=False)
 class Geosciences(Science):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Geosciences"
 
 
 @dataclass(eq=False)
 class History(HumanitiesAndSocial):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#History"
 
 
 @dataclass(eq=False)
 class HumanResourceManagement(Management):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#HumanResourceManagement"
 
 
 @dataclass(eq=False)
 class Humanities(HumanitiesAndSocial):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Humanities"
 
 
 @dataclass(eq=False)
 class IndustryEngineering(Engineering):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#IndustryEngineering"
 
 
 @dataclass(eq=False)
 class JournalArticle(Article):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#JournalArticle"
 
 
 @dataclass(eq=False)
 class LatinArts(FineArts):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#LatinArts"
 
 
 @dataclass(eq=False)
-class LeisureStudent(Student):
-    ...
+class LeisureStudent(Role[Student], Symbol):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#LeisureStudent"
+    # Role taker
+    student: Student
+
+    @classmethod
+    @lru_cache(maxsize=None)
+    def role_taker_field(cls) -> Field:
+        return next(iter(f for f in fields(cls) if f.name == "student"))
 
 
 @dataclass(eq=False)
 class Linguistics(HumanitiesAndSocial):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Linguistics"
 
 
 @dataclass(eq=False)
 class MarineScience(Science):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#MarineScience"
 
 
 @dataclass(eq=False)
 class MarketingManagement(Management):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#MarketingManagement"
 
 
 @dataclass(eq=False)
 class MaterialScienceEngineering(Engineering):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#MaterialScienceEngineering"
 
 
 @dataclass(eq=False)
 class MaterialsScience(Science):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#MaterialsScience"
 
 
 @dataclass(eq=False)
 class Mathematics(Science):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Mathematics"
 
 
 @dataclass(eq=False)
 class MechanicalEngineering(Engineering):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#MechanicalEngineering"
 
 
 @dataclass(eq=False)
 class MediaArtsAndSciences(FineArts):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#MediaArtsAndSciences"
 
 
 @dataclass(eq=False)
 class MedievalArts(FineArts):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#MedievalArts"
 
 
 @dataclass(eq=False)
 class ModernArts(FineArts):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#ModernArts"
 
 
 @dataclass(eq=False)
 class ModernLanguages(HumanitiesAndSocial):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#ModernLanguages"
 
 
 @dataclass(eq=False)
 class MusicsClass(FineArts):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#MusicsClass"
 
 
 @dataclass(eq=False)
 class OperationsManagement(Management):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#OperationsManagement"
 
 
 @dataclass(eq=False)
 class PGStudent(Student):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#PGStudent"
     enroll_for: Set[PGProgram] = field(kw_only=True, default_factory=set)
 
     @classmethod
@@ -693,16 +715,17 @@ class PGStudent(Student):
 
 @dataclass(eq=False)
 class PerformingArts(FineArts):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#PerformingArts"
 
 
 @dataclass(eq=False)
 class PetroleumlEngineering(Engineering):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#PetroleumlEngineering"
 
 
 @dataclass(eq=False)
 class PhDStudent(Student):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#PhDStudent"
     enroll_for: Set[PhDProgram] = field(kw_only=True, default_factory=set)
 
     @classmethod
@@ -719,51 +742,53 @@ class PhDStudent(Student):
 
 @dataclass(eq=False)
 class Philosophy(HumanitiesAndSocial):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Philosophy"
 
 
 @dataclass(eq=False)
 class Physics(Science):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Physics"
 
 
 @dataclass(eq=False)
 class ProjectManagement(Management):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#ProjectManagement"
 
 
 @dataclass(eq=False)
 class Psychology(HumanitiesAndSocial):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Psychology"
 
 
 @dataclass(eq=False)
 class PublicRelationsManagement(Management):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#PublicRelationsManagement"
 
 
 @dataclass(eq=False)
 class Religions(HumanitiesAndSocial):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Religions"
 
 
 @dataclass(eq=False)
 class ResearchAssistant(Employee):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#ResearchAssistant"
     is_research_assistant_of: Set[ResearchGroup] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
 class RiskManagement(Management):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#RiskManagement"
 
 
 @dataclass(eq=False)
 class SalesManagement(Management):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#SalesManagement"
 
 
 @dataclass(eq=False)
 class ScienceStudent(Student):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#ScienceStudent"
     has_major: Set[Science] = field(kw_only=True, default_factory=set)
 
     @classmethod
@@ -780,6 +805,7 @@ class ScienceStudent(Student):
 
 @dataclass(eq=False)
 class SportsFan(PeopleWithHobby):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#SportsFan"
     is_crazy_about: Set[Sports] = field(kw_only=True, default_factory=set)
 
     @classmethod
@@ -796,6 +822,7 @@ class SportsFan(PeopleWithHobby):
 
 @dataclass(eq=False)
 class SportsLover(PeopleWithHobby):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#SportsLover"
     loves: Set[Sports] = field(kw_only=True, default_factory=set)
 
     @classmethod
@@ -812,26 +839,27 @@ class SportsLover(PeopleWithHobby):
 
 @dataclass(eq=False)
 class Statistics(Science):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Statistics"
 
 
 @dataclass(eq=False)
 class SupplyChainManagement(Management):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#SupplyChainManagement"
 
 
 @dataclass(eq=False)
 class SupportingStaff(Employee):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#SupportingStaff"
 
 
 @dataclass(eq=False)
 class Swimming(Sports):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Swimming"
 
 
 @dataclass(eq=False)
 class TeachingAssistant(Role[Student], Symbol):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#TeachingAssistant"
     # Role taker
     student: Student
     is_teaching_assistant_of: Set[Course] = field(kw_only=True, default_factory=set)
@@ -855,33 +883,34 @@ class TeachingAssistant(Role[Student], Symbol):
 
 @dataclass(eq=False)
 class TechnicalReport(Article):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#TechnicalReport"
 
 
 @dataclass(eq=False)
 class Tennis(Sports):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Tennis"
 
 
 @dataclass(eq=False)
 class TheatreAndDance(FineArts):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#TheatreAndDance"
 
 
 @dataclass(eq=False)
 class ThesisEvaluationCommittee(StudentEvaluationCommittee):
     """Evaluates PhD students"""
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#ThesisEvaluationCommittee"
 
 
 @dataclass(eq=False)
 class UGCourse(Course):
     """Mandatory courses for all UG students"""
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#UGCourse"
 
 
 @dataclass(eq=False)
 class UGStudent(Student):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#UGStudent"
     enroll_for: Set[UGProgram] = field(kw_only=True, default_factory=set)
 
     @classmethod
@@ -898,7 +927,7 @@ class UGStudent(Student):
 
 @dataclass(eq=False)
 class WomanCollege(College):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#WomanCollege"
 
     @classmethod
     def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
@@ -914,6 +943,7 @@ class WomanCollege(College):
 
 @dataclass(eq=False)
 class BasketBallFan(SportsFan):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#BasketBallFan"
     is_crazy_about: Set[BasketBall] = field(kw_only=True, default_factory=set)
 
     @classmethod
@@ -930,6 +960,7 @@ class BasketBallFan(SportsFan):
 
 @dataclass(eq=False)
 class BasketBallLover(SportsLover):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#BasketBallLover"
     loves: Set[BasketBall] = field(kw_only=True, default_factory=set)
 
     @classmethod
@@ -946,11 +977,12 @@ class BasketBallLover(SportsLover):
 
 @dataclass(eq=False)
 class ClericalStaff(SupportingStaff):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#ClericalStaff"
 
 
 @dataclass(eq=False)
 class Lecturer(Role[Faculty], Symbol):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Lecturer"
     # Role taker
     faculty: Faculty
     is_lecturer_of: Set[Department] = field(kw_only=True, default_factory=set)
@@ -963,27 +995,30 @@ class Lecturer(Role[Faculty], Symbol):
 
 @dataclass(eq=False)
 class OtherStaff(SupportingStaff):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#OtherStaff"
 
 
 @dataclass(eq=False)
 class PostDoc(Faculty):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#PostDoc"
     is_post_doc_of: Set[Department] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
 class Professor(Faculty):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Professor"
     is_professor_of: Set[Department] = field(kw_only=True, default_factory=set)
     tenured: Optional[bool] = field(kw_only=True, default=None)
 
 
 @dataclass(eq=False)
 class SystemStaff(SupportingStaff):
-    ...
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#SystemStaff"
 
 
 @dataclass(eq=False)
 class T20CricketFan(SportsFan):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#T20CricketFan"
     is_crazy_about: Set[Cricket] = field(kw_only=True, default_factory=set)
 
     @classmethod
@@ -1000,21 +1035,25 @@ class T20CricketFan(SportsFan):
 
 @dataclass(eq=False)
 class AssistantProfessor(Professor):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#AssistantProfessor"
     is_assistant_professor_of: Set[Department] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
 class AssociateProfessor(Professor):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#AssociateProfessor"
     is_associate_professor_of: Set[Department] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
 class FullProfessor(Professor):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#FullProfessor"
     is_full_professor_of: Set[Department] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
 class VisitingProfessor(Role[Professor], Symbol):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#VisitingProfessor"
     # Role taker
     professor: Professor
     is_visiting_professor_of: Set[Department] = field(kw_only=True, default_factory=set)
@@ -1027,6 +1066,7 @@ class VisitingProfessor(Role[Professor], Symbol):
 
 @dataclass(eq=False)
 class Chair(Role[FullProfessor], Symbol):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Chair"
     # Role taker
     full_professor: FullProfessor
     is_head_of: Set[Department] = field(kw_only=True, default_factory=set)
@@ -1050,6 +1090,7 @@ class Chair(Role[FullProfessor], Symbol):
 
 @dataclass(eq=False)
 class Dean(Role[FullProfessor], Symbol):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Dean"
     # Role taker
     full_professor: FullProfessor
     is_head_of: Set[College] = field(kw_only=True, default_factory=set)
@@ -1073,6 +1114,7 @@ class Dean(Role[FullProfessor], Symbol):
 
 @dataclass(eq=False)
 class Director(Role[FullProfessor], Symbol):
+    cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Director"
     # Role taker
     full_professor: FullProfessor
     is_head_of: Set[Program] = field(kw_only=True, default_factory=set)

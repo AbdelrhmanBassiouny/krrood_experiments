@@ -11,12 +11,16 @@ from krrood.entity_query_language.entity import (
     contains,
     variable_from,
     flatten,
+    exists,
+    length,
 )
+import krrood.entity_query_language.entity as eql
 from krrood.entity_query_language.entity_result_processors import (
     a,
     an,
+    count,
 )
-from krrood.entity_query_language.predicate import symbolic_function
+from krrood.entity_query_language.predicate import symbolic_function, HasType
 from krrood.entity_query_language.symbol_graph import SymbolGraph
 from typing_extensions import Any, Optional, Callable, Iterable
 
@@ -33,6 +37,7 @@ from krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates import (
     Organization,
     T20CricketFan,
     Faculty,
+    Engineering,
 )
 
 
@@ -51,7 +56,7 @@ def get_eql_queries(
     q3 = QueryWithSelectables(q3, {"x": o1, "y": o2}, 3)
 
     p = variable(Person, domain=None)
-    q4 = an(set_of(p, p.has_age).where(p.has_age != None))
+    q4 = an(set_of(p, p.has_age).where(p.has_age))
     q4 = QueryWithSelectables(q4, {"x": p, "y": p.has_age}, 4)
 
     p = variable(T20CricketFan, None)
@@ -82,16 +87,12 @@ def get_eql_queries(
     q12 = an(entity(p1).distinct(p1.uri))
     q12 = QueryWithSelectables(q12, {"x": p1}, 12)
 
-    @symbolic_function
-    def length(lst):
-        return len(lst)
-
     p = variable(Person, domain=None)
-    q15 = an(entity(p).where(length(p.is_head_of) > 0))
+    q15 = an(entity(p).where(p.is_head_of))
     q15 = QueryWithSelectables(q15, {"x": p}, 15)
 
     o = variable(Organization, domain=None)
-    q16 = an(entity(o).where(length(o.has_head) > 0))
+    q16 = an(entity(o).where(o.has_head))
     q16 = QueryWithSelectables(q16, {"x": o}, 16)
 
     p1 = variable(Faculty, domain=None)
@@ -104,17 +105,16 @@ def get_eql_queries(
     q20 = QueryWithSelectables(q20, {"x": p1, "y": p2}, 20)
 
     s = variable(Student, domain=None)
-    so = flatten(s.is_student_of)
-    po = flatten(so.is_part_of)
-    q21 = an(
-        set_of(s, so).where(contains(po.has_college_discipline.uri, "Engineering"))
-    )
+    so = variable_from(s.is_student_of)
+    po = variable_from(so.is_part_of)
+    cd = variable_from(po.has_college_discipline)
+    q21 = an(set_of(s, so).where(exists(eql.type(cd) == Engineering)))
     q21 = QueryWithSelectables(q21, {"x": s, "y": so}, 21)
 
     s = variable(Student, domain=None)
     o = variable(Organization, domain=None)
-    z = flatten(o.has_dean)
-    c = flatten(z.teaches_course)
+    z = variable_from(o.has_dean)
+    c = variable_from(z.teaches_course)
     q22 = an(set_of(s, c).where(contains(s.takes_course, c)).distinct(s.uri, c.uri))
     q22 = QueryWithSelectables(q22, {"s": s, "c": c}, 22)
 

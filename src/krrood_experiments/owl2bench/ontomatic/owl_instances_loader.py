@@ -66,7 +66,6 @@ class OwlInstancesRegistry:
 
     def __init__(self, symbol_graph: Optional[SymbolGraph] = None) -> None:
         self._by_uri: Dict[URIRef, List[Any]] = defaultdict(list)
-        self._by_class: Dict[Type, List[Any]] = {}
 
     def get_or_create_for(
         self, uri: URIRef, factory: Type, symbol_graph, *args, **kwargs
@@ -75,7 +74,7 @@ class OwlInstancesRegistry:
 
         if instances and any(isinstance(inst, factory) for inst in instances):
             # If an instance of the desired factory already exists, return it
-            return [i for i in instances if isinstance(i, factory)][0]
+            return next(i for i in instances if isinstance(i, factory))
 
         role_taker_field, role_taker = OwlLoader.get_and_construct_role_taker(
             self, factory, uri, symbol_graph, **kwargs
@@ -87,17 +86,12 @@ class OwlInstancesRegistry:
 
         # Set URI if not already set
         local = str(uri)
-        if hasattr(inst, "uri") and getattr(inst, "uri") is None:
-            setattr(inst, "uri", local)
+        # if hasattr(inst, "uri") and getattr(inst, "uri") is None:
+        setattr(inst, "uri", local)
 
         # Update instance mappings
         self._by_uri[uri].append(inst)
-        self._by_class.setdefault(factory, []).append(inst)
-
         return inst
-
-    def get(self, cls: Type) -> List[Any]:
-        return list(self._by_class.get(cls, []))
 
     def resolve(self, uri: URIRef) -> Optional[Any]:
         if isinstance(uri, str):
@@ -519,7 +513,7 @@ class OwlLoader:
 
     def _assign_all_properties_to_instance(self, instance: AnonymousClass):
         """Iterates through all properties of all instances and assigns properties to the instances."""
-        for p, o in set(self._triples_by_subject[instance.uri]):
+        for p, o in self._triples_by_subject[instance.uri]:
             if p in [RDF.type, RDFS.subClassOf, OWL.equivalentClass, OWL.disjointWith]:
                 continue
             field_name = to_snake(local_name(p))
@@ -575,32 +569,6 @@ class OwlLoader:
             kwargs[assoc2.field.public_name] = getattr(er, assoc1.field.public_name)
         return kwargs
 
-    def _ensure_instance(self, uri: URIRef) -> Optional[List[Any]]:
-        """Ensures that at least one instance exists for the given URI.
-
-        Attempts to infer the class from rdf:type triples if no instance exists.
-
-        Args:
-            uri: The URIRef of the instance.
-
-        Returns:
-            A list of instances for the URI, or None if none could be found or created.
-        """
-        inst = self.registry.resolve(uri)
-        if inst is not None:
-            return inst
-        # Try to infer class from rdf:type triples
-        for p, o_class in self._triples_by_subject[uri]:
-            if p == RDF.type:
-                py_cls = self.metadata.get_python_class(o_class)
-                if py_cls is not None:
-                    return [
-                        self.registry.get_or_create_for(uri, py_cls, self.symbol_graph)
-                    ]
-        if uri in self.anonymous_instances:
-            return [self.anonymous_instances[uri]]
-        return None
-
     def _assign_all_properties(self):
         """Iterates through all triples in the graph and assigns properties to instances."""
         skip_ps = {
@@ -610,58 +578,31 @@ class OwlLoader:
             OWL.equivalentClass,
             OWL.Class,
         }
-
-        # Pre-filter triples for anonymous instances to avoid repeated set() calls and predicate_objects lookups
-        filtered_triples = []
-        for anon in self.anonymous_instances.values():
-            triples = set(self._triples_by_subject[anon.uri])
-            for p, o in triples:
-                if p not in skip_ps:
-                    filtered_triples.append((anon.uri, p, o))
-
-        total_predicates = len(filtered_triples)
-        total_literals = sum(len(p_o) for p_o in self.literals.values())
-        total = total_predicates + total_literals
+        filtered_triples = [
+            (s, p, o)
+            for s, p_o in self._triples_by_subject.items()
+            for p, o in p_o
+            if p not in skip_ps and self._get_all_instances_of_uri(s)
+        ]
+        total = len(filtered_triples)
 
         max_time = 0
-        slowest_predicate = ""
 
         with tqdm(total=total, desc="Assigning properties") as pbar:
-            for uri, p, o in filtered_triples:
-                predicate_name = to_snake(local_name(p))
-                subject_roles = self._get_subject_roles(uri)
+            for s, p, o in filtered_triples:
+                subject_roles = self._get_all_instances_of_uri(s)
                 if not subject_roles:
-                    raise ValueError(f"Could not find subject roles for {uri}")
-
+                    continue
+                predicate_name = to_snake(local_name(p))
                 start = time.time()
                 self._assign_property(subject_roles, predicate_name, o)
                 duration = time.time() - start
 
                 if duration > max_time:
                     max_time = duration
-                    slowest_predicate = predicate_name
-                    pbar.set_postfix(slowest=f"{slowest_predicate} ({max_time:.4f}s)")
+                    pbar.set_postfix(slowest=f"{predicate_name} ({max_time:.4f}s)")
 
                 pbar.update(1)
-
-            for anonymous_subject_uri, literal_p_o in self.literals.items():
-                for literal_p, literal_v in literal_p_o.items():
-                    subject_roles = self._get_subject_roles(anonymous_subject_uri)
-                    if not subject_roles:
-                        continue
-
-                    start = time.time()
-                    self._assign_property(subject_roles, literal_p, literal_v)
-                    duration = time.time() - start
-
-                    if duration > max_time:
-                        max_time = duration
-                        slowest_predicate = literal_p
-                        pbar.set_postfix(
-                            slowest=f"{slowest_predicate} ({max_time:.4f}s)"
-                        )
-
-                    pbar.update(1)
 
     def _assign_property(
         self,
@@ -681,7 +622,7 @@ class OwlLoader:
         else:
             self._assign_object_property(subj_roles, field_name, obj_uri)
 
-    def _get_subject_roles(self, subject_uri: URIRef) -> Optional[List[Any]]:
+    def _get_all_instances_of_uri(self, subject_uri: URIRef) -> Optional[List[Any]]:
         """Resolves or ensures instances for a given subject URI.
 
         Args:
@@ -690,11 +631,7 @@ class OwlLoader:
         Returns:
             A list of subject roles if found or created, otherwise None.
         """
-        subj_roles = self.registry.resolve(subject_uri)
-        if subj_roles is None:
-            # Subject without explicit type known to model; try infer
-            subj_roles = self._ensure_instance(subject_uri)
-        return subj_roles
+        return self.registry.resolve(subject_uri)
 
     def _get_role_taker_val(self, subj: Any, subj_cls: Type) -> Optional[Any]:
         """Retrieves the role-taker instance for a given subject, if it exists.
@@ -758,81 +695,6 @@ class OwlLoader:
             return True
         return False
 
-    def _get_matching_role(
-        self, roles: Optional[List[Any]], target_type: Type
-    ) -> Optional[Any]:
-        """Finds a role among the given roles that matches the target type.
-
-        Also searches through the role-taker chain.
-
-        Args:
-            roles: List of roles to search.
-            target_type: The desired Python type.
-
-        Returns:
-            The matching role instance if found, otherwise None.
-        """
-        if not roles:
-            return None
-        for role in roles:
-            if issubclass(type(role), target_type):
-                return role
-
-        # Try to find via role-taker chain
-        obj_role = roles[0]
-        role_taker_assoc = (
-            self.symbol_graph.class_diagram.get_role_taker_associations_of_cls(
-                type(obj_role)
-            )
-        )
-        while role_taker_assoc:
-            if role_taker_assoc.target.clazz is target_type:
-                return getattr(obj_role, role_taker_assoc.field.public_name)
-            obj_role = getattr(obj_role, role_taker_assoc.field.public_name)
-            role_taker_assoc = (
-                self.symbol_graph.class_diagram.get_role_taker_associations_of_cls(
-                    role_taker_assoc.target.clazz
-                )
-            )
-        return None
-
-    @lru_cache
-    def common_ancestor_of_descriptor_ranges(
-        self, descriptor_base: Type[PropertyDescriptor]
-    ) -> Type:
-        """Finds the nearest common ancestor of all ranges for a given PropertyDescriptor base.
-
-        Args:
-            descriptor_base: The base PropertyDescriptor class.
-        Returns:
-            The nearest common ancestor type.
-        """
-        descriptor_ranges = tuple(PropertyDescriptor.all_ranges[descriptor_base])
-        nca_range = role_aware_nearest_common_ancestor(descriptor_ranges)
-        return nca_range
-
-    @lru_cache
-    def sorted_obj_role_types(
-        self, obj_role_types: Tuple[Type], descriptor_base: Type[PropertyDescriptor]
-    ) -> List[Type]:
-        """Sorts object role types based on their inheritance path length to the common ancestor.
-
-        Args:
-            obj_role_types: A tuple of object role types.
-            descriptor_base: The base PropertyDescriptor class.
-        Returns:
-            A list of sorted object role types.
-        """
-        nca_range = self.common_ancestor_of_descriptor_ranges(descriptor_base)
-        sorted_obj_role_types = list(
-            reversed(
-                sort_classes_by_role_aware_inheritance_path_length(
-                    obj_role_types, nca_range
-                )
-            )
-        )
-        return sorted_obj_role_types
-
     @lru_cache
     def best_fit_object_role(
         self, field_name: str, obj_roles: Tuple[Any]
@@ -848,16 +710,14 @@ class OwlLoader:
         """
         descriptor_base = self.metadata.get_descriptor_base(field_name)
         descriptor_ranges = tuple(PropertyDescriptor.all_ranges[descriptor_base])
-        obj_role_types = tuple(map(type, obj_roles))
-        obj_role_types = self.sorted_obj_role_types(obj_role_types, descriptor_base)
-        obj = None
-        for obj_role_type in obj_role_types or []:
-            if issubclass_or_role(
-                obj_role_type,
-                descriptor_ranges,
-            ):
-                obj = [obj_r for obj_r in obj_roles if type(obj_r) is obj_role_type][0]
-                break
+        obj = next(
+            (
+                obj_role
+                for obj_role in obj_roles
+                if issubclass_or_role(type(obj_role), descriptor_ranges)
+            ),
+            None,
+        )
         return obj
 
     def _assign_object_property(
@@ -875,7 +735,9 @@ class OwlLoader:
         """
         subj = None
         obj_roles = (
-            self._ensure_instance(obj_node) if isinstance(obj_node, URIRef) else None
+            self._get_all_instances_of_uri(obj_node)
+            if isinstance(obj_node, URIRef)
+            else None
         )
         if len(obj_roles) > 1:
             obj = self.best_fit_object_role(field_name, tuple(obj_roles))
@@ -895,8 +757,7 @@ class OwlLoader:
             obj = matched_obj or obj
             if self._assign_to_attribute(subj, field_name, obj):
                 return
-
-        self._handle_descriptor_based_property(subj_roles, field_name, obj)
+        raise ValueError(f"Could not find {subj_roles}.{field_name} = {obj}")
 
     def _assign_to_attribute(self, target: Any, attr_name: str, value: Any) -> bool:
         """Assigns a value to an attribute, or adds to it if it's a collection.
@@ -913,7 +774,7 @@ class OwlLoader:
             return False
 
         attr_val = getattr(target, attr_name, None)
-        if hasattr(attr_val, "add"):
+        if isinstance(attr_val, set):
             logger.info(
                 f"[OwlLoader] Assigning property {attr_name} to {target.uri} with object {value.uri}"
             )
@@ -921,107 +782,6 @@ class OwlLoader:
         else:
             setattr(target, attr_name, value)
         return True
-
-    def _handle_descriptor_based_property(
-        self, subj_roles: List[Symbol], snake: str, obj: Any
-    ):
-        """Handles properties that require creating a new role based on a PropertyDescriptor.
-
-        Args:
-            subj: The subject instance.
-            snake: The snake_case name of the predicate.
-            obj: The object instance.
-
-        Raises:
-            ValueError: If the property could not be assigned.
-        """
-        base_desc = self.metadata.get_descriptor_base(snake)
-        if not base_desc:
-            raise ValueError(f"Could not find descriptor for {snake}")
-
-        try:
-            new_role_class = self._find_best_role_class(base_desc, obj, snake)
-        except ValueError:
-            raise
-        new_role = self._get_or_create_role_instance(subj_roles, new_role_class)
-
-        if hasattr(new_role, snake) and self._assign_to_attribute(new_role, snake, obj):
-            return
-        raise ValueError(f"Could not assign {obj} to {subj_roles} ({snake})")
-
-    @staticmethod
-    def _find_best_role_class(
-        base_desc: Type[PropertyDescriptor],
-        obj: Any,
-        predicate_name: str,
-    ) -> Type:
-        """Determines the most appropriate role class for a given descriptor and object.
-
-        Args:
-            base_desc: The base PropertyDescriptor class.
-            obj: The object instance.
-            predicate_name: The snake_case name of the predicate.
-
-        Returns:
-            The selected role class.
-
-        Raises:
-            ValueError: If no suitable role class can be determined.
-        """
-        possible_roles = list(PropertyDescriptor.all_domains[base_desc])
-        if len(possible_roles) == 1:
-            return possible_roles[0]
-
-        o_type = type(obj)
-        wrapped_field_types = {
-            pr: getattr(pr, predicate_name).range
-            for pr in possible_roles
-            if hasattr(pr, predicate_name)
-            and issubclass_or_role(o_type, getattr(pr, predicate_name).range)
-        }
-
-        if not wrapped_field_types:
-            raise ValueError(
-                f"Could not determine role for {obj} ({o_type}) and predicate {predicate_name} ({base_desc})"
-            )
-
-        # choose the nearest wrapped field type
-        chosen_role = min(
-            wrapped_field_types.keys(),
-            key=lambda k: not_none_inheritance_path_length(
-                wrapped_field_types[k], o_type
-            ),
-        )
-
-        if chosen_role is None:
-            raise ValueError(
-                f"Could not determine role for {obj} ({o_type}) and predicate {predicate_name} ({base_desc})"
-            )
-        return chosen_role
-
-    def _get_or_create_role_instance(
-        self, existing_roles: List[Symbol], role_class: Type
-    ) -> Any:
-        """Retrieves an existing role instance for the subject or creates a new one.
-
-        Args:
-            subj: The subject instance.
-            role_class: The class of the role to find or create.
-
-        Returns:
-            The role instance.
-        """
-        for er in existing_roles:
-            if issubclass_or_role(type(er), role_class):
-                return er
-        kwargs = self._get_common_role_taker_kwargs(existing_roles, role_class)
-        uri = existing_roles[0].uri
-        return self.registry.get_or_create_for(
-            URIRef(uri) if isinstance(uri, str) else uri,
-            role_class,
-            self.symbol_graph,
-            **kwargs,
-        )
 
     @staticmethod
     def _coerce_literal(val: Literal, target_type: Optional[Type] = None) -> Any:
