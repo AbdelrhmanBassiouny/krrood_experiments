@@ -918,7 +918,12 @@ class NamingRegistry:
         intersections = list(graph.objects(bnode, OWL.intersectionOf))
         if intersections:
             items = NamingRegistry._get_rdf_list(graph, intersections[0])
-            return "AND".join([NamingRegistry._get_node_name(graph, i) for i in items])
+            try:
+                return "AND".join(
+                    [NamingRegistry._get_node_name(graph, i) for i in items]
+                )
+            except TypeError:
+                pass
 
         # Union
         unions = list(graph.objects(bnode, OWL.unionOf))
@@ -1090,7 +1095,12 @@ class ClassExtractor:
                 raise NotImplemented(
                     f"BNode class {class_name} has multiple subclasses: {subclasses}"
                 )
-            is_description_for = NamingRegistry.uri_to_python_name(subclasses[0])
+            elif len(subclasses) == 1:
+                is_description_for = NamingRegistry.uri_to_python_name(subclasses[0])
+            else:
+                eq_class = self.graph.value(None, OWL.equivalentClass, class_uri)
+                if eq_class:
+                    is_description_for = NamingRegistry.uri_to_python_name(eq_class)
 
         return ClassInfo(
             name=class_name,
@@ -1146,7 +1156,10 @@ class PropertyExtractor:
 
         # Inheritance between properties
         for super_prop in self.graph.objects(property_uri, RDFS.subPropertyOf):
-            if isinstance(super_prop, rdflib.URIRef):
+            if isinstance(super_prop, rdflib.URIRef) and super_prop not in [
+                OWL.topObjectProperty,
+                OWL.topDataProperty,
+            ]:
                 superproperties.append(NamingRegistry.uri_to_python_name(super_prop))
 
         # Inverses
@@ -2852,5 +2865,13 @@ if __name__ == "__main__":
     output_path = os.path.join(
         os.path.dirname(__file__),
         "owl2bench_with_predicates.py",
+    )
+    # generate_owl2bench_with_predicates(file_path, output_path)
+
+    # DL
+    file_path = os.path.join(resources_dir, "OWL2DL-1_clean.owl")
+    output_path = os.path.join(
+        os.path.dirname(__file__),
+        "owl2bench_with_predicates_dl.py",
     )
     generate_owl2bench_with_predicates(file_path, output_path)
