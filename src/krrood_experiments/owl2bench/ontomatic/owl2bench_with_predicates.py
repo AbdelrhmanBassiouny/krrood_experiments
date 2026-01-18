@@ -19,7 +19,7 @@ from krrood.ontomatic.property_descriptor.property_descriptor import (
     HasProperty,
 )
 from krrood.class_diagrams.utils import Role, issubclass_or_role
-from .utils import AnonymousClass, get_super_axiom_and_candidate_var
+from krrood.ontomatic.utils import AnonymousClass, get_super_axiom_and_candidate_var
 from .owl2bench_with_predicates_properties import *
 from .owl2bench_with_predicates_base import *
 

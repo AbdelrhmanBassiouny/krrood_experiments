@@ -11,14 +11,13 @@ from typing import List, Any, Tuple
 from krrood.entity_query_language.symbolic import An, UnificationDict
 from owlrl import DeductiveClosure, OWLRL_Semantics
 from rdflib import Graph
-from sqlalchemy.sql.operators import contains
 from typing_extensions import Dict, Optional
 
-from .owl_instances_loader import (
+from krrood.ontomatic.ontology_to_python.owl_instances_loader import (
     OwlLoader,
     OwlInstancesRegistry,
 )
-from .owl_to_python import OwlToPythonConverter
+from krrood.ontomatic.ontology_to_python.owl_to_python import OwlToPythonConverter
 
 
 def generate_lubm_with_predicates(clean: bool = False):

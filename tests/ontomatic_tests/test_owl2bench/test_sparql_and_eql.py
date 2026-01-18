@@ -24,7 +24,7 @@ from krrood_experiments.owl2bench.ontomatic.owl2bench_eql_queries import (
     evaluate_eql_and_sparql_queries,
 )
 from krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates import *
-from krrood_experiments.owl2bench.ontomatic.utils import (
+from krrood.ontomatic.utils import (
     AnonymousClass,
 )
 from krrood.ontomatic.property_descriptor.property_descriptor import (
