@@ -66,7 +66,7 @@ class Organization(OWL2BenchThing):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, HasEmployee) and any(issubclass(t, Employee) for attr in candidate.has_employee for t in attr.types)
+        return HasProperty(candidate, HasEmployee) and any(issubclass_or_role(t, Employee) for attr in candidate.has_employee for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -112,7 +112,7 @@ class Program(OWL2BenchThing):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, HasHead) and any(issubclass(t, Director) for attr in candidate.has_head for t in attr.types)
+        return HasProperty(candidate, HasHead) and any(issubclass_or_role(t, Director) for attr in candidate.has_head for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -160,7 +160,7 @@ class College(Organization):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, HasHead) and any(issubclass(t, Dean) for attr in candidate.has_head for t in attr.types)
+        return HasProperty(candidate, HasHead) and any(issubclass_or_role(t, Dean) for attr in candidate.has_head for t in attr.types)
 
 
 School = College
@@ -181,7 +181,7 @@ class Course(Work):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, IsTaughtBy) and any(issubclass(t, Faculty) for attr in candidate.is_taught_by for t in attr.types)
+        return HasProperty(candidate, IsTaughtBy) and any(issubclass_or_role(t, Faculty) for attr in candidate.is_taught_by for t in attr.types)
 
 
 TeachingCourse = Course
@@ -219,7 +219,7 @@ class Department(Organization):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, HasHead) and any(issubclass(t, Chair) for attr in candidate.has_head for t in attr.types)
+        return HasProperty(candidate, HasHead) and any(issubclass_or_role(t, Chair) for attr in candidate.has_head for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -250,7 +250,7 @@ class Employee(Role[Person], Symbol):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, WorksFor) and any(issubclass(t, Organization) for attr in candidate.works_for for t in attr.types)
+        return HasProperty(candidate, WorksFor) and any(issubclass_or_role(t, Organization) for attr in candidate.works_for for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -351,7 +351,7 @@ class PeopleWithHobby(Role[Person], Symbol):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return any(issubclass_or_role(t, Person) for t in candidate.types) and HasProperty(candidate, Likes) and any(issubclass(t, Interest) for attr in candidate.likes for t in attr.types)
+        return any(issubclass_or_role(t, Person) for t in candidate.types) and HasProperty(candidate, Likes) and any(issubclass_or_role(t, Interest) for attr in candidate.likes for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -423,7 +423,7 @@ class Student(Role[Person], Symbol):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, EnrollIn) and any(issubclass(t, Department) for attr in candidate.enroll_in for t in attr.types)
+        return HasProperty(candidate, EnrollIn) and any(issubclass_or_role(t, Department) for attr in candidate.enroll_in for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -590,7 +590,7 @@ class Faculty(Employee):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, TeachesCourse) and any(issubclass(t, Course) for attr in candidate.teaches_course for t in attr.types)
+        return HasProperty(candidate, TeachesCourse) and any(issubclass_or_role(t, Course) for attr in candidate.teaches_course for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -660,7 +660,7 @@ class LeisureStudent(Role[Student], Symbol):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return any(issubclass_or_role(t, Student) for t in candidate.types) and HasProperty(candidate, TakesCourse) and (len([v for v in candidate.takes_course if any(issubclass(t, Course) for t in v.types) ]) <= 1)
+        return any(issubclass_or_role(t, Student) for t in candidate.types) and HasProperty(candidate, TakesCourse) and (len([v for v in candidate.takes_course if any(issubclass_or_role(t, Course) for t in v.types) ]) <= 1)
 
 
 @dataclass(eq=False)
@@ -743,7 +743,7 @@ class PGStudent(Student):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, EnrollFor) and any(issubclass(t, PGProgram) for attr in candidate.enroll_for for t in attr.types)
+        return HasProperty(candidate, EnrollFor) and any(issubclass_or_role(t, PGProgram) for attr in candidate.enroll_for for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -771,7 +771,7 @@ class PhDStudent(Student):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, EnrollFor) and any(issubclass(t, PhDProgram) for attr in candidate.enroll_for for t in attr.types)
+        return HasProperty(candidate, EnrollFor) and any(issubclass_or_role(t, PhDProgram) for attr in candidate.enroll_for for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -835,7 +835,7 @@ class ScienceStudent(Student):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, HasMajor) and any(issubclass(t, Science) for attr in candidate.has_major for t in attr.types)
+        return HasProperty(candidate, HasMajor) and any(issubclass_or_role(t, Science) for attr in candidate.has_major for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -853,7 +853,7 @@ class SportsLover(PeopleWithHobby):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, Loves) and any(issubclass(t, Sports) for attr in candidate.loves for t in attr.types)
+        return HasProperty(candidate, Loves) and any(issubclass_or_role(t, Sports) for attr in candidate.loves for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -903,7 +903,7 @@ class TeachingAssistant(Role[Student], Symbol):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, IsTeachingAssistantOf) and any(issubclass(t, Course) for attr in candidate.is_teaching_assistant_of for t in attr.types)
+        return HasProperty(candidate, IsTeachingAssistantOf) and any(issubclass_or_role(t, Course) for attr in candidate.is_teaching_assistant_of for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -942,7 +942,7 @@ class UGStudent(Student):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, EnrollFor) and any(issubclass(t, UGProgram) for attr in candidate.enroll_for for t in attr.types)
+        return HasProperty(candidate, EnrollFor) and any(issubclass_or_role(t, UGProgram) for attr in candidate.enroll_for for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -978,7 +978,7 @@ class BasketBallLover(SportsLover):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, Loves) and any(issubclass(t, BasketBall) for attr in candidate.loves for t in attr.types)
+        return HasProperty(candidate, Loves) and any(issubclass_or_role(t, BasketBall) for attr in candidate.loves for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -1032,7 +1032,7 @@ class SportsFan(SportsLover):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, IsCrazyAbout) and any(issubclass(t, Sports) for attr in candidate.is_crazy_about for t in attr.types)
+        return HasProperty(candidate, IsCrazyAbout) and any(issubclass_or_role(t, Sports) for attr in candidate.is_crazy_about for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -1073,7 +1073,7 @@ class BasketBallFan(SportsFan):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, IsCrazyAbout) and any(issubclass(t, BasketBall) for attr in candidate.is_crazy_about for t in attr.types)
+        return HasProperty(candidate, IsCrazyAbout) and any(issubclass_or_role(t, BasketBall) for attr in candidate.is_crazy_about for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -1135,7 +1135,7 @@ class Chair(Role[FullProfessor], Symbol):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, IsHeadOf) and any(issubclass(t, Department) for attr in candidate.is_head_of for t in attr.types)
+        return HasProperty(candidate, IsHeadOf) and any(issubclass_or_role(t, Department) for attr in candidate.is_head_of for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -1160,7 +1160,7 @@ class Dean(Role[FullProfessor], Symbol):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, IsHeadOf) and any(issubclass(t, College) for attr in candidate.is_head_of for t in attr.types)
+        return HasProperty(candidate, IsHeadOf) and any(issubclass_or_role(t, College) for attr in candidate.is_head_of for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -1185,7 +1185,7 @@ class Director(Role[FullProfessor], Symbol):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, IsHeadOf) and any(issubclass(t, Program) for attr in candidate.is_head_of for t in attr.types)
+        return HasProperty(candidate, IsHeadOf) and any(issubclass_or_role(t, Program) for attr in candidate.is_head_of for t in attr.types)
 
 
 

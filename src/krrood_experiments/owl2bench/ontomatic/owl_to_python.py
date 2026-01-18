@@ -468,7 +468,7 @@ class QuantifiedQualifiedAxiomInfo(QuantifiedAxiomInfo, QualifiedAxiomInfoMixin)
     def conditions_python(self):
         base_conditions = super().conditions_python()
         base_conditions[-1] = (
-            f"(len([v for v in candidate.{self.snake_property_name} if any(issubclass(t, {self.on_class}) for t in v.types) ]) {self.comparison_operator} {self.quantity})"
+            f"(len([v for v in candidate.{self.snake_property_name} if any(issubclass_or_role(t, {self.on_class}) for t in v.types) ]) {self.comparison_operator} {self.quantity})"
         )
         return base_conditions
 
@@ -567,7 +567,7 @@ class SomeValuesFromAxiomInfo(PropertyAxiomInfo, QualifiedAxiomInfoMixin):
     def conditions_python(self):
         base_conditions = super().conditions_python()
         base_conditions.append(
-            f"any(issubclass(t, {self.on_class}) for attr in candidate.{self.snake_property_name} for t in attr.types)"
+            f"any(issubclass_or_role(t, {self.on_class}) for attr in candidate.{self.snake_property_name} for t in attr.types)"
         )
         return base_conditions
 
