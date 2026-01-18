@@ -1565,6 +1565,7 @@ class InferenceEngine:
         if prop_name in self.onto.properties:
             self.property_maps.dom_map[prop_name].add(for_class)
         axiom = None
+        value_type = None
         if self.onto.graph.value(node, OWL.hasValue):
             has_value = self.onto.graph.value(node, OWL.hasValue)
             axiom = HasValueAxiomInfo(
@@ -1573,6 +1574,12 @@ class InferenceEngine:
                 for_class=for_class,
                 onto=self.onto,
             )
+            value_type = [
+                v
+                for v in self.onto.graph.objects(has_value, RDF.type)
+                if v != OWL.NamedIndividual
+            ][0]
+            value_type = NamingRegistry.uri_to_python_name(value_type, self.onto.graph)
         elif self.onto.graph.value(node, OWL.maxQualifiedCardinality):
             literal_value = self.onto.graph.value(node, OWL.maxQualifiedCardinality)
             max_value = literal_value.toPython()
@@ -1611,6 +1618,7 @@ class InferenceEngine:
             )
         elif self.onto.graph.value(node, OWL.someValuesFrom):
             value_type = self.onto.graph.value(node, OWL.someValuesFrom)
+            value_type = NamingRegistry.uri_to_python_name(value_type, self.onto.graph)
             axiom = SomeValuesFromAxiomInfo(
                 property_name=prop_name,
                 on_class=NamingRegistry.uri_to_python_name(value_type, self.onto.graph),
@@ -1619,21 +1627,16 @@ class InferenceEngine:
             )
         elif self.onto.graph.value(node, OWL.allValuesFrom):
             value_type = self.onto.graph.value(node, OWL.allValuesFrom)
+            value_type = NamingRegistry.uri_to_python_name(value_type, self.onto.graph)
             axiom = AllValuesFromAxiomInfo(
                 property_name=prop_name,
-                on_class=NamingRegistry.uri_to_python_name(value_type, self.onto.graph),
+                on_class=value_type,
                 for_class=for_class,
                 onto=self.onto,
             )
         if axiom:
             try:
-                rng_name = None
-                value_type = None
-                if isinstance(axiom, QualifiedAxiomInfoMixin):
-                    value_type = axiom.on_class
-                    rng_name = NamingRegistry.uri_to_python_name(
-                        value_type, self.onto.graph
-                    )
+                rng_name = value_type
                 if prop_name == "roleFor":
                     cls_info = self.onto.classes.get(for_class)
                     if cls_info:
@@ -2121,8 +2124,13 @@ class InferenceEngine:
         """
         Find property base names that are compatible between parent and child.
         """
-        parent_props = parent_info.declared_properties
-        child_props = child_info.declared_properties
+
+        parent_props = self.get_declared_and_restricted_properties_of_cls(
+            parent_info.name
+        )
+        child_props = self.get_declared_and_restricted_properties_of_cls(
+            child_info.name
+        )
 
         parent_props_filtered = [p.split("{")[0] for p in parent_props]
         child_props_filtered = [p.split("{")[0] for p in child_props]
@@ -2167,7 +2175,7 @@ class InferenceEngine:
                 )
                 if parent_prop_range not in self.onto.class_ancestors.get(
                     child_prop_range, set()
-                ):
+                ).union({child_prop_range}):
                     if parent_base_name in matched_prop_names:
                         matched_prop_names.remove(parent_base_name)
                     continue
@@ -2178,14 +2186,29 @@ class InferenceEngine:
 
         return matched_prop_names, child_matched_prop_names
 
-    @staticmethod
+    @lru_cache
+    def get_declared_and_restricted_properties_of_cls(self, cls_name: str) -> List[str]:
+        """Get declared properties of a class, including those from restrictions."""
+        cls_info = self.onto.classes[cls_name]
+        cls_props = copy(cls_info.declared_properties)
+        cls_props_filtered = [p.split("{")[0] for p in cls_props]
+        if cls_info.name in self.onto.property_restrictions:
+            for prop_name, ranges in self.onto.property_restrictions[
+                cls_info.name
+            ].items():
+                if prop_name in cls_props_filtered:
+                    continue
+                cls_props.append(prop_name)
+        return cls_props
+
     def _determine_subsumption_type(
-        matched_props: Set[str], parent_info: ClassInfo, child_info: ClassInfo
+        self, matched_props: Set[str], parent_info: ClassInfo, child_info: ClassInfo
     ) -> Optional[SubsumptionType]:
         """Determine if the relationship is a SUBTYPE or a ROLE."""
-        parent_props_filtered = {
-            p.split("{")[0] for p in parent_info.declared_properties
-        }
+        parent_props = self.get_declared_and_restricted_properties_of_cls(
+            parent_info.name
+        )
+        parent_props_filtered = {p.split("{")[0] for p in parent_props}
 
         if matched_props == parent_props_filtered:
             if parent_info.role_taker:
@@ -2227,6 +2250,12 @@ class InferenceEngine:
             child_info.all_base_classes = [
                 self.onto.role_cls_name
             ] + child_info.all_base_classes
+            if Symbol.__name__ not in child_info.base_classes:
+                child_info.base_classes.append(Symbol.__name__)
+                child_info.all_base_classes.append(Symbol.__name__)
+                child_info.all_base_classes_including_role_takers.append(
+                    Symbol.__name__
+                )
         child_info.all_base_classes_including_role_takers.append(parent_name)
 
     @staticmethod
@@ -2245,6 +2274,9 @@ class InferenceEngine:
         child_info.declared_properties = [
             p for p in child_info.declared_properties if p not in parent_props
         ]
+
+    def __hash__(self):
+        return hash(id(self))
 
 
 class JinjaRenderer:

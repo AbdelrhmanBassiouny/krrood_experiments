@@ -34,39 +34,36 @@ class CollegeDiscipline(OWL2BenchThing):
 
 
 @dataclass(eq=False)
-class EvaluationCommittee(OWL2BenchThing):
-    evaluates: Set[Person] = field(default_factory=set)
-    has_committee_members: Set[Person] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
 class Interest(OWL2BenchThing):
     ...
 
 
 
 @dataclass(eq=False)
-class Organization(OWL2BenchThing):
-    has_dean: Set[Person] = field(default_factory=set)
-    has_employee_evaluation_committee: Set[EmployeeEvaluationCommittee] = field(default_factory=set)
-    has_employee: Set[Employee] = field(default_factory=set)
-    has_evaluation_committee: Set[EvaluationCommittee] = field(default_factory=set)
-    has_faculty: Set[Faculty] = field(default_factory=set)
-    has_head: Set[Person] = field(default_factory=set)
-    has_member: Set[Person] = field(default_factory=set)
-    has_part: Set[Organization] = field(default_factory=set)
-    has_student: Set[Student] = field(default_factory=set)
-    has_student_evaluation_committee: Set[StudentEvaluationCommittee] = field(default_factory=set)
-    has_sub_organization: Set[Organization] = field(default_factory=set)
-    has_thesis_evaluation_committee: Set[ThesisEvaluationCommittee] = field(default_factory=set)
-    has_women_college: Set[Organization] = field(default_factory=set)
-    is_affiliated_organization_of: Set[Organization] = field(default_factory=set)
-    is_part_of: Set[Organization] = field(default_factory=set)
-    is_sub_organization_of: Set[Organization] = field(default_factory=set)
-    is_women_college_of: Set[Organization] = field(default_factory=set)
-    org_publication: Set[Publication] = field(default_factory=set)
+class OrganizationMixinProtocol(OWL2BenchThing):
+    has_dean: Set[Person]
+    has_employee_evaluation_committee: Set[EmployeeEvaluationCommittee]
+    has_employee: Set[Employee]
+    has_evaluation_committee: Set[EvaluationCommittee]
+    has_faculty: Set[Faculty]
+    has_head: Set[Person]
+    has_member: Set[Person]
+    has_part: Set[Organization]
+    has_student: Set[Student]
+    has_student_evaluation_committee: Set[StudentEvaluationCommittee]
+    has_sub_organization: Set[Organization]
+    has_thesis_evaluation_committee: Set[ThesisEvaluationCommittee]
+    has_women_college: Set[Organization]
+    is_affiliated_organization_of: Set[Organization]
+    is_part_of: Set[Organization]
+    is_sub_organization_of: Set[Organization]
+    is_women_college_of: Set[Organization]
+    org_publication: Set[Publication]
 
+
+@dataclass(eq=False)
+class Organization(OrganizationMixinProtocol):
+    ...
 
 
 @dataclass(eq=False)
@@ -189,15 +186,16 @@ class Employee(PersonMixinProtocol, Symbol):
 
 
 @dataclass(eq=False)
-class EmployeeEvaluationCommittee(EvaluationCommittee):
+class Engineering(CollegeDiscipline):
+    """Engineering"""
     ...
 
 
 
 @dataclass(eq=False)
-class Engineering(CollegeDiscipline):
-    """Engineering"""
-    ...
+class EvaluationCommittee(OrganizationMixinProtocol, Symbol):
+    evaluates: Set[Person] = field(default_factory=set)
+    has_committee_members: Set[Person] = field(default_factory=set)
 
 
 
@@ -325,18 +323,6 @@ class Sports(Interest):
 
 
 @dataclass(eq=False)
-class SportsFan(PersonMixinProtocol, Symbol):
-    is_crazy_about: Set[Sports] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
-class SportsLover(PersonMixinProtocol, Symbol):
-    loves: Set[Sports] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
 class StudentMixinProtocol(PersonMixinProtocol, Symbol):
     enroll_for: Set[Program]
     enroll_in: Set[Department]
@@ -347,17 +333,6 @@ class StudentMixinProtocol(PersonMixinProtocol, Symbol):
 @dataclass(eq=False)
 class Student(StudentMixinProtocol):
     ...
-
-
-@dataclass(eq=False)
-class StudentEvaluationCommittee(EvaluationCommittee):
-    ...
-
-
-
-@dataclass(eq=False)
-class T20CricketFan(PersonMixinProtocol, Symbol):
-
 
 
 @dataclass(eq=False)
@@ -431,18 +406,6 @@ class Badminton(Sports):
 @dataclass(eq=False)
 class BasketBall(Sports):
     ...
-
-
-
-@dataclass(eq=False)
-class BasketBallFan(SportsFan):
-    is_crazy_about: Set[BasketBall] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
-class BasketBallLover(SportsLover):
-    loves: Set[BasketBall] = field(default_factory=set)
 
 
 
@@ -532,6 +495,12 @@ class ElectiveCourse(Course):
 
 @dataclass(eq=False)
 class ElectricalEngineering(Engineering):
+    ...
+
+
+
+@dataclass(eq=False)
+class EmployeeEvaluationCommittee(EvaluationCommittee):
     ...
 
 
@@ -775,7 +744,19 @@ class ScienceStudent(Student):
 
 
 @dataclass(eq=False)
+class SportsLover(PeopleWithHobby):
+    loves: Set[Sports] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
 class Statistics(Science):
+    ...
+
+
+
+@dataclass(eq=False)
+class StudentEvaluationCommittee(EvaluationCommittee):
     ...
 
 
@@ -823,13 +804,6 @@ class TheatreAndDance(FineArts):
 
 
 @dataclass(eq=False)
-class ThesisEvaluationCommittee(StudentEvaluationCommittee):
-    """Evaluates PhD students"""
-    ...
-
-
-
-@dataclass(eq=False)
 class UGCourse(Course):
     """Mandatory courses for all UG students"""
     ...
@@ -845,6 +819,12 @@ class UGStudent(Student):
 @dataclass(eq=False)
 class WomanCollege(College):
     ...
+
+
+
+@dataclass(eq=False)
+class BasketBallLover(SportsLover):
+    loves: Set[BasketBall] = field(default_factory=set)
 
 
 
@@ -884,7 +864,20 @@ class Professor(ProfessorMixinProtocol):
 
 
 @dataclass(eq=False)
+class SportsFan(SportsLover):
+    is_crazy_about: Set[Sports] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
 class SystemStaff(SupportingStaff):
+    ...
+
+
+
+@dataclass(eq=False)
+class ThesisEvaluationCommittee(StudentEvaluationCommittee):
+    """Evaluates PhD students"""
     ...
 
 
@@ -902,6 +895,12 @@ class AssociateProfessor(Professor):
 
 
 @dataclass(eq=False)
+class BasketBallFan(SportsFan):
+    is_crazy_about: Set[BasketBall] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
 class FullProfessorMixinProtocol(Professor):
     is_full_professor_of: Set[Department]
 
@@ -909,6 +908,12 @@ class FullProfessorMixinProtocol(Professor):
 @dataclass(eq=False)
 class FullProfessor(FullProfessorMixinProtocol):
     ...
+
+
+@dataclass(eq=False)
+class T20CricketFan(SportsFan):
+    is_crazy_about: Set[Cricket] = field(default_factory=set)
+
 
 
 @dataclass(eq=False)
