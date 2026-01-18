@@ -14,6 +14,10 @@ from krrood.entity_query_language.entity import contains, ConditionType, variabl
 from krrood.entity_query_language.entity_result_processors import count
 import krrood.entity_query_language.entity as eql
 from krrood.entity_query_language.predicate import HasAttribute, IsSubClassOf, IsSubClassOrRole
+from krrood.ontomatic.property_descriptor.property_descriptor import (
+    PropertyDescriptor,
+    HasProperty,
+)
 from krrood.class_diagrams.utils import Role, issubclass_or_role
 from .utils import AnonymousClass, get_super_axiom_and_candidate_var
 from .{{ properties_module_name }} import *
@@ -97,3 +101,5 @@ class {{ cls.name }}({% if cls.base_classes %}{{ ', '.join(cls.base_classes) }}{
 {% endif %}
 {% endfor %}
 {% endfor %}
+
+PropertyDescriptor.update_domains_that_are_axiomatized_on_properties()

@@ -3,9 +3,14 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Set, Type, List
 
-from krrood.entity_query_language.entity import variable
+from krrood.entity_query_language.entity import variable, and_
+from krrood.entity_query_language.enums import PredicateType
 from krrood.entity_query_language.symbolic import Variable
 from krrood.class_diagrams.utils import issubclass_or_role, Role
+from krrood.ontomatic.property_descriptor.property_descriptor import (
+    PropertyDescriptor,
+    HasProperty,
+)
 from krrood.utils import inheritance_path_length
 from rdflib import URIRef
 from typing_extensions import Type, Set, List, Iterable, Any

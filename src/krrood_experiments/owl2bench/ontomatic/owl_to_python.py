@@ -50,7 +50,10 @@ from krrood.ontomatic.property_descriptor.mixins import (
     RoleForMixin,
     HasChainAxioms,
 )
-from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
+from krrood.ontomatic.property_descriptor.property_descriptor import (
+    PropertyDescriptor,
+    HasProperty,
+)
 from rdflib.namespace import RDF, RDFS, OWL, XSD
 from ripple_down_rules import GeneralRDR
 from ripple_down_rules.rdr_decorators import fit_rdr_func
@@ -149,7 +152,10 @@ class PropertyAxiom(ABC):
         Generate EQL conditions for this axiom.
         :return: List of EQL condition strings.
         """
-        return [HasAttribute(self.candidate_var, self.property_name)]
+        pd_name = NamingRegistry.to_pascal_case(
+            NamingRegistry.to_snake_case(self.property_name)
+        )
+        return [HasProperty(self.candidate_var, pd_name)]
 
     def conditions_python(self) -> List[bool]:
         """
@@ -366,7 +372,7 @@ class PropertyAxiomInfo(AxiomInfo):
     for_class: str
     onto: OntologyInfo
 
-    @cached_property
+    @property
     def snake_property_name(self):
         return NamingRegistry.to_snake_case(self.property_name)
 
@@ -374,10 +380,11 @@ class PropertyAxiomInfo(AxiomInfo):
         return []
 
     def conditions_eql(self):
-        return [f"HasAttribute(candidate_var, '{self.snake_property_name}')"]
+        pd_name = NamingRegistry.to_pascal_case(self.snake_property_name)
+        return [f"{HasProperty.__name__}(candidate_var, {pd_name})"]
 
     def conditions_python(self):
-        return [f"hasattr(candidate, '{self.snake_property_name}')"]
+        return [self.conditions_eql()[0].replace("candidate_var", "candidate")]
 
 
 @dataclass
@@ -1660,6 +1667,9 @@ class InferenceEngine:
                         and rng_name in self.onto.original_properties[prop_name].ranges
                     ):
                         self.property_maps.dom_map[prop_name].remove(for_class)
+                        self.onto.property_restrictions.setdefault(
+                            for_class, {}
+                        ).setdefault(prop_name, set()).add(rng_name)
                         return False
                 if contesting_ranges and not any(
                     cr in self.onto.classes[rng_name].all_base_classes + [rng_name]
@@ -1686,6 +1696,7 @@ class InferenceEngine:
                         inverse_axiom = copy(axiom)
                         inverse_axiom.on_class = for_class
                         inverse_axiom.for_class = rng_name
+                        inverse_axiom.property_name = inverse
                         self.onto.classes[rng_name].axioms_setup.extend(
                             inverse_axiom.setup_statements()
                         )
@@ -1783,10 +1794,10 @@ class InferenceEngine:
                 base = self.onto.properties.get(prop_name)
                 if not base or base.type != PropertyType.OBJECT_PROPERTY:
                     continue
-                # if rng_names.issubset(
-                #     set(self.onto.original_properties[prop_name].ranges)
-                # ):
-                #     continue
+                if rng_names.issubset(
+                    set(self.onto.original_properties[prop_name].ranges)
+                ):
+                    continue
                 if cls_name in base.declared_domains:
                     base.declared_domains.remove(cls_name)
                 for rng_name in sorted(rng_names):

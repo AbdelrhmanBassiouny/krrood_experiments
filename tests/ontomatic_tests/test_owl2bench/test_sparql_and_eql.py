@@ -9,9 +9,13 @@ from krrood.entity_query_language.entity import (
     exists,
     entity,
     variable_from,
+    and_,
 )
 from krrood.entity_query_language.entity_result_processors import an
+from krrood.entity_query_language.enums import PredicateType
 from krrood.entity_query_language.predicate import HasAttribute, IsSubClassOrRole
+from krrood.entity_query_language.symbolic import Variable
+from krrood.ontomatic.property_descriptor.property_descriptor import HasProperty
 
 from krrood_experiments.owl2bench.ontomatic.helpers import (
     load_instances_for_owl2bench_with_predicates,
@@ -20,7 +24,12 @@ from krrood_experiments.owl2bench.ontomatic.owl2bench_eql_queries import (
     evaluate_eql_and_sparql_queries,
 )
 from krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates import *
-from krrood_experiments.owl2bench.ontomatic.utils import AnonymousClass
+from krrood_experiments.owl2bench.ontomatic.utils import (
+    AnonymousClass,
+)
+from krrood.ontomatic.property_descriptor.property_descriptor import (
+    is_class_axiomatized_on_property,
+)
 
 
 @pytest.fixture
@@ -62,7 +71,7 @@ def test_owl2bench_statements_unreasoned(unreasoned_owl2bench_file_path):
     evaluate_eql_and_sparql_queries()
 
 
-def test_eql_axiom_descriptor_participation_extraction():
+def test_eql_value_axiom():
     t20_fan = AnonymousClass(uri="T20Fan")
     t20_fan.is_crazy_about = {
         AnonymousClass(uri="http://benchmark/OWL2Bench#T20Cricket")
@@ -87,6 +96,11 @@ def test_eql_axiom_descriptor_participation_extraction():
     }
     assert not has_solution(not_t20_fan, T20CricketFan.axiom)
     assert not T20CricketFan.axiom_python(not_t20_fan)
+
+    loves_cricket = AnonymousClass(uri="LovesT20Cricket")
+    loves_cricket.loves = {AnonymousClass(uri="http://benchmark/OWL2Bench#T20Cricket")}
+    assert not has_solution(loves_cricket, T20CricketFan.axiom)
+    assert not T20CricketFan.axiom_python(loves_cricket)
 
 
 def test_quantified_axiom():
@@ -148,3 +162,17 @@ def test_quantified_axiom():
     assert list(existential._evaluate__())
     assert LeisureStudent.axiom_python(takes_1_course_and_1_not_course)
     assert has_solution(takes_1_course_and_1_not_course, LeisureStudent.axiom)
+
+
+def test_eql_axiom_descriptor_participation_detection():
+    assert is_class_axiomatized_on_property(T20CricketFan, IsCrazyAbout)
+
+
+def test_axiomatized_classes_are_domains_of_properties():
+    assert T20CricketFan in PropertyDescriptor.domain_range_map[IsCrazyAbout]
+    assert LeisureStudent in PropertyDescriptor.domain_range_map[TakesCourse]
+    assert PropertyDescriptor.domain_range_map[TakesCourse][LeisureStudent] is Course
+    assert PropertyDescriptor.domain_range_map[IsCrazyAbout][T20CricketFan] is Interest
+    assert T20CricketFan in PropertyDescriptor.all_domains[IsCrazyAbout]
+    assert LeisureStudent in PropertyDescriptor.all_domains[TakesCourse]
+    assert ScienceStudent not in PropertyDescriptor.all_domains[TakesCourse]

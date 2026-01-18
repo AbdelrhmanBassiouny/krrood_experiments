@@ -54,7 +54,7 @@ logger.setLevel(logging.DEBUG)
 
 # Handler
 handler = logging.StreamHandler()
-handler.setLevel(logging.ERROR)  # <-- this filters out DEBUG messages
+handler.setLevel(logging.INFO)  # <-- this filters out DEBUG messages
 logger.addHandler(handler)
 
 
@@ -289,6 +289,7 @@ class OwlLoader:
     )
 
     def __post_init__(self):
+        PropertyDescriptor.update_domains_that_are_axiomatized_on_properties()
         self.metadata = ModelMetadata(self.model_modules, self.symbol_graph)
 
     def _index_triples(self):
@@ -354,10 +355,6 @@ class OwlLoader:
         for instance in self.anonymous_instances.values():
             instance.final_sorted_types = get_most_specific_types(tuple(instance.types))
         for instance in self.anonymous_instances.values():
-            # if str(instance.uri) == "http://benchmark/OWL2Bench#T20Cricket":
-            #     import pdbpp
-            #
-            #     pdbpp.set_trace()
             descriptors = self.get_descriptors_of_instance(instance)
             if len(descriptors) == 0:
                 py_cls = self.metadata.get_python_class(
@@ -369,7 +366,6 @@ class OwlLoader:
                         for t in instance.final_sorted_types
                     ):
                         instance.final_sorted_types.append(py_cls)
-
             for desc in descriptors:
                 domains = desc.all_domains[desc]
                 if len(domains) == 1:
@@ -380,23 +376,20 @@ class OwlLoader:
                 domains = list(
                     reversed(
                         sort_classes_by_role_aware_inheritance_path_length(
-                            tuple(domains)
+                            tuple(domains), with_levels=True
                         )
                     )
                 )
-                if desc.__name__ == "IsCrazyAbout" and any(
-                    "T20Cricket" in str(t.uri)
-                    for t in getattr(instance, desc.get_field_name())
-                ):
-                    import pdbpp
-
-                    pdbpp.set_trace()
-                for dom in domains:
+                found_level = -1
+                for dom, level in domains:
+                    if level < found_level:
+                        break
                     if hasattr(dom, "axiom_python") and dom.axiom_python(instance):
                         self._update_inferred_types_given_descriptor_domain_and_range(
                             instance, desc, dom
                         )
-                        break
+                        found_level = level
+                        continue
                     try:
                         range_ = desc.get_descriptor_instance_for_domain_type(dom).range
                     except ValueError:
@@ -409,8 +402,9 @@ class OwlLoader:
                             if not any(
                                 issubclass_or_role(t, dom)
                                 for t in instance.final_sorted_types
-                            ):
+                            ) and not hasattr(dom, "axiom_python"):
                                 instance.final_sorted_types.append(dom)
+                                found_level = level
                             break
 
     @lru_cache
@@ -786,9 +780,9 @@ class OwlLoader:
 
         attr_val = getattr(target, attr_name, None)
         if isinstance(attr_val, set):
-            logger.info(
-                f"[OwlLoader] Assigning property {attr_name} to {target.uri} with object {value.uri}"
-            )
+            # logger.info(
+            #     f"[OwlLoader] Assigning property {attr_name} to {target.uri} with object {value.uri}"
+            # )
             attr_val.add(value)
         else:
             setattr(target, attr_name, value)

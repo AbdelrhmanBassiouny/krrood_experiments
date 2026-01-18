@@ -108,7 +108,7 @@ def get_eql_queries(
     so = variable_from(s.is_student_of)
     po = variable_from(so.is_part_of)
     cd = variable_from(po.has_college_discipline)
-    q21 = an(set_of(s, so).where(exists(eql.type(cd) == Engineering)))
+    q21 = an(set_of(s, so).where(exists(so, eql.type(cd) == Engineering)))
     q21 = QueryWithSelectables(q21, {"x": s, "y": so}, 21)
 
     s = variable(Student, domain=None)
