@@ -4,12 +4,12 @@ import time
 import pytest
 from krrood.entity_query_language.entity import (
     variable,
-    has_solution,
     to_str,
     exists,
     entity,
     variable_from,
     and_,
+    has_solution_for,
 )
 from krrood.entity_query_language.entity_result_processors import an
 from krrood.entity_query_language.enums import PredicateType
@@ -88,18 +88,18 @@ def test_eql_value_axiom():
         )
     )
     assert len(list(query.evaluate())) == 1
-    assert has_solution(t20_fan, T20CricketFan.axiom)
+    assert has_solution_for(t20_fan, T20CricketFan.axiom)
     assert T20CricketFan.axiom_python(t20_fan)
     not_t20_fan = AnonymousClass(uri="NotT20Fan")
     not_t20_fan.is_crazy_about = {
         AnonymousClass(uri="http://benchmark/OWL2Bench#NotT20Cricket")
     }
-    assert not has_solution(not_t20_fan, T20CricketFan.axiom)
+    assert not has_solution_for(not_t20_fan, T20CricketFan.axiom)
     assert not T20CricketFan.axiom_python(not_t20_fan)
 
     loves_cricket = AnonymousClass(uri="LovesT20Cricket")
     loves_cricket.loves = {AnonymousClass(uri="http://benchmark/OWL2Bench#T20Cricket")}
-    assert not has_solution(loves_cricket, T20CricketFan.axiom)
+    assert not has_solution_for(loves_cricket, T20CricketFan.axiom)
     assert not T20CricketFan.axiom_python(loves_cricket)
 
 
@@ -109,7 +109,7 @@ def test_quantified_axiom():
     takes_1_course.takes_course = {
         AnonymousClass(uri="http://benchmark/OWL2Bench#Course1", types={Course})
     }
-    assert has_solution(takes_1_course, LeisureStudent.axiom)
+    assert has_solution_for(takes_1_course, LeisureStudent.axiom)
     assert LeisureStudent.axiom_python(takes_1_course)
     takes_2_courses = AnonymousClass(uri="takes_2_courses")
     takes_2_courses.types = {Student}
@@ -117,7 +117,7 @@ def test_quantified_axiom():
         AnonymousClass(uri="http://benchmark/OWL2Bench#Course1", types={Course}),
         AnonymousClass(uri="http://benchmark/OWL2Bench#Course2", types={Course}),
     }
-    assert not has_solution(takes_2_courses, LeisureStudent.axiom)
+    assert not has_solution_for(takes_2_courses, LeisureStudent.axiom)
     assert not LeisureStudent.axiom_python(takes_2_courses)
     not_a_student = AnonymousClass(uri="not_a_student")
     not_a_student.types = {Person}
@@ -131,7 +131,7 @@ def test_quantified_axiom():
         IsSubClassOrRole(candidate_types, Student),
     )
     assert not list(existential._evaluate__())
-    assert not has_solution(not_a_student, LeisureStudent.axiom)
+    assert not has_solution_for(not_a_student, LeisureStudent.axiom)
     assert not LeisureStudent.axiom_python(not_a_student)
     not_a_course = AnonymousClass(uri="not_a_course")
     not_a_course.types = {Person}
@@ -145,7 +145,7 @@ def test_quantified_axiom():
     )
     assert not list(existential._evaluate__())
     assert LeisureStudent.axiom_python(takes_1_course_not_course)
-    assert has_solution(takes_1_course_not_course, LeisureStudent.axiom)
+    assert has_solution_for(takes_1_course_not_course, LeisureStudent.axiom)
     takes_1_course_and_1_not_course = AnonymousClass(
         uri="takes_1_course_and_1_not_course"
     )
@@ -161,7 +161,7 @@ def test_quantified_axiom():
     )
     assert list(existential._evaluate__())
     assert LeisureStudent.axiom_python(takes_1_course_and_1_not_course)
-    assert has_solution(takes_1_course_and_1_not_course, LeisureStudent.axiom)
+    assert has_solution_for(takes_1_course_and_1_not_course, LeisureStudent.axiom)
 
 
 def test_eql_axiom_descriptor_participation_detection():

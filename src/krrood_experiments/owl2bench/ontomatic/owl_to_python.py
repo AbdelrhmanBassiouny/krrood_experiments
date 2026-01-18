@@ -120,7 +120,7 @@ class SubClassAxiomInfo(AxiomInfo):
 
     def conditions_eql(self):
         return [
-            f"exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.types), {self.sub_class}))"
+            f"exists(IsSubClassOrRole(variable_from(candidate_var.types), {self.sub_class}))"
         ]
 
     def conditions_python(self):
@@ -200,9 +200,7 @@ class QualifiedAxiomMixin(ABC):
     on_class: Type
 
     def qualification_eql(self, prop_var):
-        return exists(
-            prop_var, IsSubClassOrRole(variable_from(prop_var.types), self.on_class)
-        )
+        return exists(IsSubClassOrRole(variable_from(prop_var.types), self.on_class))
 
 
 @dataclass
@@ -289,7 +287,7 @@ class HasValueAxiom(PropertyAxiom):
         if is_iterable(attr):
             base_conditions.append(contains(self.prop_var, self.value))
         else:
-            base_conditions.append(exists(self.prop_var, self.prop_var == self.value))
+            base_conditions.append(exists(self.prop_var == self.value))
         return base_conditions
 
     def conditions_python(self):
@@ -344,7 +342,6 @@ class AllValuesFromAxiomInfo(PropertyAxiom, QualifiedAxiomMixin):
             for_all(
                 prop_value,
                 exists(
-                    prop_value,
                     IsSubClassOrRole(variable_from(prop_value.types), self.on_class),
                 ),
             )
@@ -422,7 +419,7 @@ class QualifiedAxiomInfoMixin:
     def qualification_eql(self, snake_property_name, existential: bool = True):
         subclass_cond = f"IsSubClassOrRole(variable_from(candidate_var.{snake_property_name}.types), {self.on_class})"
         if existential:
-            return f"exists(candidate_var, {subclass_cond})"
+            return f"exists({subclass_cond})"
         else:
             return subclass_cond
 
@@ -531,7 +528,7 @@ class HasValueAxiomInfo(PropertyAxiomInfo):
         ):
             base_conditions.append(f"contains({prop}, {self.value_str})")
         else:
-            base_conditions.append(f"exists(candidate_var, {prop} == {self.value_str})")
+            base_conditions.append(f"exists({prop} == {self.value_str})")
         return base_conditions
 
     def conditions_python(self):
@@ -591,7 +588,7 @@ class AllValuesFromAxiomInfo(PropertyAxiomInfo, QualifiedAxiomInfoMixin):
     def conditions_eql(self):
         base_conditions = super().conditions_eql()
         base_conditions.append(
-            f"for_all(candidate_{self.snake_property_name}, exists(candidate_var, IsSubClassOrRole(variable_from(candidate_{self.snake_property_name}.types), {self.on_class})))"
+            f"for_all(candidate_{self.snake_property_name}, exists(IsSubClassOrRole(variable_from(candidate_{self.snake_property_name}.types), {self.on_class})))"
         )
         return base_conditions
 

@@ -20,7 +20,6 @@ from krrood.class_diagrams.utils import (
     role_aware_nearest_common_ancestor,
     sort_classes_by_role_aware_inheritance_path_length,
 )
-from krrood.entity_query_language.entity import has_solution
 from krrood.entity_query_language.predicate import Symbol
 from krrood.entity_query_language.symbol_graph import SymbolGraph
 from krrood.ontomatic.property_descriptor.attribute_introspector import (

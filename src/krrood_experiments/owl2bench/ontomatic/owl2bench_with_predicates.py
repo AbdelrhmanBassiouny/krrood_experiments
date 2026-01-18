@@ -61,7 +61,7 @@ class Organization(OWL2BenchThing):
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(Organization, cls, candidate)
         
         return (HasProperty(candidate_var, HasEmployee),
-				exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.has_employee.types), Employee))
+				exists(IsSubClassOrRole(variable_from(candidate_var.has_employee.types), Employee))
         )
 
     @classmethod
@@ -107,7 +107,7 @@ class Program(OWL2BenchThing):
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(Program, cls, candidate)
         
         return (HasProperty(candidate_var, HasHead),
-				exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.has_head.types), Director))
+				exists(IsSubClassOrRole(variable_from(candidate_var.has_head.types), Director))
         )
 
     @classmethod
@@ -155,7 +155,7 @@ class College(Organization):
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(College, cls, candidate)
         
         return (HasProperty(candidate_var, HasHead),
-				exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.has_head.types), Dean))
+				exists(IsSubClassOrRole(variable_from(candidate_var.has_head.types), Dean))
         )
 
     @classmethod
@@ -176,7 +176,7 @@ class Course(Work):
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(Course, cls, candidate)
         
         return (HasProperty(candidate_var, IsTaughtBy),
-				exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.is_taught_by.types), Faculty))
+				exists(IsSubClassOrRole(variable_from(candidate_var.is_taught_by.types), Faculty))
         )
 
     @classmethod
@@ -214,7 +214,7 @@ class Department(Organization):
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(Department, cls, candidate)
         
         return (HasProperty(candidate_var, HasHead),
-				exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.has_head.types), Chair))
+				exists(IsSubClassOrRole(variable_from(candidate_var.has_head.types), Chair))
         )
 
     @classmethod
@@ -245,7 +245,7 @@ class Employee(Role[Person], Symbol):
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(Employee, cls, candidate)
         
         return (HasProperty(candidate_var, WorksFor),
-				exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.works_for.types), Organization))
+				exists(IsSubClassOrRole(variable_from(candidate_var.works_for.types), Organization))
         )
 
     @classmethod
@@ -344,9 +344,9 @@ class PeopleWithHobby(Role[Person], Symbol):
     def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(PeopleWithHobby, cls, candidate)
         
-        return (exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.types), Person)),
+        return (exists(IsSubClassOrRole(variable_from(candidate_var.types), Person)),
 				HasProperty(candidate_var, Likes),
-				exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.likes.types), Interest))
+				exists(IsSubClassOrRole(variable_from(candidate_var.likes.types), Interest))
         )
 
     @classmethod
@@ -418,7 +418,7 @@ class Student(Role[Person], Symbol):
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(Student, cls, candidate)
         
         return (HasProperty(candidate_var, EnrollIn),
-				exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.enroll_in.types), Department))
+				exists(IsSubClassOrRole(variable_from(candidate_var.enroll_in.types), Department))
         )
 
     @classmethod
@@ -585,7 +585,7 @@ class Faculty(Employee):
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(Faculty, cls, candidate)
         
         return (HasProperty(candidate_var, TeachesCourse),
-				exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.teaches_course.types), Course))
+				exists(IsSubClassOrRole(variable_from(candidate_var.teaches_course.types), Course))
         )
 
     @classmethod
@@ -653,7 +653,7 @@ class LeisureStudent(Role[Student], Symbol):
     def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(LeisureStudent, cls, candidate)
         
-        return (exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.types), Student)),
+        return (exists(IsSubClassOrRole(variable_from(candidate_var.types), Student)),
 				HasProperty(candidate_var, TakesCourse),
 				count(IsSubClassOrRole(variable_from(candidate_var.takes_course.types), Course)) <= 1
         )
@@ -738,7 +738,7 @@ class PGStudent(Student):
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(PGStudent, cls, candidate)
         
         return (HasProperty(candidate_var, EnrollFor),
-				exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.enroll_for.types), PGProgram))
+				exists(IsSubClassOrRole(variable_from(candidate_var.enroll_for.types), PGProgram))
         )
 
     @classmethod
@@ -766,7 +766,7 @@ class PhDStudent(Student):
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(PhDStudent, cls, candidate)
         
         return (HasProperty(candidate_var, EnrollFor),
-				exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.enroll_for.types), PhDProgram))
+				exists(IsSubClassOrRole(variable_from(candidate_var.enroll_for.types), PhDProgram))
         )
 
     @classmethod
@@ -830,7 +830,7 @@ class ScienceStudent(Student):
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(ScienceStudent, cls, candidate)
         
         return (HasProperty(candidate_var, HasMajor),
-				exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.has_major.types), Science))
+				exists(IsSubClassOrRole(variable_from(candidate_var.has_major.types), Science))
         )
 
     @classmethod
@@ -848,7 +848,7 @@ class SportsLover(PeopleWithHobby):
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(SportsLover, cls, candidate)
         
         return (HasProperty(candidate_var, Loves),
-				exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.loves.types), Sports))
+				exists(IsSubClassOrRole(variable_from(candidate_var.loves.types), Sports))
         )
 
     @classmethod
@@ -898,7 +898,7 @@ class TeachingAssistant(Role[Student], Symbol):
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(TeachingAssistant, cls, candidate)
         
         return (HasProperty(candidate_var, IsTeachingAssistantOf),
-				exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.is_teaching_assistant_of.types), Course))
+				exists(IsSubClassOrRole(variable_from(candidate_var.is_teaching_assistant_of.types), Course))
         )
 
     @classmethod
@@ -937,7 +937,7 @@ class UGStudent(Student):
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(UGStudent, cls, candidate)
         
         return (HasProperty(candidate_var, EnrollFor),
-				exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.enroll_for.types), UGProgram))
+				exists(IsSubClassOrRole(variable_from(candidate_var.enroll_for.types), UGProgram))
         )
 
     @classmethod
@@ -953,9 +953,9 @@ class WomanCollege(College):
     def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(WomanCollege, cls, candidate)
         candidate_has_student = variable_from(candidate_var.has_student)
-        return (exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.types), College)),
+        return (exists(IsSubClassOrRole(variable_from(candidate_var.types), College)),
 				HasProperty(candidate_var, HasStudent),
-				for_all(candidate_has_student, exists(candidate_var, IsSubClassOrRole(variable_from(candidate_has_student.types), Woman)))
+				for_all(candidate_has_student, exists(IsSubClassOrRole(variable_from(candidate_has_student.types), Woman)))
         )
 
     @classmethod
@@ -973,7 +973,7 @@ class BasketBallLover(SportsLover):
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(BasketBallLover, cls, candidate)
         
         return (HasProperty(candidate_var, Loves),
-				exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.loves.types), BasketBall))
+				exists(IsSubClassOrRole(variable_from(candidate_var.loves.types), BasketBall))
         )
 
     @classmethod
@@ -1027,7 +1027,7 @@ class SportsFan(SportsLover):
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(SportsFan, cls, candidate)
         
         return (HasProperty(candidate_var, IsCrazyAbout),
-				exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.is_crazy_about.types), Sports))
+				exists(IsSubClassOrRole(variable_from(candidate_var.is_crazy_about.types), Sports))
         )
 
     @classmethod
@@ -1068,7 +1068,7 @@ class BasketBallFan(SportsFan):
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(BasketBallFan, cls, candidate)
         
         return (HasProperty(candidate_var, IsCrazyAbout),
-				exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.is_crazy_about.types), BasketBall))
+				exists(IsSubClassOrRole(variable_from(candidate_var.is_crazy_about.types), BasketBall))
         )
 
     @classmethod
@@ -1092,7 +1092,7 @@ class T20CricketFan(SportsFan):
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(T20CricketFan, cls, candidate)
         
         return (HasProperty(candidate_var, IsCrazyAbout),
-				exists(candidate_var, to_str(candidate_var.is_crazy_about.uri) == 'http://benchmark/OWL2Bench#T20Cricket')
+				exists(to_str(candidate_var.is_crazy_about.uri) == 'http://benchmark/OWL2Bench#T20Cricket')
         )
 
     @classmethod
@@ -1130,7 +1130,7 @@ class Chair(Role[FullProfessor], Symbol):
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(Chair, cls, candidate)
         
         return (HasProperty(candidate_var, IsHeadOf),
-				exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.is_head_of.types), Department))
+				exists(IsSubClassOrRole(variable_from(candidate_var.is_head_of.types), Department))
         )
 
     @classmethod
@@ -1155,7 +1155,7 @@ class Dean(Role[FullProfessor], Symbol):
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(Dean, cls, candidate)
         
         return (HasProperty(candidate_var, IsHeadOf),
-				exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.is_head_of.types), College))
+				exists(IsSubClassOrRole(variable_from(candidate_var.is_head_of.types), College))
         )
 
     @classmethod
@@ -1180,7 +1180,7 @@ class Director(Role[FullProfessor], Symbol):
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(Director, cls, candidate)
         
         return (HasProperty(candidate_var, IsHeadOf),
-				exists(candidate_var, IsSubClassOrRole(variable_from(candidate_var.is_head_of.types), Program))
+				exists(IsSubClassOrRole(variable_from(candidate_var.is_head_of.types), Program))
         )
 
     @classmethod
