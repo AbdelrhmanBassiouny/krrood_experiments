@@ -54,6 +54,8 @@ for instance in pbar:
 #     session.add(dao)
 # dao: WorldDAO = to_dao(loader.world)
 # session.add(dao)
+
+print("Committing initial data...")
 session.commit()
 session.expunge_all()
 print("Done commiting.")

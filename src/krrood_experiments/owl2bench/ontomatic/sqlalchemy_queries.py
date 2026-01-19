@@ -8,6 +8,10 @@ from krrood_experiments.owl2bench.ontomatic.orm.ormatic_interface import *
 from krrood_experiments.owl2bench import sparql_queries
 from sqlalchemy import func
 
+from krrood_experiments.owl2bench.ood.orm.ormatic_interface import (
+    persondao_knows_association,
+)
+
 
 @dataclass
 class SQLAlchemyQuery:
@@ -114,22 +118,22 @@ all_queries = [
     q2,
     q3,
     q4,
-    # q5,
+    q5,
     # q6,
-    # q7,
-    # q8,
+    q7,
+    q8,
     # q9,
-    # q10,
-    # q11,
-    # q12,
+    q10,
+    q11,
+    q12,
     # q13,
-    # # q14,
-    # q15,
-    # q16,
+    # q14,
+    q15,
+    q16,
     # q17,
-    # # q18,
-    # q19,
-    # q20,
-    # q21,
-    # q22,
+    # q18,
+    q19,
+    q20,
+    q21,
+    q22,
 ]
