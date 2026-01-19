@@ -26,10 +26,8 @@ from krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates import (
 from krrood_experiments.owl2bench.sparql_queries import OWLProfile
 from krrood_experiments.owl2bench.ontomatic.sqlalchemy_queries import all_queries
 
-# engine = create_engine(os.environ["KRROOD_EXPERIMENTS_DATABASE_URI"])
-engine = create_engine(
-    "postgresql+psycopg2://krrood_experiments:krrood_experiments@localhost:5432/krrood_experiments"
-)
+engine = create_engine(os.environ["KRROOD_EXPERIMENTS_DATABASE_URI"])
+
 drop_database(engine)
 Base.metadata.create_all(engine)
 session = sessionmaker(engine)()

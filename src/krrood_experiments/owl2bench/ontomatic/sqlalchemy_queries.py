@@ -103,14 +103,33 @@ sqlalchemy_q21 = (
 q21 = SQLAlchemyQuery(sparql_queries.q21, sqlalchemy_q21)
 
 
-sqlalchemy_q22 = (
-    select(StudentDAO, CourseDAO)
-    .join(CourseDAO, StudentDAO.takes_course)
-    .join(PersonDAO, OrganizationDAO.has_dean)
-    .join(PersonDAO, FacultyDAO.person)
-    .join(CourseDAO, FacultyDAO.teaches_course)
-)
+student = aliased(StudentDAO)
+course = aliased(CourseDAO)
+faculty = aliased(FacultyDAO)
+person = aliased(PersonDAO)
+organization = aliased(OrganizationDAO)
 
+sqlalchemy_q22 = (
+    select(student, course)
+    .distinct()
+    .select_from(student)
+    .join(course, student.takes_course)
+    .join(faculty, course.is_taught_by)
+    .join(person, faculty.person)
+    .join(
+        organizationdao_has_dean_association,
+        person.database_id
+        == organizationdao_has_dean_association.c.target_persondao_id,
+    )
+    .join(
+        organization,
+        organization.database_id
+        == organizationdao_has_dean_association.c.source_organizationdao_id,
+    )
+    .where(
+        student.polymorphic_type.in_(["PGStudentDAO", "PhDStudentDAO", "UGStudentDAO"])
+    )
+)
 q22 = SQLAlchemyQuery(sparql_queries.q22, sqlalchemy_q22)
 
 all_queries = [
