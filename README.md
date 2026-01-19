@@ -44,7 +44,7 @@ Everything has been tested on Ubuntu 24.04.3 with python3.12.3, GraphDB 11.1.2 a
    ```bash
     git clone https://github.com/AbdelrhmanBassiouny/cognitive_robot_abstract_machine.git
     cd cognitive_robot_abstract_machine
-    git checkout persistent_entity
+    git checkout dl
     cd krrood
     pip install .
      ```

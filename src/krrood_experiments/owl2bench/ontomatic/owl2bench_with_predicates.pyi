@@ -13,17 +13,17 @@ from .owl2bench_with_predicates_base import *
 @dataclass(eq=False)
 class OWL2BenchThing(Symbol):
     """Base class for OWL2Bench"""
-    has_code: Optional[Any] = field(kw_only=True, default=None)
-    has_id: Optional[Any] = field(kw_only=True, default=None)
-    has_name: Optional[Any] = field(kw_only=True, default=None)
-    has_office_number: Optional[Any] = field(kw_only=True, default=None)
-    has_publication_date: Optional[Any] = field(kw_only=True, default=None)
-    has_research_interest: Optional[Any] = field(kw_only=True, default=None)
+    has_code: Optional[str] = field(kw_only=True, default=None)
+    has_id: Optional[str] = field(kw_only=True, default=None)
+    has_name: Optional[str] = field(kw_only=True, default=None)
+    has_office_number: Optional[str] = field(kw_only=True, default=None)
+    has_publication_date: Optional[str] = field(kw_only=True, default=None)
+    has_research_interest: Optional[str] = field(kw_only=True, default=None)
     has_same_home_town_with: Set[OWL2BenchThing] = field(default_factory=set)
     is_affiliate_of: Set[OWL2BenchThing] = field(default_factory=set)
     knows: Set[OWL2BenchThing] = field(default_factory=set)
     # URI of the ontology element - The unique resource identifier (URI) of the ontology element.
-    uri: Optional[Any] = field(kw_only=True, default=None)
+    uri: Optional[str] = field(kw_only=True, default=None)
 
 
 
@@ -34,39 +34,36 @@ class CollegeDiscipline(OWL2BenchThing):
 
 
 @dataclass(eq=False)
-class EvaluationCommittee(OWL2BenchThing):
-    evaluates: Set[Person] = field(default_factory=set)
-    has_committee_members: Set[Person] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
 class Interest(OWL2BenchThing):
     ...
 
 
 
 @dataclass(eq=False)
-class Organization(OWL2BenchThing):
-    has_dean: Set[Person] = field(default_factory=set)
-    has_employee_evaluation_committee: Set[EmployeeEvaluationCommittee] = field(default_factory=set)
-    has_employee: Set[Employee] = field(default_factory=set)
-    has_evaluation_committee: Set[EvaluationCommittee] = field(default_factory=set)
-    has_faculty: Set[Faculty] = field(default_factory=set)
-    has_head: Set[Person] = field(default_factory=set)
-    has_member: Set[Person] = field(default_factory=set)
-    has_part: Set[Organization] = field(default_factory=set)
-    has_student: Set[Student] = field(default_factory=set)
-    has_student_evaluation_committee: Set[StudentEvaluationCommittee] = field(default_factory=set)
-    has_sub_organization: Set[Organization] = field(default_factory=set)
-    has_thesis_evaluation_committee: Set[ThesisEvaluationCommittee] = field(default_factory=set)
-    has_women_college: Set[Organization] = field(default_factory=set)
-    is_affiliated_organization_of: Set[Organization] = field(default_factory=set)
-    is_part_of: Set[Organization] = field(default_factory=set)
-    is_sub_organization_of: Set[Organization] = field(default_factory=set)
-    is_women_college_of: Set[Organization] = field(default_factory=set)
-    org_publication: Set[Publication] = field(default_factory=set)
+class OrganizationMixinProtocol(OWL2BenchThing):
+    has_dean: Set[Person]
+    has_employee_evaluation_committee: Set[EmployeeEvaluationCommittee]
+    has_employee: Set[Employee]
+    has_evaluation_committee: Set[EvaluationCommittee]
+    has_faculty: Set[Faculty]
+    has_head: Set[Person]
+    has_member: Set[Person]
+    has_part: Set[Organization]
+    has_student: Set[Student]
+    has_student_evaluation_committee: Set[StudentEvaluationCommittee]
+    has_sub_organization: Set[Organization]
+    has_thesis_evaluation_committee: Set[ThesisEvaluationCommittee]
+    has_women_college: Set[Organization]
+    is_affiliated_organization_of: Set[Organization]
+    is_part_of: Set[Organization]
+    is_sub_organization_of: Set[Organization]
+    is_women_college_of: Set[Organization]
+    org_publication: Set[Publication]
 
+
+@dataclass(eq=False)
+class Organization(OrganizationMixinProtocol):
+    ...
 
 
 @dataclass(eq=False)
@@ -74,23 +71,24 @@ class PersonMixinProtocol(OWL2BenchThing):
     dislikes: Set[Interest]
     evaluated_by: Set[EvaluationCommittee]
     has_advisor: Set[Professor]
-    has_age: Optional[Any]
+    has_age: Optional[str]
     has_collaboration_with: Set[Person]
     has_degree_from: Set[University]
     has_doctoral_degree_from: Set[University]
-    has_email_address: Optional[Any]
-    has_first_name: Optional[Any]
-    has_last_name: Optional[Any]
+    has_email_address: Optional[str]
+    has_first_name: Optional[str]
+    has_last_name: Optional[str]
     has_major: Set[OWL2BenchThing]
     has_master_degree_from: Set[University]
-    has_telephone: Optional[Any]
-    has_title: Optional[Any]
+    has_telephone: Optional[str]
+    has_title: Optional[str]
     has_undergraduate_degree_from: Set[University]
     is_advised_by: Set[Professor]
     is_crazy_about: Set[Interest]
     is_dean_of: Set[Organization]
     is_head_of: Set[Organization]
     is_member_of: Set[Organization]
+    likes: Set[Interest]
     loves: Set[Interest]
 
 
@@ -188,15 +186,16 @@ class Employee(PersonMixinProtocol, Symbol):
 
 
 @dataclass(eq=False)
-class EmployeeEvaluationCommittee(EvaluationCommittee):
+class Engineering(CollegeDiscipline):
+    """Engineering"""
     ...
 
 
 
 @dataclass(eq=False)
-class Engineering(CollegeDiscipline):
-    """Engineering"""
-    ...
+class EvaluationCommittee(OrganizationMixinProtocol, Symbol):
+    evaluates: Set[Person] = field(default_factory=set)
+    has_committee_members: Set[Person] = field(default_factory=set)
 
 
 
@@ -269,7 +268,6 @@ class Painting(Interest):
 
 @dataclass(eq=False)
 class PeopleWithHobby(PersonMixinProtocol, Symbol):
-    likes: Set[Interest] = field(default_factory=set)
 
 
 
@@ -335,12 +333,6 @@ class StudentMixinProtocol(PersonMixinProtocol, Symbol):
 @dataclass(eq=False)
 class Student(StudentMixinProtocol):
     ...
-
-
-@dataclass(eq=False)
-class StudentEvaluationCommittee(EvaluationCommittee):
-    ...
-
 
 
 @dataclass(eq=False)
@@ -508,6 +500,12 @@ class ElectricalEngineering(Engineering):
 
 
 @dataclass(eq=False)
+class EmployeeEvaluationCommittee(EvaluationCommittee):
+    ...
+
+
+
+@dataclass(eq=False)
 class English(HumanitiesAndSocial):
     ...
 
@@ -579,8 +577,7 @@ class LatinArts(FineArts):
 
 
 @dataclass(eq=False)
-class LeisureStudent(Student):
-    ...
+class LeisureStudent(StudentMixinProtocol, Symbol):
 
 
 
@@ -747,12 +744,6 @@ class ScienceStudent(Student):
 
 
 @dataclass(eq=False)
-class SportsFan(PeopleWithHobby):
-    is_crazy_about: Set[Sports] = field(default_factory=set)
-
-
-
-@dataclass(eq=False)
 class SportsLover(PeopleWithHobby):
     loves: Set[Sports] = field(default_factory=set)
 
@@ -760,6 +751,12 @@ class SportsLover(PeopleWithHobby):
 
 @dataclass(eq=False)
 class Statistics(Science):
+    ...
+
+
+
+@dataclass(eq=False)
+class StudentEvaluationCommittee(EvaluationCommittee):
     ...
 
 
@@ -807,13 +804,6 @@ class TheatreAndDance(FineArts):
 
 
 @dataclass(eq=False)
-class ThesisEvaluationCommittee(StudentEvaluationCommittee):
-    """Evaluates PhD students"""
-    ...
-
-
-
-@dataclass(eq=False)
 class UGCourse(Course):
     """Mandatory courses for all UG students"""
     ...
@@ -829,12 +819,6 @@ class UGStudent(Student):
 @dataclass(eq=False)
 class WomanCollege(College):
     ...
-
-
-
-@dataclass(eq=False)
-class BasketBallFan(SportsFan):
-    is_crazy_about: Set[BasketBall] = field(default_factory=set)
 
 
 
@@ -871,12 +855,18 @@ class PostDoc(Faculty):
 @dataclass(eq=False)
 class ProfessorMixinProtocol(Faculty):
     is_professor_of: Set[Department]
-    tenured: Optional[bool]
+    tenured: Set[OWL2BenchThing]
 
 
 @dataclass(eq=False)
 class Professor(ProfessorMixinProtocol):
     ...
+
+
+@dataclass(eq=False)
+class SportsFan(SportsLover):
+    is_crazy_about: Set[Sports] = field(default_factory=set)
+
 
 
 @dataclass(eq=False)
@@ -886,8 +876,9 @@ class SystemStaff(SupportingStaff):
 
 
 @dataclass(eq=False)
-class T20CricketFan(SportsFan):
-    is_crazy_about: Set[Cricket] = field(default_factory=set)
+class ThesisEvaluationCommittee(StudentEvaluationCommittee):
+    """Evaluates PhD students"""
+    ...
 
 
 
@@ -904,6 +895,12 @@ class AssociateProfessor(Professor):
 
 
 @dataclass(eq=False)
+class BasketBallFan(SportsFan):
+    is_crazy_about: Set[BasketBall] = field(default_factory=set)
+
+
+
+@dataclass(eq=False)
 class FullProfessorMixinProtocol(Professor):
     is_full_professor_of: Set[Department]
 
@@ -911,6 +908,12 @@ class FullProfessorMixinProtocol(Professor):
 @dataclass(eq=False)
 class FullProfessor(FullProfessorMixinProtocol):
     ...
+
+
+@dataclass(eq=False)
+class T20CricketFan(SportsFan):
+    is_crazy_about: Set[Cricket] = field(default_factory=set)
+
 
 
 @dataclass(eq=False)
