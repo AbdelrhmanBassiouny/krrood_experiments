@@ -592,7 +592,7 @@ sportsloverdao_loves_association = Table(
     "sportsloverdao_loves_association",
     Base.metadata,
     Column("source_sportsloverdao_id", ForeignKey("SportsLoverDAO.database_id")),
-    Column("target_sportsdao_id", ForeignKey("SportsDAO.database_id")),
+    Column("target_interestdao_id", ForeignKey("InterestDAO.database_id")),
 )
 sportsfandao_is_crazy_about_association = Table(
     "sportsfandao_is_crazy_about_association",
@@ -697,7 +697,7 @@ class ChairDAO(
         foreign_keys=[full_professor_id],
         post_update=True,
     )
-    is_head_of: Mapped[typing.List[DepartmentDAO]] = relationship(
+    is_head_of: Mapped[builtins.set[DepartmentDAO]] = relationship(
         "DepartmentDAO",
         secondary="chairdao_is_head_of_association",
         primaryjoin="ChairDAO.database_id == chairdao_is_head_of_association.c.source_chairdao_id",
@@ -731,7 +731,7 @@ class DeanDAO(
         foreign_keys=[full_professor_id],
         post_update=True,
     )
-    is_head_of: Mapped[typing.List[CollegeDAO]] = relationship(
+    is_head_of: Mapped[builtins.set[CollegeDAO]] = relationship(
         "CollegeDAO",
         secondary="deandao_is_head_of_association",
         primaryjoin="DeanDAO.database_id == deandao_is_head_of_association.c.source_deandao_id",
@@ -765,7 +765,7 @@ class DirectorDAO(
         foreign_keys=[full_professor_id],
         post_update=True,
     )
-    is_head_of: Mapped[typing.List[ProgramDAO]] = relationship(
+    is_head_of: Mapped[builtins.set[ProgramDAO]] = relationship(
         "ProgramDAO",
         secondary="directordao_is_head_of_association",
         primaryjoin="DirectorDAO.database_id == directordao_is_head_of_association.c.source_directordao_id",
@@ -800,49 +800,49 @@ class EmployeeDAO(
     person: Mapped[PersonDAO] = relationship(
         "PersonDAO", uselist=False, foreign_keys=[person_id], post_update=True
     )
-    has_work: Mapped[typing.List[WorkDAO]] = relationship(
+    has_work: Mapped[builtins.set[WorkDAO]] = relationship(
         "WorkDAO",
         secondary="employeedao_has_work_association",
         primaryjoin="EmployeeDAO.database_id == employeedao_has_work_association.c.source_employeedao_id",
         secondaryjoin="WorkDAO.database_id == employeedao_has_work_association.c.target_workdao_id",
         cascade="save-update, merge",
     )
-    is_clerical_staff_of: Mapped[typing.List[OrganizationDAO]] = relationship(
+    is_clerical_staff_of: Mapped[builtins.set[OrganizationDAO]] = relationship(
         "OrganizationDAO",
         secondary="employeedao_is_clerical_staff_of_association",
         primaryjoin="EmployeeDAO.database_id == employeedao_is_clerical_staff_of_association.c.source_employeedao_id",
         secondaryjoin="OrganizationDAO.database_id == employeedao_is_clerical_staff_of_association.c.target_organizationdao_id",
         cascade="save-update, merge",
     )
-    is_head_of: Mapped[typing.List[OrganizationDAO]] = relationship(
+    is_head_of: Mapped[builtins.set[OrganizationDAO]] = relationship(
         "OrganizationDAO",
         secondary="employeedao_is_head_of_association",
         primaryjoin="EmployeeDAO.database_id == employeedao_is_head_of_association.c.source_employeedao_id",
         secondaryjoin="OrganizationDAO.database_id == employeedao_is_head_of_association.c.target_organizationdao_id",
         cascade="save-update, merge",
     )
-    is_other_staff_of: Mapped[typing.List[OrganizationDAO]] = relationship(
+    is_other_staff_of: Mapped[builtins.set[OrganizationDAO]] = relationship(
         "OrganizationDAO",
         secondary="employeedao_is_other_staff_of_association",
         primaryjoin="EmployeeDAO.database_id == employeedao_is_other_staff_of_association.c.source_employeedao_id",
         secondaryjoin="OrganizationDAO.database_id == employeedao_is_other_staff_of_association.c.target_organizationdao_id",
         cascade="save-update, merge",
     )
-    is_supporting_staff_of: Mapped[typing.List[OrganizationDAO]] = relationship(
+    is_supporting_staff_of: Mapped[builtins.set[OrganizationDAO]] = relationship(
         "OrganizationDAO",
         secondary="employeedao_is_supporting_staff_of_association",
         primaryjoin="EmployeeDAO.database_id == employeedao_is_supporting_staff_of_association.c.source_employeedao_id",
         secondaryjoin="OrganizationDAO.database_id == employeedao_is_supporting_staff_of_association.c.target_organizationdao_id",
         cascade="save-update, merge",
     )
-    is_system_staff_of: Mapped[typing.List[OrganizationDAO]] = relationship(
+    is_system_staff_of: Mapped[builtins.set[OrganizationDAO]] = relationship(
         "OrganizationDAO",
         secondary="employeedao_is_system_staff_of_association",
         primaryjoin="EmployeeDAO.database_id == employeedao_is_system_staff_of_association.c.source_employeedao_id",
         secondaryjoin="OrganizationDAO.database_id == employeedao_is_system_staff_of_association.c.target_organizationdao_id",
         cascade="save-update, merge",
     )
-    works_for: Mapped[typing.List[OrganizationDAO]] = relationship(
+    works_for: Mapped[builtins.set[OrganizationDAO]] = relationship(
         "OrganizationDAO",
         secondary="employeedao_works_for_association",
         primaryjoin="EmployeeDAO.database_id == employeedao_works_for_association.c.source_employeedao_id",
@@ -885,14 +885,14 @@ class EvaluationCommitteeDAO(
         foreign_keys=[organization_id],
         post_update=True,
     )
-    evaluates: Mapped[typing.List[PersonDAO]] = relationship(
+    evaluates: Mapped[builtins.set[PersonDAO]] = relationship(
         "PersonDAO",
         secondary="evaluationcommitteedao_evaluates_association",
         primaryjoin="EvaluationCommitteeDAO.database_id == evaluationcommitteedao_evaluates_association.c.source_evaluationcommitteedao_id",
         secondaryjoin="PersonDAO.database_id == evaluationcommitteedao_evaluates_association.c.target_persondao_id",
         cascade="save-update, merge",
     )
-    has_committee_members: Mapped[typing.List[PersonDAO]] = relationship(
+    has_committee_members: Mapped[builtins.set[PersonDAO]] = relationship(
         "PersonDAO",
         secondary="evaluationcommitteedao_has_committee_members_association",
         primaryjoin="EvaluationCommitteeDAO.database_id == evaluationcommitteedao_has_committee_members_association.c.source_evaluationcommitteedao_id",
@@ -940,14 +940,14 @@ class FacultyDAO(
         ForeignKey(EmployeeDAO.database_id), primary_key=True, use_existing_column=True
     )
 
-    is_faculty_of: Mapped[typing.List[OrganizationDAO]] = relationship(
+    is_faculty_of: Mapped[builtins.set[OrganizationDAO]] = relationship(
         "OrganizationDAO",
         secondary="facultydao_is_faculty_of_association",
         primaryjoin="FacultyDAO.database_id == facultydao_is_faculty_of_association.c.source_facultydao_id",
         secondaryjoin="OrganizationDAO.database_id == facultydao_is_faculty_of_association.c.target_organizationdao_id",
         cascade="save-update, merge",
     )
-    teaches_course: Mapped[typing.List[CourseDAO]] = relationship(
+    teaches_course: Mapped[builtins.set[CourseDAO]] = relationship(
         "CourseDAO",
         secondary="facultydao_teaches_course_association",
         primaryjoin="FacultyDAO.database_id == facultydao_teaches_course_association.c.source_facultydao_id",
@@ -983,7 +983,7 @@ class LecturerDAO(
     faculty: Mapped[FacultyDAO] = relationship(
         "FacultyDAO", uselist=False, foreign_keys=[faculty_id], post_update=True
     )
-    is_lecturer_of: Mapped[typing.List[DepartmentDAO]] = relationship(
+    is_lecturer_of: Mapped[builtins.set[DepartmentDAO]] = relationship(
         "DepartmentDAO",
         secondary="lecturerdao_is_lecturer_of_association",
         primaryjoin="LecturerDAO.database_id == lecturerdao_is_lecturer_of_association.c.source_lecturerdao_id",
@@ -1055,21 +1055,21 @@ class OWL2BenchThingDAO(
         String(255), nullable=False, use_existing_column=True
     )
 
-    has_same_home_town_with: Mapped[typing.List[OWL2BenchThingDAO]] = relationship(
+    has_same_home_town_with: Mapped[builtins.set[OWL2BenchThingDAO]] = relationship(
         "OWL2BenchThingDAO",
         secondary="owl2benchthingdao_has_same_home_town_with_association",
         primaryjoin="OWL2BenchThingDAO.database_id == owl2benchthingdao_has_same_home_town_with_association.c.source_owl2benchthingdao_id",
         secondaryjoin="OWL2BenchThingDAO.database_id == owl2benchthingdao_has_same_home_town_with_association.c.target_owl2benchthingdao_id",
         cascade="save-update, merge",
     )
-    is_affiliate_of: Mapped[typing.List[OWL2BenchThingDAO]] = relationship(
+    is_affiliate_of: Mapped[builtins.set[OWL2BenchThingDAO]] = relationship(
         "OWL2BenchThingDAO",
         secondary="owl2benchthingdao_is_affiliate_of_association",
         primaryjoin="OWL2BenchThingDAO.database_id == owl2benchthingdao_is_affiliate_of_association.c.source_owl2benchthingdao_id",
         secondaryjoin="OWL2BenchThingDAO.database_id == owl2benchthingdao_is_affiliate_of_association.c.target_owl2benchthingdao_id",
         cascade="save-update, merge",
     )
-    knows: Mapped[typing.List[OWL2BenchThingDAO]] = relationship(
+    knows: Mapped[builtins.set[OWL2BenchThingDAO]] = relationship(
         "OWL2BenchThingDAO",
         secondary="owl2benchthingdao_knows_association",
         primaryjoin="OWL2BenchThingDAO.database_id == owl2benchthingdao_knows_association.c.source_owl2benchthingdao_id",
@@ -1874,7 +1874,7 @@ class OrganizationDAO(
         use_existing_column=True,
     )
 
-    has_dean: Mapped[typing.List[PersonDAO]] = relationship(
+    has_dean: Mapped[builtins.set[PersonDAO]] = relationship(
         "PersonDAO",
         secondary="organizationdao_has_dean_association",
         primaryjoin="OrganizationDAO.database_id == organizationdao_has_dean_association.c.source_organizationdao_id",
@@ -1882,7 +1882,7 @@ class OrganizationDAO(
         cascade="save-update, merge",
     )
     has_employee_evaluation_committee: Mapped[
-        typing.List[EmployeeEvaluationCommitteeDAO]
+        builtins.set[EmployeeEvaluationCommitteeDAO]
     ] = relationship(
         "EmployeeEvaluationCommitteeDAO",
         secondary="organizationdao_has_employee_evaluation_committee_association",
@@ -1890,14 +1890,14 @@ class OrganizationDAO(
         secondaryjoin="EmployeeEvaluationCommitteeDAO.database_id == organizationdao_has_employee_evaluation_committee_association.c.target_employeeevaluationcommitteedao_id",
         cascade="save-update, merge",
     )
-    has_employee: Mapped[typing.List[EmployeeDAO]] = relationship(
+    has_employee: Mapped[builtins.set[EmployeeDAO]] = relationship(
         "EmployeeDAO",
         secondary="organizationdao_has_employee_association",
         primaryjoin="OrganizationDAO.database_id == organizationdao_has_employee_association.c.source_organizationdao_id",
         secondaryjoin="EmployeeDAO.database_id == organizationdao_has_employee_association.c.target_employeedao_id",
         cascade="save-update, merge",
     )
-    has_evaluation_committee: Mapped[typing.List[EvaluationCommitteeDAO]] = (
+    has_evaluation_committee: Mapped[builtins.set[EvaluationCommitteeDAO]] = (
         relationship(
             "EvaluationCommitteeDAO",
             secondary="organizationdao_has_evaluation_committee_association",
@@ -1906,35 +1906,35 @@ class OrganizationDAO(
             cascade="save-update, merge",
         )
     )
-    has_faculty: Mapped[typing.List[FacultyDAO]] = relationship(
+    has_faculty: Mapped[builtins.set[FacultyDAO]] = relationship(
         "FacultyDAO",
         secondary="organizationdao_has_faculty_association",
         primaryjoin="OrganizationDAO.database_id == organizationdao_has_faculty_association.c.source_organizationdao_id",
         secondaryjoin="FacultyDAO.database_id == organizationdao_has_faculty_association.c.target_facultydao_id",
         cascade="save-update, merge",
     )
-    has_head: Mapped[typing.List[PersonDAO]] = relationship(
+    has_head: Mapped[builtins.set[PersonDAO]] = relationship(
         "PersonDAO",
         secondary="organizationdao_has_head_association",
         primaryjoin="OrganizationDAO.database_id == organizationdao_has_head_association.c.source_organizationdao_id",
         secondaryjoin="PersonDAO.database_id == organizationdao_has_head_association.c.target_persondao_id",
         cascade="save-update, merge",
     )
-    has_member: Mapped[typing.List[PersonDAO]] = relationship(
+    has_member: Mapped[builtins.set[PersonDAO]] = relationship(
         "PersonDAO",
         secondary="organizationdao_has_member_association",
         primaryjoin="OrganizationDAO.database_id == organizationdao_has_member_association.c.source_organizationdao_id",
         secondaryjoin="PersonDAO.database_id == organizationdao_has_member_association.c.target_persondao_id",
         cascade="save-update, merge",
     )
-    has_part: Mapped[typing.List[OrganizationDAO]] = relationship(
+    has_part: Mapped[builtins.set[OrganizationDAO]] = relationship(
         "OrganizationDAO",
         secondary="organizationdao_has_part_association",
         primaryjoin="OrganizationDAO.database_id == organizationdao_has_part_association.c.source_organizationdao_id",
         secondaryjoin="OrganizationDAO.database_id == organizationdao_has_part_association.c.target_organizationdao_id",
         cascade="save-update, merge",
     )
-    has_student: Mapped[typing.List[StudentDAO]] = relationship(
+    has_student: Mapped[builtins.set[StudentDAO]] = relationship(
         "StudentDAO",
         secondary="organizationdao_has_student_association",
         primaryjoin="OrganizationDAO.database_id == organizationdao_has_student_association.c.source_organizationdao_id",
@@ -1942,7 +1942,7 @@ class OrganizationDAO(
         cascade="save-update, merge",
     )
     has_student_evaluation_committee: Mapped[
-        typing.List[StudentEvaluationCommitteeDAO]
+        builtins.set[StudentEvaluationCommitteeDAO]
     ] = relationship(
         "StudentEvaluationCommitteeDAO",
         secondary="organizationdao_has_student_evaluation_committee_association",
@@ -1950,7 +1950,7 @@ class OrganizationDAO(
         secondaryjoin="StudentEvaluationCommitteeDAO.database_id == organizationdao_has_student_evaluation_committee_association.c.target_studentevaluationcommitteedao_id",
         cascade="save-update, merge",
     )
-    has_sub_organization: Mapped[typing.List[OrganizationDAO]] = relationship(
+    has_sub_organization: Mapped[builtins.set[OrganizationDAO]] = relationship(
         "OrganizationDAO",
         secondary="organizationdao_has_sub_organization_association",
         primaryjoin="OrganizationDAO.database_id == organizationdao_has_sub_organization_association.c.source_organizationdao_id",
@@ -1958,7 +1958,7 @@ class OrganizationDAO(
         cascade="save-update, merge",
     )
     has_thesis_evaluation_committee: Mapped[
-        typing.List[ThesisEvaluationCommitteeDAO]
+        builtins.set[ThesisEvaluationCommitteeDAO]
     ] = relationship(
         "ThesisEvaluationCommitteeDAO",
         secondary="organizationdao_has_thesis_evaluation_committee_association",
@@ -1966,42 +1966,42 @@ class OrganizationDAO(
         secondaryjoin="ThesisEvaluationCommitteeDAO.database_id == organizationdao_has_thesis_evaluation_committee_association.c.target_thesisevaluationcommitteedao_id",
         cascade="save-update, merge",
     )
-    has_women_college: Mapped[typing.List[OrganizationDAO]] = relationship(
+    has_women_college: Mapped[builtins.set[OrganizationDAO]] = relationship(
         "OrganizationDAO",
         secondary="organizationdao_has_women_college_association",
         primaryjoin="OrganizationDAO.database_id == organizationdao_has_women_college_association.c.source_organizationdao_id",
         secondaryjoin="OrganizationDAO.database_id == organizationdao_has_women_college_association.c.target_organizationdao_id",
         cascade="save-update, merge",
     )
-    is_affiliated_organization_of: Mapped[typing.List[OrganizationDAO]] = relationship(
+    is_affiliated_organization_of: Mapped[builtins.set[OrganizationDAO]] = relationship(
         "OrganizationDAO",
         secondary="organizationdao_is_affiliated_organization_of_association",
         primaryjoin="OrganizationDAO.database_id == organizationdao_is_affiliated_organization_of_association.c.source_organizationdao_id",
         secondaryjoin="OrganizationDAO.database_id == organizationdao_is_affiliated_organization_of_association.c.target_organizationdao_id",
         cascade="save-update, merge",
     )
-    is_part_of: Mapped[typing.List[OrganizationDAO]] = relationship(
+    is_part_of: Mapped[builtins.set[OrganizationDAO]] = relationship(
         "OrganizationDAO",
         secondary="organizationdao_is_part_of_association",
         primaryjoin="OrganizationDAO.database_id == organizationdao_is_part_of_association.c.source_organizationdao_id",
         secondaryjoin="OrganizationDAO.database_id == organizationdao_is_part_of_association.c.target_organizationdao_id",
         cascade="save-update, merge",
     )
-    is_sub_organization_of: Mapped[typing.List[OrganizationDAO]] = relationship(
+    is_sub_organization_of: Mapped[builtins.set[OrganizationDAO]] = relationship(
         "OrganizationDAO",
         secondary="organizationdao_is_sub_organization_of_association",
         primaryjoin="OrganizationDAO.database_id == organizationdao_is_sub_organization_of_association.c.source_organizationdao_id",
         secondaryjoin="OrganizationDAO.database_id == organizationdao_is_sub_organization_of_association.c.target_organizationdao_id",
         cascade="save-update, merge",
     )
-    is_women_college_of: Mapped[typing.List[OrganizationDAO]] = relationship(
+    is_women_college_of: Mapped[builtins.set[OrganizationDAO]] = relationship(
         "OrganizationDAO",
         secondary="organizationdao_is_women_college_of_association",
         primaryjoin="OrganizationDAO.database_id == organizationdao_is_women_college_of_association.c.source_organizationdao_id",
         secondaryjoin="OrganizationDAO.database_id == organizationdao_is_women_college_of_association.c.target_organizationdao_id",
         cascade="save-update, merge",
     )
-    org_publication: Mapped[typing.List[PublicationDAO]] = relationship(
+    org_publication: Mapped[builtins.set[PublicationDAO]] = relationship(
         "PublicationDAO",
         secondary="organizationdao_org_publication_association",
         primaryjoin="OrganizationDAO.database_id == organizationdao_org_publication_association.c.source_organizationdao_id",
@@ -2030,21 +2030,21 @@ class CollegeDAO(
         use_existing_column=True,
     )
 
-    has_college_discipline: Mapped[typing.List[CollegeDisciplineDAO]] = relationship(
+    has_college_discipline: Mapped[builtins.set[CollegeDisciplineDAO]] = relationship(
         "CollegeDisciplineDAO",
         secondary="collegedao_has_college_discipline_association",
         primaryjoin="CollegeDAO.database_id == collegedao_has_college_discipline_association.c.source_collegedao_id",
         secondaryjoin="CollegeDisciplineDAO.database_id == collegedao_has_college_discipline_association.c.target_collegedisciplinedao_id",
         cascade="save-update, merge",
     )
-    has_department: Mapped[typing.List[DepartmentDAO]] = relationship(
+    has_department: Mapped[builtins.set[DepartmentDAO]] = relationship(
         "DepartmentDAO",
         secondary="collegedao_has_department_association",
         primaryjoin="CollegeDAO.database_id == collegedao_has_department_association.c.source_collegedao_id",
         secondaryjoin="DepartmentDAO.database_id == collegedao_has_department_association.c.target_departmentdao_id",
         cascade="save-update, merge",
     )
-    is_college_of: Mapped[typing.List[UniversityDAO]] = relationship(
+    is_college_of: Mapped[builtins.set[UniversityDAO]] = relationship(
         "UniversityDAO",
         secondary="collegedao_is_college_of_association",
         primaryjoin="CollegeDAO.database_id == collegedao_is_college_of_association.c.source_collegedao_id",
@@ -2092,119 +2092,119 @@ class DepartmentDAO(
         use_existing_column=True,
     )
 
-    has_assistant_professor: Mapped[typing.List[AssistantProfessorDAO]] = relationship(
+    has_assistant_professor: Mapped[builtins.set[AssistantProfessorDAO]] = relationship(
         "AssistantProfessorDAO",
         secondary="departmentdao_has_assistant_professor_association",
         primaryjoin="DepartmentDAO.database_id == departmentdao_has_assistant_professor_association.c.source_departmentdao_id",
         secondaryjoin="AssistantProfessorDAO.database_id == departmentdao_has_assistant_professor_association.c.target_assistantprofessordao_id",
         cascade="save-update, merge",
     )
-    has_associate_professor: Mapped[typing.List[AssociateProfessorDAO]] = relationship(
+    has_associate_professor: Mapped[builtins.set[AssociateProfessorDAO]] = relationship(
         "AssociateProfessorDAO",
         secondary="departmentdao_has_associate_professor_association",
         primaryjoin="DepartmentDAO.database_id == departmentdao_has_associate_professor_association.c.source_departmentdao_id",
         secondaryjoin="AssociateProfessorDAO.database_id == departmentdao_has_associate_professor_association.c.target_associateprofessordao_id",
         cascade="save-update, merge",
     )
-    has_clerical_staff: Mapped[typing.List[ClericalStaffDAO]] = relationship(
+    has_clerical_staff: Mapped[builtins.set[ClericalStaffDAO]] = relationship(
         "ClericalStaffDAO",
         secondary="departmentdao_has_clerical_staff_association",
         primaryjoin="DepartmentDAO.database_id == departmentdao_has_clerical_staff_association.c.source_departmentdao_id",
         secondaryjoin="ClericalStaffDAO.database_id == departmentdao_has_clerical_staff_association.c.target_clericalstaffdao_id",
         cascade="save-update, merge",
     )
-    has_full_professor: Mapped[typing.List[FullProfessorDAO]] = relationship(
+    has_full_professor: Mapped[builtins.set[FullProfessorDAO]] = relationship(
         "FullProfessorDAO",
         secondary="departmentdao_has_full_professor_association",
         primaryjoin="DepartmentDAO.database_id == departmentdao_has_full_professor_association.c.source_departmentdao_id",
         secondaryjoin="FullProfessorDAO.database_id == departmentdao_has_full_professor_association.c.target_fullprofessordao_id",
         cascade="save-update, merge",
     )
-    has_lecturer: Mapped[typing.List[LecturerDAO]] = relationship(
+    has_lecturer: Mapped[builtins.set[LecturerDAO]] = relationship(
         "LecturerDAO",
         secondary="departmentdao_has_lecturer_association",
         primaryjoin="DepartmentDAO.database_id == departmentdao_has_lecturer_association.c.source_departmentdao_id",
         secondaryjoin="LecturerDAO.database_id == departmentdao_has_lecturer_association.c.target_lecturerdao_id",
         cascade="save-update, merge",
     )
-    has_other_staff: Mapped[typing.List[OtherStaffDAO]] = relationship(
+    has_other_staff: Mapped[builtins.set[OtherStaffDAO]] = relationship(
         "OtherStaffDAO",
         secondary="departmentdao_has_other_staff_association",
         primaryjoin="DepartmentDAO.database_id == departmentdao_has_other_staff_association.c.source_departmentdao_id",
         secondaryjoin="OtherStaffDAO.database_id == departmentdao_has_other_staff_association.c.target_otherstaffdao_id",
         cascade="save-update, merge",
     )
-    has_pg_program: Mapped[typing.List[PGProgramDAO]] = relationship(
+    has_pg_program: Mapped[builtins.set[PGProgramDAO]] = relationship(
         "PGProgramDAO",
         secondary="departmentdao_has_pg_program_association",
         primaryjoin="DepartmentDAO.database_id == departmentdao_has_pg_program_association.c.source_departmentdao_id",
         secondaryjoin="PGProgramDAO.database_id == departmentdao_has_pg_program_association.c.target_pgprogramdao_id",
         cascade="save-update, merge",
     )
-    has_ph_d_program: Mapped[typing.List[PhDProgramDAO]] = relationship(
+    has_ph_d_program: Mapped[builtins.set[PhDProgramDAO]] = relationship(
         "PhDProgramDAO",
         secondary="departmentdao_has_ph_d_program_association",
         primaryjoin="DepartmentDAO.database_id == departmentdao_has_ph_d_program_association.c.source_departmentdao_id",
         secondaryjoin="PhDProgramDAO.database_id == departmentdao_has_ph_d_program_association.c.target_phdprogramdao_id",
         cascade="save-update, merge",
     )
-    has_post_doc: Mapped[typing.List[PostDocDAO]] = relationship(
+    has_post_doc: Mapped[builtins.set[PostDocDAO]] = relationship(
         "PostDocDAO",
         secondary="departmentdao_has_post_doc_association",
         primaryjoin="DepartmentDAO.database_id == departmentdao_has_post_doc_association.c.source_departmentdao_id",
         secondaryjoin="PostDocDAO.database_id == departmentdao_has_post_doc_association.c.target_postdocdao_id",
         cascade="save-update, merge",
     )
-    has_professor: Mapped[typing.List[ProfessorDAO]] = relationship(
+    has_professor: Mapped[builtins.set[ProfessorDAO]] = relationship(
         "ProfessorDAO",
         secondary="departmentdao_has_professor_association",
         primaryjoin="DepartmentDAO.database_id == departmentdao_has_professor_association.c.source_departmentdao_id",
         secondaryjoin="ProfessorDAO.database_id == departmentdao_has_professor_association.c.target_professordao_id",
         cascade="save-update, merge",
     )
-    has_program: Mapped[typing.List[ProgramDAO]] = relationship(
+    has_program: Mapped[builtins.set[ProgramDAO]] = relationship(
         "ProgramDAO",
         secondary="departmentdao_has_program_association",
         primaryjoin="DepartmentDAO.database_id == departmentdao_has_program_association.c.source_departmentdao_id",
         secondaryjoin="ProgramDAO.database_id == departmentdao_has_program_association.c.target_programdao_id",
         cascade="save-update, merge",
     )
-    has_supporting_staff: Mapped[typing.List[SupportingStaffDAO]] = relationship(
+    has_supporting_staff: Mapped[builtins.set[SupportingStaffDAO]] = relationship(
         "SupportingStaffDAO",
         secondary="departmentdao_has_supporting_staff_association",
         primaryjoin="DepartmentDAO.database_id == departmentdao_has_supporting_staff_association.c.source_departmentdao_id",
         secondaryjoin="SupportingStaffDAO.database_id == departmentdao_has_supporting_staff_association.c.target_supportingstaffdao_id",
         cascade="save-update, merge",
     )
-    has_system_staff: Mapped[typing.List[SystemStaffDAO]] = relationship(
+    has_system_staff: Mapped[builtins.set[SystemStaffDAO]] = relationship(
         "SystemStaffDAO",
         secondary="departmentdao_has_system_staff_association",
         primaryjoin="DepartmentDAO.database_id == departmentdao_has_system_staff_association.c.source_departmentdao_id",
         secondaryjoin="SystemStaffDAO.database_id == departmentdao_has_system_staff_association.c.target_systemstaffdao_id",
         cascade="save-update, merge",
     )
-    has_ug_program: Mapped[typing.List[UGProgramDAO]] = relationship(
+    has_ug_program: Mapped[builtins.set[UGProgramDAO]] = relationship(
         "UGProgramDAO",
         secondary="departmentdao_has_ug_program_association",
         primaryjoin="DepartmentDAO.database_id == departmentdao_has_ug_program_association.c.source_departmentdao_id",
         secondaryjoin="UGProgramDAO.database_id == departmentdao_has_ug_program_association.c.target_ugprogramdao_id",
         cascade="save-update, merge",
     )
-    has_visiting_professor: Mapped[typing.List[VisitingProfessorDAO]] = relationship(
+    has_visiting_professor: Mapped[builtins.set[VisitingProfessorDAO]] = relationship(
         "VisitingProfessorDAO",
         secondary="departmentdao_has_visiting_professor_association",
         primaryjoin="DepartmentDAO.database_id == departmentdao_has_visiting_professor_association.c.source_departmentdao_id",
         secondaryjoin="VisitingProfessorDAO.database_id == departmentdao_has_visiting_professor_association.c.target_visitingprofessordao_id",
         cascade="save-update, merge",
     )
-    is_department_of: Mapped[typing.List[CollegeDAO]] = relationship(
+    is_department_of: Mapped[builtins.set[CollegeDAO]] = relationship(
         "CollegeDAO",
         secondary="departmentdao_is_department_of_association",
         primaryjoin="DepartmentDAO.database_id == departmentdao_is_department_of_association.c.source_departmentdao_id",
         secondaryjoin="CollegeDAO.database_id == departmentdao_is_department_of_association.c.target_collegedao_id",
         cascade="save-update, merge",
     )
-    offer_course: Mapped[typing.List[CourseDAO]] = relationship(
+    offer_course: Mapped[builtins.set[CourseDAO]] = relationship(
         "CourseDAO",
         secondary="departmentdao_offer_course_association",
         primaryjoin="DepartmentDAO.database_id == departmentdao_offer_course_association.c.source_departmentdao_id",
@@ -2344,112 +2344,112 @@ class PersonDAO(
         String(255), use_existing_column=True
     )
 
-    dislikes: Mapped[typing.List[InterestDAO]] = relationship(
+    dislikes: Mapped[builtins.set[InterestDAO]] = relationship(
         "InterestDAO",
         secondary="persondao_dislikes_association",
         primaryjoin="PersonDAO.database_id == persondao_dislikes_association.c.source_persondao_id",
         secondaryjoin="InterestDAO.database_id == persondao_dislikes_association.c.target_interestdao_id",
         cascade="save-update, merge",
     )
-    evaluated_by: Mapped[typing.List[EvaluationCommitteeDAO]] = relationship(
+    evaluated_by: Mapped[builtins.set[EvaluationCommitteeDAO]] = relationship(
         "EvaluationCommitteeDAO",
         secondary="persondao_evaluated_by_association",
         primaryjoin="PersonDAO.database_id == persondao_evaluated_by_association.c.source_persondao_id",
         secondaryjoin="EvaluationCommitteeDAO.database_id == persondao_evaluated_by_association.c.target_evaluationcommitteedao_id",
         cascade="save-update, merge",
     )
-    has_advisor: Mapped[typing.List[ProfessorDAO]] = relationship(
+    has_advisor: Mapped[builtins.set[ProfessorDAO]] = relationship(
         "ProfessorDAO",
         secondary="persondao_has_advisor_association",
         primaryjoin="PersonDAO.database_id == persondao_has_advisor_association.c.source_persondao_id",
         secondaryjoin="ProfessorDAO.database_id == persondao_has_advisor_association.c.target_professordao_id",
         cascade="save-update, merge",
     )
-    has_collaboration_with: Mapped[typing.List[PersonDAO]] = relationship(
+    has_collaboration_with: Mapped[builtins.set[PersonDAO]] = relationship(
         "PersonDAO",
         secondary="persondao_has_collaboration_with_association",
         primaryjoin="PersonDAO.database_id == persondao_has_collaboration_with_association.c.source_persondao_id",
         secondaryjoin="PersonDAO.database_id == persondao_has_collaboration_with_association.c.target_persondao_id",
         cascade="save-update, merge",
     )
-    has_degree_from: Mapped[typing.List[UniversityDAO]] = relationship(
+    has_degree_from: Mapped[builtins.set[UniversityDAO]] = relationship(
         "UniversityDAO",
         secondary="persondao_has_degree_from_association",
         primaryjoin="PersonDAO.database_id == persondao_has_degree_from_association.c.source_persondao_id",
         secondaryjoin="UniversityDAO.database_id == persondao_has_degree_from_association.c.target_universitydao_id",
         cascade="save-update, merge",
     )
-    has_doctoral_degree_from: Mapped[typing.List[UniversityDAO]] = relationship(
+    has_doctoral_degree_from: Mapped[builtins.set[UniversityDAO]] = relationship(
         "UniversityDAO",
         secondary="persondao_has_doctoral_degree_from_association",
         primaryjoin="PersonDAO.database_id == persondao_has_doctoral_degree_from_association.c.source_persondao_id",
         secondaryjoin="UniversityDAO.database_id == persondao_has_doctoral_degree_from_association.c.target_universitydao_id",
         cascade="save-update, merge",
     )
-    has_major: Mapped[typing.List[OWL2BenchThingDAO]] = relationship(
+    has_major: Mapped[builtins.set[OWL2BenchThingDAO]] = relationship(
         "OWL2BenchThingDAO",
         secondary="persondao_has_major_association",
         primaryjoin="PersonDAO.database_id == persondao_has_major_association.c.source_persondao_id",
         secondaryjoin="OWL2BenchThingDAO.database_id == persondao_has_major_association.c.target_owl2benchthingdao_id",
         cascade="save-update, merge",
     )
-    has_master_degree_from: Mapped[typing.List[UniversityDAO]] = relationship(
+    has_master_degree_from: Mapped[builtins.set[UniversityDAO]] = relationship(
         "UniversityDAO",
         secondary="persondao_has_master_degree_from_association",
         primaryjoin="PersonDAO.database_id == persondao_has_master_degree_from_association.c.source_persondao_id",
         secondaryjoin="UniversityDAO.database_id == persondao_has_master_degree_from_association.c.target_universitydao_id",
         cascade="save-update, merge",
     )
-    has_undergraduate_degree_from: Mapped[typing.List[UniversityDAO]] = relationship(
+    has_undergraduate_degree_from: Mapped[builtins.set[UniversityDAO]] = relationship(
         "UniversityDAO",
         secondary="persondao_has_undergraduate_degree_from_association",
         primaryjoin="PersonDAO.database_id == persondao_has_undergraduate_degree_from_association.c.source_persondao_id",
         secondaryjoin="UniversityDAO.database_id == persondao_has_undergraduate_degree_from_association.c.target_universitydao_id",
         cascade="save-update, merge",
     )
-    is_advised_by: Mapped[typing.List[ProfessorDAO]] = relationship(
+    is_advised_by: Mapped[builtins.set[ProfessorDAO]] = relationship(
         "ProfessorDAO",
         secondary="persondao_is_advised_by_association",
         primaryjoin="PersonDAO.database_id == persondao_is_advised_by_association.c.source_persondao_id",
         secondaryjoin="ProfessorDAO.database_id == persondao_is_advised_by_association.c.target_professordao_id",
         cascade="save-update, merge",
     )
-    is_crazy_about: Mapped[typing.List[InterestDAO]] = relationship(
+    is_crazy_about: Mapped[builtins.set[InterestDAO]] = relationship(
         "InterestDAO",
         secondary="persondao_is_crazy_about_association",
         primaryjoin="PersonDAO.database_id == persondao_is_crazy_about_association.c.source_persondao_id",
         secondaryjoin="InterestDAO.database_id == persondao_is_crazy_about_association.c.target_interestdao_id",
         cascade="save-update, merge",
     )
-    is_dean_of: Mapped[typing.List[OrganizationDAO]] = relationship(
+    is_dean_of: Mapped[builtins.set[OrganizationDAO]] = relationship(
         "OrganizationDAO",
         secondary="persondao_is_dean_of_association",
         primaryjoin="PersonDAO.database_id == persondao_is_dean_of_association.c.source_persondao_id",
         secondaryjoin="OrganizationDAO.database_id == persondao_is_dean_of_association.c.target_organizationdao_id",
         cascade="save-update, merge",
     )
-    is_head_of: Mapped[typing.List[OrganizationDAO]] = relationship(
+    is_head_of: Mapped[builtins.set[OrganizationDAO]] = relationship(
         "OrganizationDAO",
         secondary="persondao_is_head_of_association",
         primaryjoin="PersonDAO.database_id == persondao_is_head_of_association.c.source_persondao_id",
         secondaryjoin="OrganizationDAO.database_id == persondao_is_head_of_association.c.target_organizationdao_id",
         cascade="save-update, merge",
     )
-    is_member_of: Mapped[typing.List[OrganizationDAO]] = relationship(
+    is_member_of: Mapped[builtins.set[OrganizationDAO]] = relationship(
         "OrganizationDAO",
         secondary="persondao_is_member_of_association",
         primaryjoin="PersonDAO.database_id == persondao_is_member_of_association.c.source_persondao_id",
         secondaryjoin="OrganizationDAO.database_id == persondao_is_member_of_association.c.target_organizationdao_id",
         cascade="save-update, merge",
     )
-    likes: Mapped[typing.List[InterestDAO]] = relationship(
+    likes: Mapped[builtins.set[InterestDAO]] = relationship(
         "InterestDAO",
         secondary="persondao_likes_association",
         primaryjoin="PersonDAO.database_id == persondao_likes_association.c.source_persondao_id",
         secondaryjoin="InterestDAO.database_id == persondao_likes_association.c.target_interestdao_id",
         cascade="save-update, merge",
     )
-    loves: Mapped[typing.List[InterestDAO]] = relationship(
+    loves: Mapped[builtins.set[InterestDAO]] = relationship(
         "InterestDAO",
         secondary="persondao_loves_association",
         primaryjoin="PersonDAO.database_id == persondao_loves_association.c.source_persondao_id",
@@ -2537,7 +2537,7 @@ class PostDocDAO(
         ForeignKey(FacultyDAO.database_id), primary_key=True, use_existing_column=True
     )
 
-    is_post_doc_of: Mapped[typing.List[DepartmentDAO]] = relationship(
+    is_post_doc_of: Mapped[builtins.set[DepartmentDAO]] = relationship(
         "DepartmentDAO",
         secondary="postdocdao_is_post_doc_of_association",
         primaryjoin="PostDocDAO.database_id == postdocdao_is_post_doc_of_association.c.source_postdocdao_id",
@@ -2564,14 +2564,14 @@ class ProfessorDAO(
         ForeignKey(FacultyDAO.database_id), primary_key=True, use_existing_column=True
     )
 
-    is_professor_of: Mapped[typing.List[DepartmentDAO]] = relationship(
+    is_professor_of: Mapped[builtins.set[DepartmentDAO]] = relationship(
         "DepartmentDAO",
         secondary="professordao_is_professor_of_association",
         primaryjoin="ProfessorDAO.database_id == professordao_is_professor_of_association.c.source_professordao_id",
         secondaryjoin="DepartmentDAO.database_id == professordao_is_professor_of_association.c.target_departmentdao_id",
         cascade="save-update, merge",
     )
-    tenured: Mapped[typing.List[OWL2BenchThingDAO]] = relationship(
+    tenured: Mapped[builtins.set[OWL2BenchThingDAO]] = relationship(
         "OWL2BenchThingDAO",
         secondary="professordao_tenured_association",
         primaryjoin="ProfessorDAO.database_id == professordao_tenured_association.c.source_professordao_id",
@@ -2598,7 +2598,7 @@ class AssistantProfessorDAO(
         ForeignKey(ProfessorDAO.database_id), primary_key=True, use_existing_column=True
     )
 
-    is_assistant_professor_of: Mapped[typing.List[DepartmentDAO]] = relationship(
+    is_assistant_professor_of: Mapped[builtins.set[DepartmentDAO]] = relationship(
         "DepartmentDAO",
         secondary="assistantprofessordao_is_assistant_professor_of_association",
         primaryjoin="AssistantProfessorDAO.database_id == assistantprofessordao_is_assistant_professor_of_association.c.source_assistantprofessordao_id",
@@ -2625,7 +2625,7 @@ class AssociateProfessorDAO(
         ForeignKey(ProfessorDAO.database_id), primary_key=True, use_existing_column=True
     )
 
-    is_associate_professor_of: Mapped[typing.List[DepartmentDAO]] = relationship(
+    is_associate_professor_of: Mapped[builtins.set[DepartmentDAO]] = relationship(
         "DepartmentDAO",
         secondary="associateprofessordao_is_associate_professor_of_association",
         primaryjoin="AssociateProfessorDAO.database_id == associateprofessordao_is_associate_professor_of_association.c.source_associateprofessordao_id",
@@ -2652,7 +2652,7 @@ class FullProfessorDAO(
         ForeignKey(ProfessorDAO.database_id), primary_key=True, use_existing_column=True
     )
 
-    is_full_professor_of: Mapped[typing.List[DepartmentDAO]] = relationship(
+    is_full_professor_of: Mapped[builtins.set[DepartmentDAO]] = relationship(
         "DepartmentDAO",
         secondary="fullprofessordao_is_full_professor_of_association",
         primaryjoin="FullProfessorDAO.database_id == fullprofessordao_is_full_professor_of_association.c.source_fullprofessordao_id",
@@ -2681,7 +2681,7 @@ class ProgramDAO(
         use_existing_column=True,
     )
 
-    has_head: Mapped[typing.List[DirectorDAO]] = relationship(
+    has_head: Mapped[builtins.set[DirectorDAO]] = relationship(
         "DirectorDAO",
         secondary="programdao_has_head_association",
         primaryjoin="ProgramDAO.database_id == programdao_has_head_association.c.source_programdao_id",
@@ -2811,14 +2811,14 @@ class PublicationDAO(
         use_existing_column=True,
     )
 
-    has_author: Mapped[typing.List[PersonDAO]] = relationship(
+    has_author: Mapped[builtins.set[PersonDAO]] = relationship(
         "PersonDAO",
         secondary="publicationdao_has_author_association",
         primaryjoin="PublicationDAO.database_id == publicationdao_has_author_association.c.source_publicationdao_id",
         secondaryjoin="PersonDAO.database_id == publicationdao_has_author_association.c.target_persondao_id",
         cascade="save-update, merge",
     )
-    publication_research: Mapped[typing.List[OWL2BenchThingDAO]] = relationship(
+    publication_research: Mapped[builtins.set[OWL2BenchThingDAO]] = relationship(
         "OWL2BenchThingDAO",
         secondary="publicationdao_publication_research_association",
         primaryjoin="PublicationDAO.database_id == publicationdao_publication_research_association.c.source_publicationdao_id",
@@ -2986,7 +2986,7 @@ class ResearchAssistantDAO(
         ForeignKey(EmployeeDAO.database_id), primary_key=True, use_existing_column=True
     )
 
-    is_research_assistant_of: Mapped[typing.List[ResearchGroupDAO]] = relationship(
+    is_research_assistant_of: Mapped[builtins.set[ResearchGroupDAO]] = relationship(
         "ResearchGroupDAO",
         secondary="researchassistantdao_is_research_assistant_of_association",
         primaryjoin="ResearchAssistantDAO.database_id == researchassistantdao_is_research_assistant_of_association.c.source_researchassistantdao_id",
@@ -3015,21 +3015,21 @@ class ResearchGroupDAO(
         use_existing_column=True,
     )
 
-    has_research_assistant: Mapped[typing.List[ResearchAssistantDAO]] = relationship(
+    has_research_assistant: Mapped[builtins.set[ResearchAssistantDAO]] = relationship(
         "ResearchAssistantDAO",
         secondary="researchgroupdao_has_research_assistant_association",
         primaryjoin="ResearchGroupDAO.database_id == researchgroupdao_has_research_assistant_association.c.source_researchgroupdao_id",
         secondaryjoin="ResearchAssistantDAO.database_id == researchgroupdao_has_research_assistant_association.c.target_researchassistantdao_id",
         cascade="save-update, merge",
     )
-    has_research_project: Mapped[typing.List[ResearchProjectDAO]] = relationship(
+    has_research_project: Mapped[builtins.set[ResearchProjectDAO]] = relationship(
         "ResearchProjectDAO",
         secondary="researchgroupdao_has_research_project_association",
         primaryjoin="ResearchGroupDAO.database_id == researchgroupdao_has_research_project_association.c.source_researchgroupdao_id",
         secondaryjoin="ResearchProjectDAO.database_id == researchgroupdao_has_research_project_association.c.target_researchprojectdao_id",
         cascade="save-update, merge",
     )
-    is_research_group_of: Mapped[typing.List[UniversityDAO]] = relationship(
+    is_research_group_of: Mapped[builtins.set[UniversityDAO]] = relationship(
         "UniversityDAO",
         secondary="researchgroupdao_is_research_group_of_association",
         primaryjoin="ResearchGroupDAO.database_id == researchgroupdao_is_research_group_of_association.c.source_researchgroupdao_id",
@@ -3429,11 +3429,11 @@ class SportsLoverDAO(
         use_existing_column=True,
     )
 
-    loves: Mapped[typing.List[SportsDAO]] = relationship(
-        "SportsDAO",
+    loves: Mapped[builtins.set[InterestDAO]] = relationship(
+        "InterestDAO",
         secondary="sportsloverdao_loves_association",
         primaryjoin="SportsLoverDAO.database_id == sportsloverdao_loves_association.c.source_sportsloverdao_id",
-        secondaryjoin="SportsDAO.database_id == sportsloverdao_loves_association.c.target_sportsdao_id",
+        secondaryjoin="InterestDAO.database_id == sportsloverdao_loves_association.c.target_interestdao_id",
         cascade="save-update, merge",
     )
 
@@ -3479,7 +3479,7 @@ class SportsFanDAO(
         use_existing_column=True,
     )
 
-    is_crazy_about: Mapped[typing.List[SportsDAO]] = relationship(
+    is_crazy_about: Mapped[builtins.set[SportsDAO]] = relationship(
         "SportsDAO",
         secondary="sportsfandao_is_crazy_about_association",
         primaryjoin="SportsFanDAO.database_id == sportsfandao_is_crazy_about_association.c.source_sportsfandao_id",
@@ -3557,28 +3557,28 @@ class StudentDAO(
     person: Mapped[PersonDAO] = relationship(
         "PersonDAO", uselist=False, foreign_keys=[person_id], post_update=True
     )
-    enroll_for: Mapped[typing.List[ProgramDAO]] = relationship(
+    enroll_for: Mapped[builtins.set[ProgramDAO]] = relationship(
         "ProgramDAO",
         secondary="studentdao_enroll_for_association",
         primaryjoin="StudentDAO.database_id == studentdao_enroll_for_association.c.source_studentdao_id",
         secondaryjoin="ProgramDAO.database_id == studentdao_enroll_for_association.c.target_programdao_id",
         cascade="save-update, merge",
     )
-    enroll_in: Mapped[typing.List[DepartmentDAO]] = relationship(
+    enroll_in: Mapped[builtins.set[DepartmentDAO]] = relationship(
         "DepartmentDAO",
         secondary="studentdao_enroll_in_association",
         primaryjoin="StudentDAO.database_id == studentdao_enroll_in_association.c.source_studentdao_id",
         secondaryjoin="DepartmentDAO.database_id == studentdao_enroll_in_association.c.target_departmentdao_id",
         cascade="save-update, merge",
     )
-    is_student_of: Mapped[typing.List[OrganizationDAO]] = relationship(
+    is_student_of: Mapped[builtins.set[OrganizationDAO]] = relationship(
         "OrganizationDAO",
         secondary="studentdao_is_student_of_association",
         primaryjoin="StudentDAO.database_id == studentdao_is_student_of_association.c.source_studentdao_id",
         secondaryjoin="OrganizationDAO.database_id == studentdao_is_student_of_association.c.target_organizationdao_id",
         cascade="save-update, merge",
     )
-    takes_course: Mapped[typing.List[CourseDAO]] = relationship(
+    takes_course: Mapped[builtins.set[CourseDAO]] = relationship(
         "CourseDAO",
         secondary="studentdao_takes_course_association",
         primaryjoin="StudentDAO.database_id == studentdao_takes_course_association.c.source_studentdao_id",
@@ -3643,7 +3643,7 @@ class ScienceStudentDAO(
         ForeignKey(StudentDAO.database_id), primary_key=True, use_existing_column=True
     )
 
-    has_major: Mapped[typing.List[ScienceDAO]] = relationship(
+    has_major: Mapped[builtins.set[ScienceDAO]] = relationship(
         "ScienceDAO",
         secondary="sciencestudentdao_has_major_association",
         primaryjoin="ScienceStudentDAO.database_id == sciencestudentdao_has_major_association.c.source_sciencestudentdao_id",
@@ -3841,7 +3841,7 @@ class TeachingAssistantDAO(
     student: Mapped[StudentDAO] = relationship(
         "StudentDAO", uselist=False, foreign_keys=[student_id], post_update=True
     )
-    is_teaching_assistant_of: Mapped[typing.List[CourseDAO]] = relationship(
+    is_teaching_assistant_of: Mapped[builtins.set[CourseDAO]] = relationship(
         "CourseDAO",
         secondary="teachingassistantdao_is_teaching_assistant_of_association",
         primaryjoin="TeachingAssistantDAO.database_id == teachingassistantdao_is_teaching_assistant_of_association.c.source_teachingassistantdao_id",
@@ -4021,21 +4021,21 @@ class UniversityDAO(
         use_existing_column=True,
     )
 
-    has_alumnus: Mapped[typing.List[PersonDAO]] = relationship(
+    has_alumnus: Mapped[builtins.set[PersonDAO]] = relationship(
         "PersonDAO",
         secondary="universitydao_has_alumnus_association",
         primaryjoin="UniversityDAO.database_id == universitydao_has_alumnus_association.c.source_universitydao_id",
         secondaryjoin="PersonDAO.database_id == universitydao_has_alumnus_association.c.target_persondao_id",
         cascade="save-update, merge",
     )
-    has_college: Mapped[typing.List[CollegeDAO]] = relationship(
+    has_college: Mapped[builtins.set[CollegeDAO]] = relationship(
         "CollegeDAO",
         secondary="universitydao_has_college_association",
         primaryjoin="UniversityDAO.database_id == universitydao_has_college_association.c.source_universitydao_id",
         secondaryjoin="CollegeDAO.database_id == universitydao_has_college_association.c.target_collegedao_id",
         cascade="save-update, merge",
     )
-    has_research_group: Mapped[typing.List[ResearchGroupDAO]] = relationship(
+    has_research_group: Mapped[builtins.set[ResearchGroupDAO]] = relationship(
         "ResearchGroupDAO",
         secondary="universitydao_has_research_group_association",
         primaryjoin="UniversityDAO.database_id == universitydao_has_research_group_association.c.source_universitydao_id",
@@ -4092,7 +4092,7 @@ class VisitingProfessorDAO(
     professor: Mapped[ProfessorDAO] = relationship(
         "ProfessorDAO", uselist=False, foreign_keys=[professor_id], post_update=True
     )
-    is_visiting_professor_of: Mapped[typing.List[DepartmentDAO]] = relationship(
+    is_visiting_professor_of: Mapped[builtins.set[DepartmentDAO]] = relationship(
         "DepartmentDAO",
         secondary="visitingprofessordao_is_visiting_professor_of_association",
         primaryjoin="VisitingProfessorDAO.database_id == visitingprofessordao_is_visiting_professor_of_association.c.source_visitingprofessordao_id",
@@ -4173,7 +4173,7 @@ class CourseDAO(
         ForeignKey(WorkDAO.database_id), primary_key=True, use_existing_column=True
     )
 
-    is_taught_by: Mapped[typing.List[FacultyDAO]] = relationship(
+    is_taught_by: Mapped[builtins.set[FacultyDAO]] = relationship(
         "FacultyDAO",
         secondary="coursedao_is_taught_by_association",
         primaryjoin="CourseDAO.database_id == coursedao_is_taught_by_association.c.source_coursedao_id",

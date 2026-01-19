@@ -34,115 +34,80 @@ sqlalchemy_q4 = select(PersonDAO.has_age).where(
 )
 q4 = SQLAlchemyQuery(sparql_queries.q4, sqlalchemy_q4)
 
-# CricketAlias = aliased(CricketDAO, flat=True)
-#
-# sqlalchemy_q5 = select(PersonDAO).join(
-#     CricketAlias, T20CricketFanDAO.is_crazy_about == CricketAlias.database_id
-# )
-# q5 = SQLAlchemyQuery(sparql_queries.q5, sqlalchemy_q5)
-#
-#
-# sqlalchemy_q6 = select(persondao_knows_association).where(
-#     persondao_knows_association.c.source_persondao_id
-#     == persondao_knows_association.c.target_persondao_id
-# )
-# q6 = SQLAlchemyQuery(sparql_queries.q6, sqlalchemy_q6)
-#
-# sqlalchemy_q7 = select(universitydao_alumni_association)
-# q7 = SQLAlchemyQuery(sparql_queries.q7, sqlalchemy_q7)
-#
-# sqlalchemy_q8 = select(organizationdao_affiliated_organizations_association)
-# q8 = SQLAlchemyQuery(sparql_queries.q8, sqlalchemy_q8)
-#
-# sqlalchemy_q9 = select(collegedao_disciplines_association).join(
-#     MaterialScienceEngineeringDAO
-# )
-# q9 = SQLAlchemyQuery(sparql_queries.q9, sqlalchemy_q9)
-#
-# sqlalchemy_q10 = select(persondao_collaborates_with_association)
-# q10 = SQLAlchemyQuery(sparql_queries.q10, sqlalchemy_q10)
-#
-# sqlalchemy_q11 = select(persondao_is_advised_by_association)
-# q11 = SQLAlchemyQuery(sparql_queries.q11, sqlalchemy_q11)
-#
-# sqlalchemy_q12 = select(PersonDAO)
-# q12 = SQLAlchemyQuery(sparql_queries.q12, sqlalchemy_q12)
-#
-# sqlalchemy_q13 = select(CollegeDAO).filter(
-#     CollegeDAO.members.any(),  # Must have at least one member
-#     ~CollegeDAO.members.any(
-#         PersonDAO.gender != "female"
-#     ),  # None of them are non-female
-# )
-# q13 = SQLAlchemyQuery(sparql_queries.q13, sqlalchemy_q13)
-#
-#
-# sqlalchemy_q14 = (
-#     select(PersonDAO)
-#     .join(PersonDAO.takes_course)
-#     .group_by(PersonDAO)
-#     .having(func.count(CourseDAO.database_id) == 1)
-# )
-# q14 = SQLAlchemyQuery(sparql_queries.q14, sqlalchemy_q14)
-#
-#
-# sqlalchemy_q15 = select(OrganizationDAO.head_id).where(OrganizationDAO.head_id != None)
-# q15 = SQLAlchemyQuery(sparql_queries.q15, sqlalchemy_q15)
-#
-# sqlalchemy_q16 = select(OrganizationDAO).where(OrganizationDAO.head_id != None)
-# q16 = SQLAlchemyQuery(sparql_queries.q16, sqlalchemy_q16)
-#
-# UndergraduateProgramAlias = aliased(UndergraduateProgramDAO, flat=True)
-# sqlalchemy_q17 = (
-#     select(PersonDAO)
-#     .join(PersonDAO.enrolled_in.of_type(UndergraduateProgramAlias))
-#     .group_by(PersonDAO)
-#     .having(func.count(UndergraduateProgramAlias.database_id) == 1)
-# )
-# q17 = SQLAlchemyQuery(sparql_queries.q17, sqlalchemy_q17)
-#
-# sqlalchemy_q18 = (
-#     select(PersonDAO)
-#     .join(PersonDAO.hobbies)
-#     .group_by(PersonDAO)
-#     .having(func.count(InterestDAO.database_id) >= 3)
-# )
-# q18 = SQLAlchemyQuery(sparql_queries.q18, sqlalchemy_q18)
-#
-# sqlalchemy_q19 = select(coursedao_teachers_association.c.target_persondao_id).distinct()
-# q19 = SQLAlchemyQuery(sparql_queries.q19, sqlalchemy_q19)
-#
-# sqlalchemy_q20 = select(persondao_has_same_hometown_as_association)
-# q20 = SQLAlchemyQuery(sparql_queries.q20, sqlalchemy_q20)
-#
-# CourseAlias = aliased(CourseDAO, flat=True)
-# EngineeringAlias = aliased(EngineeringDAO, flat=True)
-# sqlalchemy_q21 = (
-#     select(PersonDAO)
-#     .join(PersonDAO.takes_course.of_type(CourseAlias))
-#     .join(CourseAlias.topic.of_type(EngineeringAlias))
-#     .distinct()
-# )
-# q21 = SQLAlchemyQuery(sparql_queries.q21, sqlalchemy_q21)
-#
-# Student = aliased(PersonDAO, name="student")
-# TeacherHead = aliased(PersonDAO, name="teacher_head")
-#
-# OrganizationAlias = aliased(OrganizationDAO, flat=True)
-# PersonAlias = aliased(PersonDAO, flat=True)
-#
-# sqlalchemy_q22 = (
-#     select(Student, CourseAlias)
-#     .join(Student.takes_course.of_type(CourseAlias))
-#     .join(CourseAlias.teachers.of_type(PersonAlias))
-#     .join(
-#         OrganizationAlias,
-#         PersonAlias.database_id == OrganizationAlias.dean_id,
-#     )
-#     .distinct()
-# )
-#
-# q22 = SQLAlchemyQuery(sparql_queries.q22, sqlalchemy_q22)
+CricketAlias = aliased(CricketDAO, flat=True)
+
+sqlalchemy_q5 = select(T20CricketFanDAO)
+q5 = SQLAlchemyQuery(sparql_queries.q5, sqlalchemy_q5)
+
+sqlalchemy_q6 = select(persondao_knows_association).where(
+    persondao_knows_association.c.source_persondao_id
+    == persondao_knows_association.c.target_persondao_id
+)
+q6 = SQLAlchemyQuery(sparql_queries.q6, sqlalchemy_q6)
+
+sqlalchemy_q7 = select(universitydao_has_alumnus_association)
+q7 = SQLAlchemyQuery(sparql_queries.q7, sqlalchemy_q7)
+
+sqlalchemy_q8 = select(organizationdao_is_affiliated_organization_of_association)
+q8 = SQLAlchemyQuery(sparql_queries.q8, sqlalchemy_q8)
+
+sqlalchemy_q9 = select(collegedao_has_college_discipline_association).join(
+    MaterialScienceEngineeringDAO
+)
+q9 = SQLAlchemyQuery(sparql_queries.q9, sqlalchemy_q9)
+
+sqlalchemy_q10 = select(persondao_has_collaboration_with_association)
+q10 = SQLAlchemyQuery(sparql_queries.q10, sqlalchemy_q10)
+
+sqlalchemy_q11 = select(persondao_is_advised_by_association)
+q11 = SQLAlchemyQuery(sparql_queries.q11, sqlalchemy_q11)
+
+sqlalchemy_q12 = select(PersonDAO)
+q12 = SQLAlchemyQuery(sparql_queries.q12, sqlalchemy_q12)
+
+sqlalchemy_q13 = select(WomanCollegeDAO)
+q13 = SQLAlchemyQuery(sparql_queries.q13, sqlalchemy_q13)
+
+
+sqlalchemy_q14 = select(LeisureStudentDAO)
+q14 = SQLAlchemyQuery(sparql_queries.q14, sqlalchemy_q14)
+
+
+sqlalchemy_q15 = select(persondao_is_head_of_association)
+q15 = SQLAlchemyQuery(sparql_queries.q15, sqlalchemy_q15)
+
+sqlalchemy_q16 = select(organizationdao_has_head_association)
+q16 = SQLAlchemyQuery(sparql_queries.q16, sqlalchemy_q16)
+
+sqlalchemy_q17 = select(UGStudentDAO)
+q17 = SQLAlchemyQuery(sparql_queries.q17, sqlalchemy_q17)
+
+sqlalchemy_q19 = select(FacultyDAO)
+q19 = SQLAlchemyQuery(sparql_queries.q19, sqlalchemy_q19)
+
+sqlalchemy_q20 = select(owl2benchthingdao_has_same_home_town_with_association)
+q20 = SQLAlchemyQuery(sparql_queries.q20, sqlalchemy_q20)
+
+
+sqlalchemy_q21 = (
+    select(StudentDAO, OrganizationDAO)
+    .join(OrganizationDAO, StudentDAO.is_student_of)
+    .join(CollegeDAO, OrganizationDAO.is_part_of)
+    .join(EngineeringDAO, CollegeDAO.has_college_discipline)
+    .distinct()
+)
+q21 = SQLAlchemyQuery(sparql_queries.q21, sqlalchemy_q21)
+
+
+sqlalchemy_q22 = (
+    select(StudentDAO, CourseDAO)
+    .join(CourseDAO, StudentDAO.takes_course)
+    .join(PersonDAO, OrganizationDAO.has_dean)
+    .join(PersonDAO, FacultyDAO.person)
+    .join(CourseDAO, FacultyDAO.teaches_course)
+)
+
+q22 = SQLAlchemyQuery(sparql_queries.q22, sqlalchemy_q22)
 
 all_queries = [
     # q1,
