@@ -8,14 +8,16 @@ from krrood.entity_query_language.entity import (
     exists,
     entity,
     variable_from,
-    and_,
     has_solution_for,
 )
 from krrood.entity_query_language.entity_result_processors import an
-from krrood.entity_query_language.enums import PredicateType
 from krrood.entity_query_language.predicate import HasAttribute, IsSubClassOrRole
-from krrood.entity_query_language.symbolic import Variable
-from krrood.ontomatic.property_descriptor.property_descriptor import HasProperty
+from krrood.ontomatic.property_descriptor.property_descriptor import (
+    is_class_axiomatized_on_property,
+)
+from krrood.ontomatic.utils import (
+    AnonymousClass,
+)
 
 from krrood_experiments.owl2bench.ontomatic.helpers import (
     load_instances_for_owl2bench_with_predicates,
@@ -24,12 +26,6 @@ from krrood_experiments.owl2bench.ontomatic.owl2bench_eql_queries import (
     evaluate_eql_and_sparql_queries,
 )
 from krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates import *
-from krrood.ontomatic.utils import (
-    AnonymousClass,
-)
-from krrood.ontomatic.property_descriptor.property_descriptor import (
-    is_class_axiomatized_on_property,
-)
 
 
 @pytest.fixture

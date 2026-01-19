@@ -124,7 +124,11 @@ def evaluate_queries(iterations_per_query: int = 10):
                 )
             )
             current_owlready2_runtimes.append((time.time() - start) * 1000)
-
+            print(f"Owlready2 results: {len(owlready2_results)}")
+            print(f"Sparql results: {len(sparql_results)}")
+            print(f"EQL results: {len(eql_results)}")
+            print(f"RDFLib results: {len(rdflib_results)}")
+            print(f"SQLAlchemy results: {len(sql_results)}")
             assert (
                 len(sql_results)
                 == len(sparql_results)
@@ -155,4 +159,4 @@ def evaluate_queries(iterations_per_query: int = 10):
 
 
 if __name__ == "__main__":
-    evaluate_queries(10)
+    evaluate_queries(1)

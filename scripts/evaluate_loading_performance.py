@@ -10,7 +10,9 @@ from owlrl import DeductiveClosure, OWLRL_Semantics
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker, class_mapper
 
-from krrood_experiments.owl2bench.ontomatic.helpers import load_instances_for_owl2bench_with_predicates
+from krrood_experiments.owl2bench.ontomatic.helpers import (
+    load_instances_for_owl2bench_with_predicates,
+)
 from krrood_experiments.owl2bench.ood.loader import WorldLoader
 from krrood_experiments.owl2bench.ood.orm.ormatic_interface import Base, WorldDAO
 from krrood_experiments.owl2bench.ood.performance_utils import (
@@ -195,18 +197,14 @@ def reason_reasoned_rdflib() -> float:
 
 def reason_raw_krrood() -> float:
     start = time.time()
-    registry = load_instances_for_owl2bench_with_predicates(
-        rdf_unreasoned_file_path
-    )
+    registry = load_instances_for_owl2bench_with_predicates(rdf_unreasoned_file_path)
     result = time.time() - start
     return result
 
 
 def reason_reasoned_krrood() -> float:
     start = time.time()
-    registry = load_instances_for_owl2bench_with_predicates(
-        rdf_file_path
-    )
+    registry = load_instances_for_owl2bench_with_predicates(rdf_file_path)
     result = time.time() - start
     return result
 
@@ -240,5 +238,36 @@ def evaluate_loading(iterations: int = 1):
     exporter.export_loading_performance()
 
 
+def measure_evaluation_time(
+    func, name: str, reasoned=False, iterations: int = 1
+) -> float:
+    ontology_type = "Raw" if not reasoned else "Reasoned"
+    print(
+        f"Evaluating loading performance of {ontology_type} ontology using {name} ..."
+    )
+    total_time = 0.0
+    for _ in tqdm.trange(iterations, desc=f"Evaluating {name}"):
+        start_time = time.time()
+        func()
+        end_time = time.time()
+        total_time += end_time - start_time
+    average_time = total_time / iterations
+    return average_time
+
+
 if __name__ == "__main__":
-    ...
+    print("\nLoading Raw Ontology Measurement:")
+    # prepare_raw_krrood()
+    # measure_evaluation_time(load_sql, "SQLAlchemy", reasoned=False)
+    measure_evaluation_time(load_raw_owlready2, "OWLReady2", reasoned=False)
+    measure_evaluation_time(load_raw_rdflib, "RDFLib", reasoned=False)
+
+    print("\nLoading Reasoned Ontology Measurement:")
+    prepare_reasoned_krrood()
+    measure_evaluation_time(load_sql, "SQLAlchemy", reasoned=True)
+    measure_evaluation_time(loading_reasoned_owlready2, "OWLReady2", reasoned=True)
+    measure_evaluation_time(load_reasoned_rdflib, "RDFLib", reasoned=True)
+
+    print("\nReasoning + Loading Measurement:")
+    measure_evaluation_time(reason_raw_krrood, "KRROOD", reasoned=False)
+    measure_evaluation_time(reason_raw_owlready2, "OWLReady2", reasoned=False)

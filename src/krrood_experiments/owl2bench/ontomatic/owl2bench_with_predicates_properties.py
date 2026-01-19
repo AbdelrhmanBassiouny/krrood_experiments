@@ -353,6 +353,11 @@ class TakesCourse(PropertyDescriptor):
 
 
 @dataclass(eq=False)
+class Tenured(PropertyDescriptor):
+    """Tenured"""
+
+
+@dataclass(eq=False)
 class WorksFor(PropertyDescriptor, HasInverseProperty, HasChainAxioms):
     """WorksFor"""
 

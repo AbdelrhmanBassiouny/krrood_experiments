@@ -62,26 +62,26 @@ def generate_owl2bench_with_predicates(
 ):
     # Provide default overrides for common LUBM datatype properties
     _default_overrides = {
-        "Person": {
-            "age": "int",
-            "telephone": "str",
-            "title": "str",
-            "email_address": "str",
-        },
-        "Professor": {
-            "tenured": "bool",
-        },
-        "Publication": {
-            "publication_date": "str",
-        },
-        "Software": {
-            "software_version": "str",
-        },
-        "Thing": {
-            "name": "str",
-            "office_number": "int",
-            "research_interest": "str",
-        },
+        # "Person": {
+        #     "has_age": "int",
+        #     "telephone": "str",
+        #     "title": "str",
+        #     "email_address": "str",
+        # },
+        # "Professor": {
+        #     "tenured": "bool",
+        # },
+        # "Publication": {
+        #     "publication_date": "str",
+        # },
+        # "Software": {
+        #     "software_version": "str",
+        # },
+        # "Thing": {
+        #     "name": "str",
+        #     "office_number": "int",
+        #     "research_interest": "str",
+        # },
     }
     converter = OwlToPythonConverter(predefined_data_types=_default_overrides)
     converter.load_ontology(file_name)
