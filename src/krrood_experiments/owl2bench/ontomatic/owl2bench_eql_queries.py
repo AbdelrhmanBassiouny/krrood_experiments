@@ -96,7 +96,7 @@ def get_eql_queries(
     q16 = QueryWithSelectables(q16, {"x": o}, 16)
 
     p1 = variable(Faculty, domain=None)
-    q19 = an(entity(p1).distinct(p1.uri))
+    q19 = an(entity(p1))
     q19 = QueryWithSelectables(q19, {"x": p1}, 19)
 
     p1 = variable(Person, domain=None)

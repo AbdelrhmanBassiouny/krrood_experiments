@@ -134,6 +134,14 @@ def evaluate_queries(iterations_per_query: int = 10):
             )
             current_owlready2_runtimes.append((time.time() - start) * 1000)
 
+            print(
+                len(sql_results)
+                , len(sparql_results)
+                , len(eql_results)
+                , len(rdflib_results)
+                , len(owlready2_results)
+            )
+
             assert (
                 len(sql_results)
                 == len(sparql_results)
@@ -164,4 +172,4 @@ def evaluate_queries(iterations_per_query: int = 10):
 
 
 if __name__ == "__main__":
-    evaluate_queries(1)
+    evaluate_queries(10)
