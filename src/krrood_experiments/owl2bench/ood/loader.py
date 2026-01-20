@@ -1,18 +1,14 @@
 from __future__ import annotations
 
 import warnings
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict
 
 from SPARQLWrapper import SPARQLWrapper
-from rdflib import Graph, Namespace, RDF, RDFS, URIRef, Literal
 
 from .model.base import *
-from .model.organizations import *
-from .model.college_disciplines import *
-from .model.programs import *
 from .model.interests import *
+from .model.organizations import *
+from .model.programs import *
 
 
 class OntologyLoadError(Exception):

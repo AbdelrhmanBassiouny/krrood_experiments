@@ -7,9 +7,8 @@ from krrood.ormatic.ormatic import ORMatic
 from krrood.ormatic.utils import classes_of_module
 from krrood.utils import recursive_subclasses
 
-import krrood_experiments.owl2bench.ood.model.college_disciplines
-import krrood_experiments.owl2bench.ood.model.base
-import krrood_experiments.owl2bench.ood.model.interests
+import krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates
+import krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates_base
 
 
 import krrood_experiments.owl2bench.ood.model.programs
@@ -18,17 +17,11 @@ import krrood_experiments.owl2bench.ood.model.organizations
 
 
 def generate_orm() -> None:
-    all_classes = classes_of_module(krrood_experiments.owl2bench.ood.model.base)
-    all_classes += classes_of_module(
-        krrood_experiments.owl2bench.ood.model.college_disciplines
+    all_classes = classes_of_module(
+        krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates
     )
-    all_classes += classes_of_module(krrood_experiments.owl2bench.ood.model.interests)
     all_classes += classes_of_module(
-        krrood_experiments.owl2bench.ood.model.organizations
-    )
-    all_classes += classes_of_module(krrood_experiments.owl2bench.ood.model.programs)
-    all_classes += classes_of_module(
-        krrood_experiments.owl2bench.ood.model.publications
+        krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates_base
     )
 
     # only keep dataclasses
@@ -53,7 +46,7 @@ def generate_orm() -> None:
                 "src",
                 "krrood_experiments",
                 "owl2bench",
-                "ood",
+                "ontomatic",
                 "orm",
                 "ormatic_interface.py",
             )

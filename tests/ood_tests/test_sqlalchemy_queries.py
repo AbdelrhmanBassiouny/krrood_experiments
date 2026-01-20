@@ -7,8 +7,8 @@ from krrood.ormatic.utils import drop_database, create_engine
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
-from owl2bench.orm.ormatic_interface import *
-import owl2bench.sqlalchemy_queries  # type: ignore
+import krrood_experiments.owl2bench.ood.sqlalchemy_queries
+from krrood_experiments.owl2bench.ood.orm.ormatic_interface import *
 
 
 @pytest.fixture(scope="session")
@@ -30,7 +30,7 @@ def sqlalchemy_session(world_from_graph_db):
     "sql_query_obj",
     [
         pytest.param(q, id=f"q{q.sparql_query.number}")
-        for q in owl2bench.sqlalchemy_queries.all_queries
+        for q in krrood_experiments.owl2bench.ood.sqlalchemy_queries.all_queries
         # if owl2bench.sparql_queries.OWLProfile.RL in q.sparql_query.profile
     ],
 )

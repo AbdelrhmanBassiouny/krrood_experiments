@@ -4,17 +4,17 @@ import runpy
 import SPARQLWrapper
 import pytest
 
-from owl2bench.loader import WorldLoader
+from krrood_experiments.owl2bench.ood.loader import WorldLoader
 
 
 def pytest_sessionstart(session) -> None:
     """
-    Generate the ORM at the start of the test run.
+    Generate the ORM at the start of the ontomatic_tests run.
     """
 
     this_file_path = os.path.abspath(__file__)
     runpy.run_path(
-        os.path.join(this_file_path, "..", "..", "scripts", "generate_orm.py"),
+        os.path.join(this_file_path, "..", "..", "..", "scripts", "generate_orm.py"),
         run_name="__main__",
     )
 

@@ -3,9 +3,9 @@ from dataclasses import dataclass
 from sqlalchemy import select, Select
 from sqlalchemy.orm import aliased
 
-from .orm.ormatic_interface import *
+from krrood_experiments.owl2bench.ood.orm.ormatic_interface import *
 
-from . import sparql_queries
+from krrood_experiments.owl2bench import sparql_queries
 from sqlalchemy import func
 
 

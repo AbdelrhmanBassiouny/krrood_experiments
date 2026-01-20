@@ -1,8 +1,8 @@
 import pytest
 from SPARQLWrapper import SPARQLWrapper, JSON
 
-from owl2bench.loader import WorldLoader
-from owl2bench.model.base import (
+from krrood_experiments.owl2bench.ood.loader import WorldLoader
+from krrood_experiments.owl2bench.ood.model.base import (
     Person,
     Organization,
     CollegeDiscipline,
@@ -10,8 +10,14 @@ from owl2bench.model.base import (
     Program,
     Interest,
 )
-from owl2bench.model.organizations import University, College, Department, ResearchGroup
-from owl2bench.model.interests import Cricket
+from krrood_experiments.owl2bench.ood.model.organizations import (
+    University,
+    College,
+    Department,
+    ResearchGroup,
+)
+from krrood_experiments.owl2bench.ood.model.interests import Cricket
+
 
 @pytest.fixture(scope="session")
 def sparql_wrapper():
@@ -271,8 +277,7 @@ def test_get_interests(sparql_wrapper):
 
 def test_t20_cricket_interest_exists(sparql_wrapper):
 
-
-    # We manually add a Cricket individual to the graph for this test
+    # We manually add a Cricket individual to the graph for this ontomatic_tests
     # because the base ontology has Cricket as a class, and Cricket as an individual
     # of type Cricket.
     loader = WorldLoader(sparql_wrapper)

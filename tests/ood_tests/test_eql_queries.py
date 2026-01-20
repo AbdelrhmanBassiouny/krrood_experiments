@@ -1,14 +1,14 @@
 import pytest
 
-import owl2bench.eql_queries
 import SPARQLWrapper
+import krrood_experiments.owl2bench.ood.eql_queries
 
 
 @pytest.mark.parametrize(
     "eql_query_obj",
     [
         pytest.param(q, id=f"q{q.sparql_query.number}")
-        for q in owl2bench.eql_queries.all_queries
+        for q in krrood_experiments.owl2bench.ood.eql_queries.all_queries
         # if owl2bench.sparql_queries.OWLProfile.RL in q.sparql_query.profile
     ],
 )

@@ -20,11 +20,14 @@ from krrood.entity_query_language.symbolic import (
 from .model.interests import Cricket
 from .model.base import Course
 from .model.programs import UndergraduateProgram
-from .model.organizations import College
-from .model.college_disciplines import MaterialScienceEngineering, Engineering
-from .model.organizations import University
+from .model.organizations import College, University
+from .model.college_disciplines import (
+    MaterialScienceEngineering,
+    Engineering,
+)
+
 from .model.base import World, Person, Organization
-from . import sparql_queries
+from .. import sparql_queries
 
 
 @dataclass
