@@ -27,6 +27,9 @@ from krrood_experiments.owl2bench.sparql_queries import OWLProfile
 from krrood_experiments.owl2bench.ontomatic.sqlalchemy_queries import all_queries
 
 engine = create_engine(os.environ["KRROOD_EXPERIMENTS_DATABASE_URI"])
+# engine = create_engine(
+#     "postgresql+psycopg2://krrood_experiments:krrood_experiments@localhost:5432/krrood_experiments"
+# )
 
 drop_database(engine)
 Base.metadata.create_all(engine)
@@ -67,7 +70,11 @@ sparql_queries = [
 
 pbar = tqdm.tqdm(all_queries)
 for sqlalchemy_query in pbar:
-    pbar.set_description(f"Evaluating query {sqlalchemy_query.sparql_query.number}")
+    for _ in range(2):
+        pbar.set_description(f"Evaluating query {sqlalchemy_query.sparql_query.number}")
 
-    sql_results = list(session.execute(sqlalchemy_query.statement).all())
-    print(f"SQLAlchemy results: {len(sql_results)}")
+        sql_results = list(session.execute(sqlalchemy_query.statement).all())
+        print(f"SQLAlchemy results: {len(sql_results)}")
+
+        # reset sqlalchemy loadings
+        session.expunge_all()
