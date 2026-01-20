@@ -11,14 +11,13 @@ from typing import List, Any, Tuple
 from krrood.entity_query_language.symbolic import An, UnificationDict
 from owlrl import DeductiveClosure, OWLRL_Semantics
 from rdflib import Graph
-from sqlalchemy.sql.operators import contains
-from typing_extensions import Dict
+from typing_extensions import Dict, Optional
 
-from .owl_instances_loader import (
+from krrood.ontomatic.ontology_to_python.owl_instances_loader import (
     OwlLoader,
     OwlInstancesRegistry,
 )
-from .owl_to_python import OwlToPythonConverter
+from krrood.ontomatic.ontology_to_python.owl_to_python import OwlToPythonConverter
 
 
 def generate_lubm_with_predicates(clean: bool = False):
@@ -58,51 +57,37 @@ def generate_lubm_with_predicates(clean: bool = False):
     converter.save_to_file(output_path)
 
 
-def generate_owl2bench_with_predicates(clean: bool = False, save_to_file: bool = True):
+def generate_owl2bench_with_predicates(
+    file_name: str, save_to_file: Optional[str] = None
+):
     # Provide default overrides for common LUBM datatype properties
     _default_overrides = {
-        "Person": {
-            "age": "int",
-            "telephone": "str",
-            "title": "str",
-            "email_address": "str",
-        },
-        "Professor": {
-            "tenured": "bool",
-        },
-        "Publication": {
-            "publication_date": "str",
-        },
-        "Software": {
-            "software_version": "str",
-        },
-        "Thing": {
-            "name": "str",
-            "office_number": "int",
-            "research_interest": "str",
-        },
+        # "Person": {
+        #     "has_age": "int",
+        #     "telephone": "str",
+        #     "title": "str",
+        #     "email_address": "str",
+        # },
+        # "Professor": {
+        #     "tenured": "bool",
+        # },
+        # "Publication": {
+        #     "publication_date": "str",
+        # },
+        # "Software": {
+        #     "software_version": "str",
+        # },
+        # "Thing": {
+        #     "name": "str",
+        #     "office_number": "int",
+        #     "research_interest": "str",
+        # },
     }
     converter = OwlToPythonConverter(predefined_data_types=_default_overrides)
-    resources_path = os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "..",
-        "owl2bench",
-        "resources",
-        "refactored_ontologies",
-    )
-    # base_name = "OWL2RL-1"
-    base_name = "owl2benchRlFixed"
-    suffix = ".owl"
-    suffix_reasoned = ".rdf"
-    file_name = f"{base_name}_clean.owl" if clean else f"{base_name}.owl"
-    converter.load_ontology(os.path.join(resources_path, file_name))
+    converter.load_ontology(file_name)
     if save_to_file:
         # Save into the package module so tests import the updated code
-        output_path = os.path.join(
-            os.path.dirname(__file__), "owl2bench/owl2bench_with_predicates.py"
-        )
-        converter.save_to_file(output_path)
+        converter.save_to_file(save_to_file)
     return
 
 
@@ -141,14 +126,21 @@ def evaluate_eql(
 
 def load_instances_for_lubm_with_predicates() -> OwlInstancesRegistry:
     """Load instances from the given path and add them to the given model module."""
-    from .lubm import (
+    from ...lubm import (
         lubm_with_predicates,
         lubm_with_predicates_properties,
         lubm_with_predicates_base,
     )
 
     folder_path = Path(
-        f"{dirname(__file__)}", "", "../../..", "..", "lubm", "resources", "instances"
+        f"{dirname(__file__)}",
+        "..",
+        "..",
+        "..",
+        "..",
+        "lubm",
+        "resources",
+        "instances",
     )
     files = [f.name for f in folder_path.iterdir() if f.is_file()]
     files.sort(key=lambda x: int(x.split("_")[1].split(".")[0]))
@@ -162,33 +154,18 @@ def load_instances_for_lubm_with_predicates() -> OwlInstancesRegistry:
 
 
 def load_instances_for_owl2bench_with_predicates(
-    reasoned: bool = False, clean: bool = True
+    file_name: str,
 ) -> OwlInstancesRegistry:
     """Load instances from the given path and add them to the given model module."""
-    suffix = ".owl" if not reasoned else ".rdf"
+
     from . import (
         owl2bench_with_predicates,
     )
     from . import owl2bench_with_predicates_properties
     from . import owl2bench_with_predicates_base
 
-    folder_path = Path(
-        f"{dirname(__file__)}",
-        "",
-        "../../..",
-        "..",
-        "resources",
-        "refactored_ontologies",
-    )
-    files = [
-        f.name
-        for f in folder_path.iterdir()
-        if f.is_file()
-        and f.suffix == suffix
-        and (not clean or contains(f.name, "clean"))
-    ]
     registry = OwlLoader.load_multi_file_instances(
-        [os.path.join(folder_path, file) for file in files],
+        [file_name],
         base_module=owl2bench_with_predicates_base,
         classes_module=owl2bench_with_predicates,
         properties_module=owl2bench_with_predicates_properties,

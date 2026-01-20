@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import os.path
 
+import pytest
+
 from krrood_experiments.owl2bench.ontomatic.owl_to_python import OwlToPythonConverter
 
 
+@pytest.mark.skip("unclean ontologies are not supported anymore")
 def test_age_name_and_tenured_types():
     overrides = {
         "Person": {

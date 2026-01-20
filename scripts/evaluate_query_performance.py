@@ -1,20 +1,28 @@
 import os
 import time
 from typing import List
+
 import SPARQLWrapper
-import rdflib
 import owlready2
+import rdflib
 import tqdm
-from krrood.ormatic.dao import to_dao
+from krrood.ormatic.dao import to_dao, ToDataAccessObjectState
 from krrood.ormatic.utils import create_engine, drop_database
 from sqlalchemy.orm import sessionmaker
 
-from krrood_experiments.owl2bench.ood.orm import Base, WorldDAO
-from krrood_experiments.owl2bench.ood.loader import WorldLoader
-from krrood_experiments.owl2bench.sparql_queries import OWLProfile
+import krrood_experiments.owl2bench.ontomatic.sqlalchemy_queries
 import krrood_experiments.owl2bench.sparql_queries
-import krrood_experiments.owl2bench.ood.eql_queries
-from owl2bench import Backend, QueryTiming, LatexPerformanceExporter
+from krrood_experiments.owl2bench.ontomatic.helpers import (
+    load_instances_for_owl2bench_with_predicates,
+)
+from krrood_experiments.owl2bench.ontomatic.owl2bench_eql_queries import get_eql_queries
+from krrood_experiments.owl2bench.ontomatic.orm.ormatic_interface import Base
+from krrood_experiments.owl2bench.ood.performance_utils import (
+    Backend,
+    QueryTiming,
+    LatexPerformanceExporter,
+)
+from krrood_experiments.owl2bench.sparql_queries import OWLProfile
 
 
 def evaluate_queries(iterations_per_query: int = 10):
@@ -22,7 +30,12 @@ def evaluate_queries(iterations_per_query: int = 10):
     sparql.setReturnFormat(SPARQLWrapper.JSON)
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    rdf_file_path = os.path.join(dir_path, "..", "resources", "statements.rdf")
+    rdf_file_path = os.path.join(
+        dir_path, "..", "resources", "owl2bench_statements_reasoned.rdf"
+    )
+    unreasoned_owl2bench_file_path = os.path.join(
+        dir_path, "..", "resources", "owl2bench_statements_unreasoned.rdf"
+    )
 
     print("Setting up backends for query evaluation...")
 
@@ -34,16 +47,23 @@ def evaluate_queries(iterations_per_query: int = 10):
     )
 
     # KRROOD EQL setup
-    loader = WorldLoader(sparql)
-    loader.parse()
+    registry = load_instances_for_owl2bench_with_predicates(
+        unreasoned_owl2bench_file_path
+    )
 
     # KRROOD SQLAlchemy setup
     engine = create_engine(os.environ["KRROOD_EXPERIMENTS_DATABASE_URI"])
     drop_database(engine)
     Base.metadata.create_all(engine)
     session = sessionmaker(engine)()
-    dao: WorldDAO = to_dao(loader.world)
-    session.add(dao)
+
+    state = ToDataAccessObjectState()
+    for instance in tqdm.tqdm(
+        [v for uri_vs in registry._by_uri.values() for v in uri_vs]
+    ):
+        dao = to_dao(instance, state)
+        session.add(dao)
+
     session.commit()
     session.expunge_all()
 
@@ -62,16 +82,12 @@ def evaluate_queries(iterations_per_query: int = 10):
         # Find the corresponding sqlalchemy query
         sqlalchemy_query = [
             q
-            for q in krrood_experiments.owl2bench.ood.sqlalchemy_queries.all_queries
+            for q in krrood_experiments.owl2bench.ontomatic.sqlalchemy_queries.all_queries
             if q.sparql_query == sparql_query
         ][0]
 
         # Find the corresponding eql query
-        eql_query = [
-            q
-            for q in krrood_experiments.owl2bench.ood.eql_queries.all_queries
-            if q.sparql_query == sparql_query
-        ][0]
+        eql_query = [q for q in get_eql_queries() if q.id_ == sparql_query.number][0]
 
         current_sqlalchemy_runtimes = []
         current_sparqlwrapper_runtimes = []
@@ -90,24 +106,24 @@ def evaluate_queries(iterations_per_query: int = 10):
 
             # Execute SQLAlchemy query
             start = time.time()
-            sql_results = session.execute(sqlalchemy_query.statement).all()
-            current_sqlalchemy_runtimes.append(time.time() - start)
+            sql_results = list(session.execute(sqlalchemy_query.statement).all())
+            current_sqlalchemy_runtimes.append((time.time() - start) * 1000)
 
             # Execute SPARQL query
             sparql.setQuery(sparql_query.raw_sparql_string)
             start = time.time()
-            sparql_results = sparql.query().convert()
-            current_sparqlwrapper_runtimes.append(time.time() - start)
+            sparql_results = list(sparql.query().convert()["results"]["bindings"])
+            current_sparqlwrapper_runtimes.append((time.time() - start) * 1000)
 
             # Execute EQL query
             start = time.time()
-            eql_results = list(eql_query.query(loader.world).evaluate())
-            current_eql_runtimes.append(time.time() - start)
+            eql_results = list(eql_query.evaluate())
+            current_eql_runtimes.append((time.time() - start) * 1000)
 
             # Execute RDFLib query
             start = time.time()
             rdflib_results = list(rdflib_graph.query(sparql_query.raw_sparql_string))
-            current_rdflib_runtimes.append(time.time() - start)
+            current_rdflib_runtimes.append((time.time() - start) * 1000)
 
             # Execute Owlready2 query
             start = time.time()
@@ -116,11 +132,19 @@ def evaluate_queries(iterations_per_query: int = 10):
                     sparql_query.raw_sparql_string, error_on_undefined_entities=False
                 )
             )
-            current_owlready2_runtimes.append(time.time() - start)
+            current_owlready2_runtimes.append((time.time() - start) * 1000)
+
+            print(
+                len(sql_results)
+                , len(sparql_results)
+                , len(eql_results)
+                , len(rdflib_results)
+                , len(owlready2_results)
+            )
 
             assert (
                 len(sql_results)
-                == len(sparql_results["results"]["bindings"])
+                == len(sparql_results)
                 == len(eql_results)
                 == len(rdflib_results)
                 == len(owlready2_results)
@@ -148,4 +172,4 @@ def evaluate_queries(iterations_per_query: int = 10):
 
 
 if __name__ == "__main__":
-    evaluate_queries(1)
+    evaluate_queries(10)

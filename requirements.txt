@@ -16,4 +16,5 @@ krrood
 rustworkx
 sqlalchemy
 ripple_down_rules
+psycopg2-binary
 

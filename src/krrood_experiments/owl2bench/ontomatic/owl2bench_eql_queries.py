@@ -11,38 +11,31 @@ from krrood.entity_query_language.entity import (
     contains,
     variable_from,
     flatten,
+    exists_on,
+    length,
 )
+import krrood.entity_query_language.entity as eql
 from krrood.entity_query_language.entity_result_processors import (
     a,
     an,
+    count,
 )
-from krrood.entity_query_language.predicate import symbolic_function
+from krrood.entity_query_language.predicate import symbolic_function, HasType
 from krrood.entity_query_language.symbol_graph import SymbolGraph
-from ripple_down_rules.utils import recursive_subclasses
 from typing_extensions import Any, Optional, Callable, Iterable
 
 from krrood_experiments.owl2bench.ontomatic.helpers import (
-    evaluate_eql,
     QueryWithSelectables,
-    load_instances_for_owl2bench_with_predicates,
+)
+from krrood_experiments.owl2bench.ontomatic.helpers import (
+    evaluate_eql,
 )
 from krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates import (
-    Department,
     Student,
     University,
-    Publication,
-    Professor,
     Person,
-    Chair,
-    AssociateProfessor,
-    ResearchGroup,
     Organization,
     T20CricketFan,
-    Science,
-    College,
-    WomanCollege,
-    LeisureStudent,
-    UGStudent,
     Faculty,
     Engineering,
 )
@@ -54,12 +47,12 @@ def get_eql_queries(
     # 1 (No joining, just filtration of graduate students through taking a certain course)
     p = variable(Person, domain=None)
     o1 = variable_from(p.is_member_of)
-    q2 = a(set_of(p, o1).distinct(p.uri, o1.uri))
+    q2 = a(set_of(p, o1))
     q2 = QueryWithSelectables(q2, {"x": p, "y": o1}, 2)
 
     o1 = variable(Organization, domain=None)
     o2 = variable_from(o1.is_part_of)
-    q3 = an(set_of(o1, o2).distinct(o1.uri, o2.uri))
+    q3 = an(set_of(o1, o2))
     q3 = QueryWithSelectables(q3, {"x": o1, "y": o2}, 3)
 
     p = variable(Person, domain=None)
@@ -94,20 +87,16 @@ def get_eql_queries(
     q12 = an(entity(p1).distinct(p1.uri))
     q12 = QueryWithSelectables(q12, {"x": p1}, 12)
 
-    @symbolic_function
-    def length(lst):
-        return len(lst)
-
     p = variable(Person, domain=None)
-    q15 = an(entity(p).where(length(p.is_head_of) > 0))
+    q15 = an(entity(p).where(p.is_head_of))
     q15 = QueryWithSelectables(q15, {"x": p}, 15)
 
     o = variable(Organization, domain=None)
-    q16 = an(entity(o).where(length(o.has_head) > 0).distinct(o.uri))
+    q16 = an(entity(o).where(o.has_head))
     q16 = QueryWithSelectables(q16, {"x": o}, 16)
 
     p1 = variable(Faculty, domain=None)
-    q19 = an(entity(p1).distinct(p1.uri))
+    q19 = an(entity(p1))
     q19 = QueryWithSelectables(q19, {"x": p1}, 19)
 
     p1 = variable(Person, domain=None)
@@ -116,17 +105,16 @@ def get_eql_queries(
     q20 = QueryWithSelectables(q20, {"x": p1, "y": p2}, 20)
 
     s = variable(Student, domain=None)
-    so = flatten(s.is_student_of)
-    po = flatten(so.is_part_of)
-    q21 = an(
-        set_of(s, so).where(contains(po.has_college_discipline.uri, "Engineering"))
-    )
+    so = variable_from(s.is_student_of)
+    po = variable_from(so.is_part_of)
+    cd = variable_from(po.has_college_discipline)
+    q21 = an(set_of(s, so).where(exists_on(so, eql.type(cd) == Engineering)))
     q21 = QueryWithSelectables(q21, {"x": s, "y": so}, 21)
 
     s = variable(Student, domain=None)
     o = variable(Organization, domain=None)
-    z = flatten(o.has_dean)
-    c = flatten(z.teaches_course)
+    z = variable_from(o.has_dean)
+    c = variable_from(z.teaches_course)
     q22 = an(set_of(s, c).where(contains(s.takes_course, c)).distinct(s.uri, c.uri))
     q22 = QueryWithSelectables(q22, {"s": s, "c": c}, 22)
 
@@ -174,20 +162,10 @@ def process_value_for_owl2bench_answer_comparison(value: Any):
         return value
 
 
-if __name__ == "__main__":
-    loading_start_time = time.time()
-    registry = load_instances_for_owl2bench_with_predicates(reasoned=False, clean=True)
-    loading_time = time.time() - loading_start_time
-    print(f"Loading time: {loading_time} seconds")
-
+def evaluate_eql_and_sparql_queries():
     def instances_for_class(cls):
         for instance in SymbolGraph().get_instances_of_type(cls):
             yield instance
-
-    start_time = time.time()
-    q10_python_equivalent(instances_for_class)
-    end_time = time.time()
-    print(f"Q10 Python equivalent time: {end_time - start_time} seconds")
 
     start_time = time.time()
     queries_with_selectables = get_eql_queries(instances_for_class)
