@@ -46,18 +46,15 @@ class OrganizationMixinProtocol(OWL2BenchThing):
     has_employee_evaluation_committee: Set[EmployeeEvaluationCommittee]
     has_evaluation_committee: Set[EvaluationCommittee]
     has_faculty: Set[Faculty]
-    has_head: Set[Person]
     has_member: Set[Person]
     has_part: Set[Organization]
     has_student: Set[Student]
     has_student_evaluation_committee: Set[StudentEvaluationCommittee]
     has_sub_organization: Set[Organization]
     has_thesis_evaluation_committee: Set[ThesisEvaluationCommittee]
-    has_women_college: Set[Organization]
     is_affiliated_organization_of: Set[Organization]
     is_part_of: Set[Organization]
     is_sub_organization_of: Set[Organization]
-    is_women_college_of: Set[Organization]
     org_publication: Set[Publication]
 
 
@@ -86,7 +83,6 @@ class PersonMixinProtocol(OWL2BenchThing):
     is_advised_by: Set[Professor]
     is_crazy_about: Set[Interest]
     is_dean_of: Set[Organization]
-    is_head_of: Set[Organization]
     is_member_of: Set[Organization]
     likes: Set[Interest]
     loves: Set[Interest]
@@ -140,6 +136,7 @@ class College(Organization):
     has_college_discipline: Set[CollegeDiscipline] = field(default_factory=set)
     has_department: Set[Department] = field(default_factory=set)
     is_college_of: Set[University] = field(default_factory=set)
+    is_women_college_of: Set[University] = field(default_factory=set)
 
 
 
@@ -155,6 +152,7 @@ class Department(Organization):
     has_associate_professor: Set[AssociateProfessor] = field(default_factory=set)
     has_clerical_staff: Set[ClericalStaff] = field(default_factory=set)
     has_full_professor: Set[FullProfessor] = field(default_factory=set)
+    has_head: Set[FullProfessor] = field(default_factory=set)
     has_lecturer: Set[Lecturer] = field(default_factory=set)
     has_other_staff: Set[OtherStaff] = field(default_factory=set)
     has_pg_program: Set[PGProgram] = field(default_factory=set)
@@ -175,7 +173,6 @@ class Department(Organization):
 class Employee(PersonMixinProtocol, Symbol):
     has_work: Set[Work] = field(default_factory=set)
     is_clerical_staff_of: Set[Organization] = field(default_factory=set)
-    is_head_of: Set[Organization] = field(default_factory=set)
     is_other_staff_of: Set[Organization] = field(default_factory=set)
     is_supporting_staff_of: Set[Organization] = field(default_factory=set)
     is_system_staff_of: Set[Organization] = field(default_factory=set)
@@ -350,6 +347,7 @@ class University(Organization):
     has_alumnus: Set[Person] = field(default_factory=set)
     has_college: Set[College] = field(default_factory=set)
     has_research_group: Set[ResearchGroup] = field(default_factory=set)
+    has_women_college: Set[College] = field(default_factory=set)
 
 
 
@@ -512,6 +510,7 @@ class English(HumanitiesAndSocial):
 @dataclass(eq=False)
 class FacultyMixinProtocol(Employee):
     is_faculty_of: Set[Organization]
+    is_head_of: Set[Organization]
     teaches_course: Set[Course]
 
 

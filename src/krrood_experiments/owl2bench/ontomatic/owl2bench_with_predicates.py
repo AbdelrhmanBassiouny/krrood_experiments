@@ -42,18 +42,15 @@ class Organization(OWL2BenchThing):
     has_employee_evaluation_committee: Set[EmployeeEvaluationCommittee] = field(kw_only=True, default_factory=set)
     has_evaluation_committee: Set[EvaluationCommittee] = field(kw_only=True, default_factory=set)
     has_faculty: Set[Faculty] = field(kw_only=True, default_factory=set)
-    has_head: Set[Person] = field(kw_only=True, default_factory=set)
     has_member: Set[Person] = field(kw_only=True, default_factory=set)
     has_part: Set[Organization] = field(kw_only=True, default_factory=set)
     has_student: Set[Student] = field(kw_only=True, default_factory=set)
     has_student_evaluation_committee: Set[StudentEvaluationCommittee] = field(kw_only=True, default_factory=set)
     has_sub_organization: Set[Organization] = field(kw_only=True, default_factory=set)
     has_thesis_evaluation_committee: Set[ThesisEvaluationCommittee] = field(kw_only=True, default_factory=set)
-    has_women_college: Set[Organization] = field(kw_only=True, default_factory=set)
     is_affiliated_organization_of: Set[Organization] = field(kw_only=True, default_factory=set)
     is_part_of: Set[Organization] = field(kw_only=True, default_factory=set)
     is_sub_organization_of: Set[Organization] = field(kw_only=True, default_factory=set)
-    is_women_college_of: Set[Organization] = field(kw_only=True, default_factory=set)
     org_publication: Set[Publication] = field(kw_only=True, default_factory=set)
 
 
@@ -78,7 +75,6 @@ class Person(OWL2BenchThing):
     is_advised_by: Set[Professor] = field(kw_only=True, default_factory=set)
     is_crazy_about: Set[Interest] = field(kw_only=True, default_factory=set)
     is_dean_of: Set[Organization] = field(kw_only=True, default_factory=set)
-    is_head_of: Set[Organization] = field(kw_only=True, default_factory=set)
     is_member_of: Set[Organization] = field(kw_only=True, default_factory=set)
     likes: Set[Interest] = field(kw_only=True, default_factory=set)
     loves: Set[Interest] = field(kw_only=True, default_factory=set)
@@ -123,6 +119,7 @@ class College(Organization):
     has_college_discipline: Set[CollegeDiscipline] = field(kw_only=True, default_factory=set)
     has_department: Set[Department] = field(kw_only=True, default_factory=set)
     is_college_of: Set[University] = field(kw_only=True, default_factory=set)
+    is_women_college_of: Set[University] = field(kw_only=True, default_factory=set)
 
 
 School = College
@@ -144,6 +141,7 @@ class Department(Organization):
     has_associate_professor: Set[AssociateProfessor] = field(kw_only=True, default_factory=set)
     has_clerical_staff: Set[ClericalStaff] = field(kw_only=True, default_factory=set)
     has_full_professor: Set[FullProfessor] = field(kw_only=True, default_factory=set)
+    has_head: Set[FullProfessor] = field(kw_only=True, default_factory=set)
     has_lecturer: Set[Lecturer] = field(kw_only=True, default_factory=set)
     has_other_staff: Set[OtherStaff] = field(kw_only=True, default_factory=set)
     has_pg_program: Set[PGProgram] = field(kw_only=True, default_factory=set)
@@ -166,7 +164,6 @@ class Employee(Role[Person], Symbol):
     person: Person
     has_work: Set[Work] = field(kw_only=True, default_factory=set)
     is_clerical_staff_of: Set[Organization] = field(kw_only=True, default_factory=set)
-    is_head_of: Set[Organization] = field(kw_only=True, default_factory=set)
     is_other_staff_of: Set[Organization] = field(kw_only=True, default_factory=set)
     is_supporting_staff_of: Set[Organization] = field(kw_only=True, default_factory=set)
     is_system_staff_of: Set[Organization] = field(kw_only=True, default_factory=set)
@@ -181,13 +178,14 @@ class Employee(Role[Person], Symbol):
     def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(Employee, cls, candidate)
         
-        return (HasProperty(candidate_var, WorksFor),
+        return (exists(IsSubClassOrRole(variable_from(candidate_var.types), Person)),
+				HasProperty(candidate_var, WorksFor),
 				exists(IsSubClassOrRole(variable_from(candidate_var.works_for.types), Organization))
         )
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, WorksFor) and any(issubclass_or_role(t, Organization) for attr in candidate.works_for for t in attr.types)
+        return any(issubclass_or_role(t, Person) for t in candidate.types) and HasProperty(candidate, WorksFor) and any(issubclass_or_role(t, Organization) for attr in candidate.works_for for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -281,13 +279,14 @@ class PeopleWithHobby(Role[Person], Symbol):
     def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(PeopleWithHobby, cls, candidate)
         
-        return (HasProperty(candidate_var, Likes),
+        return (exists(IsSubClassOrRole(variable_from(candidate_var.types), Person)),
+				HasProperty(candidate_var, Likes),
 				exists(IsSubClassOrRole(variable_from(candidate_var.likes.types), Interest))
         )
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, Likes) and any(issubclass_or_role(t, Interest) for attr in candidate.likes for t in attr.types)
+        return any(issubclass_or_role(t, Person) for t in candidate.types) and HasProperty(candidate, Likes) and any(issubclass_or_role(t, Interest) for attr in candidate.likes for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -353,13 +352,14 @@ class Student(Role[Person], Symbol):
     def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(Student, cls, candidate)
         
-        return (HasProperty(candidate_var, EnrollIn),
+        return (exists(IsSubClassOrRole(variable_from(candidate_var.types), Person)),
+				HasProperty(candidate_var, EnrollIn),
 				exists(IsSubClassOrRole(variable_from(candidate_var.enroll_in.types), Department))
         )
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, EnrollIn) and any(issubclass_or_role(t, Department) for attr in candidate.enroll_in for t in attr.types)
+        return any(issubclass_or_role(t, Person) for t in candidate.types) and HasProperty(candidate, EnrollIn) and any(issubclass_or_role(t, Department) for attr in candidate.enroll_in for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -378,6 +378,7 @@ class University(Organization):
     has_alumnus: Set[Person] = field(kw_only=True, default_factory=set)
     has_college: Set[College] = field(kw_only=True, default_factory=set)
     has_research_group: Set[ResearchGroup] = field(kw_only=True, default_factory=set)
+    has_women_college: Set[College] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
@@ -514,19 +515,21 @@ class English(HumanitiesAndSocial):
 class Faculty(Employee):
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Faculty"
     is_faculty_of: Set[Organization] = field(kw_only=True, default_factory=set)
+    is_head_of: Set[Organization] = field(kw_only=True, default_factory=set)
     teaches_course: Set[Course] = field(kw_only=True, default_factory=set)
 
     @classmethod
     def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(Faculty, cls, candidate)
         
-        return (HasProperty(candidate_var, TeachesCourse),
+        return (exists(IsSubClassOrRole(variable_from(candidate_var.types), Employee)),
+				HasProperty(candidate_var, TeachesCourse),
 				exists(IsSubClassOrRole(variable_from(candidate_var.teaches_course.types), Course))
         )
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, TeachesCourse) and any(issubclass_or_role(t, Course) for attr in candidate.teaches_course for t in attr.types)
+        return any(issubclass_or_role(t, Employee) for t in candidate.types) and HasProperty(candidate, TeachesCourse) and any(issubclass_or_role(t, Course) for attr in candidate.teaches_course for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -589,13 +592,14 @@ class LeisureStudent(Role[Student], Symbol):
     def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(LeisureStudent, cls, candidate)
         
-        return (HasProperty(candidate_var, TakesCourse),
+        return (exists(IsSubClassOrRole(variable_from(candidate_var.types), Student)),
+				HasProperty(candidate_var, TakesCourse),
 				count(IsSubClassOrRole(variable_from(candidate_var.takes_course.types), Course)) <= 1
         )
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, TakesCourse) and (len([v for v in candidate.takes_course if any(issubclass_or_role(t, Course) for t in v.types) ]) <= 1)
+        return any(issubclass_or_role(t, Student) for t in candidate.types) and HasProperty(candidate, TakesCourse) and (len([v for v in candidate.takes_course if any(issubclass_or_role(t, Course) for t in v.types) ]) <= 1)
 
 
 @dataclass(eq=False)
@@ -671,13 +675,14 @@ class PGStudent(Student):
     def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(PGStudent, cls, candidate)
         
-        return (HasProperty(candidate_var, EnrollFor),
+        return (exists(IsSubClassOrRole(variable_from(candidate_var.types), Student)),
+				HasProperty(candidate_var, EnrollFor),
 				exists(IsSubClassOrRole(variable_from(candidate_var.enroll_for.types), PGProgram))
         )
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, EnrollFor) and any(issubclass_or_role(t, PGProgram) for attr in candidate.enroll_for for t in attr.types)
+        return any(issubclass_or_role(t, Student) for t in candidate.types) and HasProperty(candidate, EnrollFor) and any(issubclass_or_role(t, PGProgram) for attr in candidate.enroll_for for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -698,13 +703,14 @@ class PhDStudent(Student):
     def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(PhDStudent, cls, candidate)
         
-        return (HasProperty(candidate_var, EnrollFor),
+        return (exists(IsSubClassOrRole(variable_from(candidate_var.types), Student)),
+				HasProperty(candidate_var, EnrollFor),
 				exists(IsSubClassOrRole(variable_from(candidate_var.enroll_for.types), PhDProgram))
         )
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, EnrollFor) and any(issubclass_or_role(t, PhDProgram) for attr in candidate.enroll_for for t in attr.types)
+        return any(issubclass_or_role(t, Student) for t in candidate.types) and HasProperty(candidate, EnrollFor) and any(issubclass_or_role(t, PhDProgram) for attr in candidate.enroll_for for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -761,13 +767,14 @@ class ScienceStudent(Student):
     def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(ScienceStudent, cls, candidate)
         
-        return (HasProperty(candidate_var, HasMajor),
+        return (exists(IsSubClassOrRole(variable_from(candidate_var.types), Student)),
+				HasProperty(candidate_var, HasMajor),
 				exists(IsSubClassOrRole(variable_from(candidate_var.has_major.types), Science))
         )
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, HasMajor) and any(issubclass_or_role(t, Science) for attr in candidate.has_major for t in attr.types)
+        return any(issubclass_or_role(t, Student) for t in candidate.types) and HasProperty(candidate, HasMajor) and any(issubclass_or_role(t, Science) for attr in candidate.has_major for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -778,13 +785,14 @@ class SportsLover(PeopleWithHobby):
     def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(SportsLover, cls, candidate)
         
-        return (HasProperty(candidate_var, Loves),
+        return (exists(IsSubClassOrRole(variable_from(candidate_var.types), Person)),
+				HasProperty(candidate_var, Loves),
 				exists(IsSubClassOrRole(variable_from(candidate_var.loves.types), Sports))
         )
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, Loves) and any(issubclass_or_role(t, Sports) for attr in candidate.loves for t in attr.types)
+        return any(issubclass_or_role(t, Person) for t in candidate.types) and HasProperty(candidate, Loves) and any(issubclass_or_role(t, Sports) for attr in candidate.loves for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -828,13 +836,14 @@ class TeachingAssistant(Role[Student], Symbol):
     def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(TeachingAssistant, cls, candidate)
         
-        return (HasProperty(candidate_var, IsTeachingAssistantOf),
+        return (exists(IsSubClassOrRole(variable_from(candidate_var.types), Student)),
+				HasProperty(candidate_var, IsTeachingAssistantOf),
 				exists(IsSubClassOrRole(variable_from(candidate_var.is_teaching_assistant_of.types), Course))
         )
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, IsTeachingAssistantOf) and any(issubclass_or_role(t, Course) for attr in candidate.is_teaching_assistant_of for t in attr.types)
+        return any(issubclass_or_role(t, Student) for t in candidate.types) and HasProperty(candidate, IsTeachingAssistantOf) and any(issubclass_or_role(t, Course) for attr in candidate.is_teaching_assistant_of for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -866,13 +875,14 @@ class UGStudent(Student):
     def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(UGStudent, cls, candidate)
         
-        return (HasProperty(candidate_var, EnrollFor),
+        return (exists(IsSubClassOrRole(variable_from(candidate_var.types), Student)),
+				HasProperty(candidate_var, EnrollFor),
 				exists(IsSubClassOrRole(variable_from(candidate_var.enroll_for.types), UGProgram))
         )
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, EnrollFor) and any(issubclass_or_role(t, UGProgram) for attr in candidate.enroll_for for t in attr.types)
+        return any(issubclass_or_role(t, Student) for t in candidate.types) and HasProperty(candidate, EnrollFor) and any(issubclass_or_role(t, UGProgram) for attr in candidate.enroll_for for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -883,13 +893,14 @@ class WomanCollege(College):
     def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(WomanCollege, cls, candidate)
         candidate_has_student = variable_from(candidate_var.has_student)
-        return (HasProperty(candidate_var, HasStudent),
+        return (exists(IsSubClassOrRole(variable_from(candidate_var.types), College)),
+				HasProperty(candidate_var, HasStudent),
 				for_all(candidate_has_student, exists(IsSubClassOrRole(variable_from(candidate_has_student.types), Woman)))
         )
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, HasStudent) and all(any(issubclass(t, Woman) for t in attr.types) for attr in candidate.has_student)
+        return any(issubclass_or_role(t, College) for t in candidate.types) and HasProperty(candidate, HasStudent) and all(any(issubclass(t, Woman) for t in attr.types) for attr in candidate.has_student)
 
 
 @dataclass(eq=False)
@@ -900,13 +911,14 @@ class BasketBallLover(SportsLover):
     def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(BasketBallLover, cls, candidate)
         
-        return (HasProperty(candidate_var, Loves),
+        return (exists(IsSubClassOrRole(variable_from(candidate_var.types), Person)),
+				HasProperty(candidate_var, Loves),
 				exists(IsSubClassOrRole(variable_from(candidate_var.loves.types), BasketBall))
         )
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, Loves) and any(issubclass_or_role(t, BasketBall) for attr in candidate.loves for t in attr.types)
+        return any(issubclass_or_role(t, Person) for t in candidate.types) and HasProperty(candidate, Loves) and any(issubclass_or_role(t, BasketBall) for attr in candidate.loves for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -953,13 +965,14 @@ class SportsFan(SportsLover):
     def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(SportsFan, cls, candidate)
         
-        return (HasProperty(candidate_var, IsCrazyAbout),
+        return (exists(IsSubClassOrRole(variable_from(candidate_var.types), Person)),
+				HasProperty(candidate_var, IsCrazyAbout),
 				exists(IsSubClassOrRole(variable_from(candidate_var.is_crazy_about.types), Sports))
         )
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, IsCrazyAbout) and any(issubclass_or_role(t, Sports) for attr in candidate.is_crazy_about for t in attr.types)
+        return any(issubclass_or_role(t, Person) for t in candidate.types) and HasProperty(candidate, IsCrazyAbout) and any(issubclass_or_role(t, Sports) for attr in candidate.is_crazy_about for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -993,13 +1006,14 @@ class BasketBallFan(SportsFan):
     def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
         super_axiom, candidate_var = get_super_axiom_and_candidate_var(BasketBallFan, cls, candidate)
         
-        return (HasProperty(candidate_var, IsCrazyAbout),
+        return (exists(IsSubClassOrRole(variable_from(candidate_var.types), Person)),
+				HasProperty(candidate_var, IsCrazyAbout),
 				exists(IsSubClassOrRole(variable_from(candidate_var.is_crazy_about.types), BasketBall))
         )
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, IsCrazyAbout) and any(issubclass_or_role(t, BasketBall) for attr in candidate.is_crazy_about for t in attr.types)
+        return any(issubclass_or_role(t, Person) for t in candidate.types) and HasProperty(candidate, IsCrazyAbout) and any(issubclass_or_role(t, BasketBall) for attr in candidate.is_crazy_about for t in attr.types)
 
 
 @dataclass(eq=False)
@@ -1121,18 +1135,15 @@ Organization.has_employee = HasEmployee(Organization, 'has_employee')
 Organization.has_employee_evaluation_committee = HasEmployeeEvaluationCommittee(Organization, 'has_employee_evaluation_committee')
 Organization.has_evaluation_committee = HasEvaluationCommittee(Organization, 'has_evaluation_committee')
 Organization.has_faculty = HasFaculty(Organization, 'has_faculty')
-Organization.has_head = HasHead(Organization, 'has_head')
 Organization.has_member = HasMember(Organization, 'has_member')
 Organization.has_part = HasPart(Organization, 'has_part')
 Organization.has_student = HasStudent(Organization, 'has_student')
 Organization.has_student_evaluation_committee = HasStudentEvaluationCommittee(Organization, 'has_student_evaluation_committee')
 Organization.has_sub_organization = HasSubOrganization(Organization, 'has_sub_organization')
 Organization.has_thesis_evaluation_committee = HasThesisEvaluationCommittee(Organization, 'has_thesis_evaluation_committee')
-Organization.has_women_college = HasWomenCollege(Organization, 'has_women_college')
 Organization.is_affiliated_organization_of = IsAffiliatedOrganizationOf(Organization, 'is_affiliated_organization_of')
 Organization.is_part_of = IsPartOf(Organization, 'is_part_of')
 Organization.is_sub_organization_of = IsSubOrganizationOf(Organization, 'is_sub_organization_of')
-Organization.is_women_college_of = IsWomenCollegeOf(Organization, 'is_women_college_of')
 Organization.org_publication = OrgPublication(Organization, 'org_publication')
 Person.dislikes = Dislikes(Person, 'dislikes')
 Person.evaluated_by = EvaluatedBy(Person, 'evaluated_by')
@@ -1146,7 +1157,6 @@ Person.has_undergraduate_degree_from = HasUndergraduateDegreeFrom(Person, 'has_u
 Person.is_advised_by = IsAdvisedBy(Person, 'is_advised_by')
 Person.is_crazy_about = IsCrazyAbout(Person, 'is_crazy_about')
 Person.is_dean_of = IsDeanOf(Person, 'is_dean_of')
-Person.is_head_of = IsHeadOf(Person, 'is_head_of')
 Person.is_member_of = IsMemberOf(Person, 'is_member_of')
 Person.likes = Likes(Person, 'likes')
 Person.loves = Loves(Person, 'loves')
@@ -1155,11 +1165,13 @@ Publication.publication_research = PublicationResearch(Publication, 'publication
 College.has_college_discipline = HasCollegeDiscipline(College, 'has_college_discipline')
 College.has_department = HasDepartment(College, 'has_department')
 College.is_college_of = IsCollegeOf(College, 'is_college_of')
+College.is_women_college_of = IsWomenCollegeOf(College, 'is_women_college_of')
 Course.is_taught_by = IsTaughtBy(Course, 'is_taught_by')
 Department.has_assistant_professor = HasAssistantProfessor(Department, 'has_assistant_professor')
 Department.has_associate_professor = HasAssociateProfessor(Department, 'has_associate_professor')
 Department.has_clerical_staff = HasClericalStaff(Department, 'has_clerical_staff')
 Department.has_full_professor = HasFullProfessor(Department, 'has_full_professor')
+Department.has_head = HasHead(Department, 'has_head')
 Department.has_lecturer = HasLecturer(Department, 'has_lecturer')
 Department.has_other_staff = HasOtherStaff(Department, 'has_other_staff')
 Department.has_pg_program = HasPGProgram(Department, 'has_pg_program')
@@ -1175,7 +1187,6 @@ Department.is_department_of = IsDepartmentOf(Department, 'is_department_of')
 Department.offer_course = OfferCourse(Department, 'offer_course')
 Employee.has_work = HasWork(Employee, 'has_work')
 Employee.is_clerical_staff_of = IsClericalStaffOf(Employee, 'is_clerical_staff_of')
-Employee.is_head_of = IsHeadOf(Employee, 'is_head_of')
 Employee.is_other_staff_of = IsOtherStaffOf(Employee, 'is_other_staff_of')
 Employee.is_supporting_staff_of = IsSupportingStaffOf(Employee, 'is_supporting_staff_of')
 Employee.is_system_staff_of = IsSystemStaffOf(Employee, 'is_system_staff_of')
@@ -1192,7 +1203,9 @@ Student.takes_course = TakesCourse(Student, 'takes_course')
 University.has_alumnus = HasAlumnus(University, 'has_alumnus')
 University.has_college = HasCollege(University, 'has_college')
 University.has_research_group = HasResearchGroup(University, 'has_research_group')
+University.has_women_college = HasWomenCollege(University, 'has_women_college')
 Faculty.is_faculty_of = IsFacultyOf(Faculty, 'is_faculty_of')
+Faculty.is_head_of = IsHeadOf(Faculty, 'is_head_of')
 Faculty.teaches_course = TeachesCourse(Faculty, 'teaches_course')
 ResearchAssistant.is_research_assistant_of = IsResearchAssistantOf(ResearchAssistant, 'is_research_assistant_of')
 TeachingAssistant.is_teaching_assistant_of = IsTeachingAssistantOf(TeachingAssistant, 'is_teaching_assistant_of')
