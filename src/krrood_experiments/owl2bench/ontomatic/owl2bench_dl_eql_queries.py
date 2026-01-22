@@ -13,6 +13,9 @@ from krrood.entity_query_language.entity import (
     flatten,
     exists_on,
     length,
+    exists,
+    for_all,
+    not_,
 )
 import krrood.entity_query_language.entity as eql
 from krrood.entity_query_language.entity_result_processors import (
@@ -30,7 +33,7 @@ from krrood_experiments.owl2bench.ontomatic.helpers import (
 from krrood_experiments.owl2bench.ontomatic.helpers import (
     evaluate_eql,
 )
-from krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates import (
+from krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates_dl import (
     Student,
     University,
     Person,
@@ -38,12 +41,23 @@ from krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates import (
     T20CricketFan,
     Faculty,
     Engineering,
+    SelfAwarePerson,
+    College,
+    Science,
+    NonScience,
+)
+from krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates_dl_base import (
+    OWL2BenchThing,
 )
 
 
 def get_eql_queries(
     registry: Optional[Callable[[type], Iterable]] = None,
 ) -> List[QueryWithSelectables]:
+
+    t = variable(OWL2BenchThing, domain=None)
+    q1 = an(entity(t).where(length(t.knows) > 0))
+    q1 = QueryWithSelectables(q1, {"x": t}, 1)
 
     p = variable(Person, domain=None)
     o1 = variable_from(p.is_member_of)
@@ -63,6 +77,10 @@ def get_eql_queries(
     q5 = an(entity(p))
     q5 = QueryWithSelectables(q5, {"x": p}, 5)
 
+    p = variable(SelfAwarePerson, domain=None)
+    q6 = an(entity(p))
+    q6 = QueryWithSelectables(q6, {"x": p}, 6)
+
     u = variable(University, domain=None)
     p = variable_from(u.has_alumnus)
     q7 = an(set_of(u, p))
@@ -72,6 +90,14 @@ def get_eql_queries(
     o2 = variable_from(o1.is_affiliated_organization_of)
     q8 = an(set_of(o1, o2))
     q8 = QueryWithSelectables(q8, {"x": o1, "y": o2}, 8)
+
+    # c = variable(College, domain=None)
+    # cd = variable_from(c.has_college_discipline)
+    # q9 = an(entity(c).where(exists_on(c, not_(HasType(cd, Science)))))
+
+    c = variable(College, domain=None)
+    cd = variable_from(c.has_college_discipline)
+    q9 = an(entity(c).where(exists_on(c, HasType(cd, NonScience))))
 
     p1 = variable(Person, domain=None)
     p2 = variable_from(p1.has_collaboration_with)
