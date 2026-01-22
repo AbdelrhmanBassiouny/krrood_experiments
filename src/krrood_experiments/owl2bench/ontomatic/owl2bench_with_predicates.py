@@ -515,7 +515,6 @@ class English(HumanitiesAndSocial):
 class Faculty(Employee):
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Faculty"
     is_faculty_of: Set[Organization] = field(kw_only=True, default_factory=set)
-    is_head_of: Set[Organization] = field(kw_only=True, default_factory=set)
     teaches_course: Set[Course] = field(kw_only=True, default_factory=set)
 
     @classmethod
@@ -1020,6 +1019,7 @@ class BasketBallFan(SportsFan):
 class FullProfessor(Professor):
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#FullProfessor"
     is_full_professor_of: Set[Department] = field(kw_only=True, default_factory=set)
+    is_head_of: Set[Department] = field(kw_only=True, default_factory=set)
 
 
 @dataclass(eq=False)
@@ -1205,7 +1205,6 @@ University.has_college = HasCollege(University, 'has_college')
 University.has_research_group = HasResearchGroup(University, 'has_research_group')
 University.has_women_college = HasWomenCollege(University, 'has_women_college')
 Faculty.is_faculty_of = IsFacultyOf(Faculty, 'is_faculty_of')
-Faculty.is_head_of = IsHeadOf(Faculty, 'is_head_of')
 Faculty.teaches_course = TeachesCourse(Faculty, 'teaches_course')
 ResearchAssistant.is_research_assistant_of = IsResearchAssistantOf(ResearchAssistant, 'is_research_assistant_of')
 TeachingAssistant.is_teaching_assistant_of = IsTeachingAssistantOf(TeachingAssistant, 'is_teaching_assistant_of')
@@ -1216,6 +1215,7 @@ Professor.tenured = Tenured(Professor, 'tenured')
 AssistantProfessor.is_assistant_professor_of = IsAssistantProfessorOf(AssistantProfessor, 'is_assistant_professor_of')
 AssociateProfessor.is_associate_professor_of = IsAssociateProfessorOf(AssociateProfessor, 'is_associate_professor_of')
 FullProfessor.is_full_professor_of = IsFullProfessorOf(FullProfessor, 'is_full_professor_of')
+FullProfessor.is_head_of = IsHeadOf(FullProfessor, 'is_head_of')
 VisitingProfessor.is_visiting_professor_of = IsVisitingProfessorOf(VisitingProfessor, 'is_visiting_professor_of')
 
 PropertyDescriptor.update_domains_that_are_axiomatized_on_properties()

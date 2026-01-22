@@ -510,7 +510,6 @@ class English(HumanitiesAndSocial):
 @dataclass(eq=False)
 class FacultyMixinProtocol(Employee):
     is_faculty_of: Set[Organization]
-    is_head_of: Set[Organization]
     teaches_course: Set[Course]
 
 
@@ -896,6 +895,7 @@ class BasketBallFan(SportsFan):
 @dataclass(eq=False)
 class FullProfessorMixinProtocol(Professor):
     is_full_professor_of: Set[Department]
+    is_head_of: Set[Department]
 
 
 @dataclass(eq=False)
