@@ -41,6 +41,11 @@ def unreasoned_owl2bench_file_path(resources_dir):
 
 
 @pytest.fixture
+def dl_owl2bench_file_path(resources_dir):
+    return os.path.join(resources_dir, "OWL2DL-1_clean.owl")
+
+
+@pytest.fixture
 def reasoned_owl2bench_file_path(resources_dir):
     return os.path.join(resources_dir, "owl2bench_statements_reasoned.rdf")
 
@@ -61,6 +66,15 @@ def test_owl2bench_statements_unreasoned(unreasoned_owl2bench_file_path):
     registry = load_instances_for_owl2bench_with_predicates(
         unreasoned_owl2bench_file_path
     )
+    loading_time = time.time() - loading_start_time
+    print(f"Loading time: {loading_time} seconds")
+
+    evaluate_eql_and_sparql_queries()
+
+
+def test_dl_owl2bench_statements_unreasoned(dl_owl2bench_file_path):
+    loading_start_time = time.time()
+    registry = load_instances_for_owl2bench_with_predicates(dl_owl2bench_file_path)
     loading_time = time.time() - loading_start_time
     print(f"Loading time: {loading_time} seconds")
 
