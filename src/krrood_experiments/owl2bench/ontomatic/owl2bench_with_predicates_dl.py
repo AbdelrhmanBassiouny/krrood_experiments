@@ -94,6 +94,19 @@ class Publication(OWL2BenchThing):
 class SelfAwarePerson(OWL2BenchThing):
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#SelfAwarePerson"
 
+    @classmethod
+    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
+        super_axiom, candidate_var = get_super_axiom_and_candidate_var(SelfAwarePerson, cls, candidate)
+        
+        return (exists(IsSubClassOrRole(variable_from(candidate_var.types), Person)),
+				HasProperty(candidate_var, Knows),
+				contains(candidate_var.knows, candidate_var)
+        )
+
+    @classmethod
+    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+        return any(issubclass_or_role(t, Person) for t in candidate.types) and HasProperty(candidate, Knows) and any(attr == candidate for attr in candidate.knows)
+
 
 @dataclass(eq=False)
 class Thing(OWL2BenchThing):
