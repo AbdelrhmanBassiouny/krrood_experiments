@@ -12,6 +12,7 @@ from typing_extensions import Tuple, ClassVar
 from krrood.class_diagrams.utils import Role
 from krrood.entity_query_language.entity import contains, ConditionType, variable_from, length, variable, exists, for_all, to_str
 from krrood.entity_query_language.entity_result_processors import count
+from krrood.entity_query_language.mixins import HasAxiom, HasPythonAxiom
 import krrood.entity_query_language.entity as eql
 from krrood.entity_query_language.predicate import HasAttribute, IsSubClassOf, IsSubClassOrRole
 from krrood.ontomatic.property_descriptor.property_descriptor import (
@@ -91,7 +92,7 @@ class Publication(OWL2BenchThing):
 
 
 @dataclass(eq=False)
-class SelfAwarePerson(OWL2BenchThing):
+class SelfAwarePerson(OWL2BenchThing, HasPythonAxiom):
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#SelfAwarePerson"
 
     @classmethod
@@ -104,7 +105,7 @@ class SelfAwarePerson(OWL2BenchThing):
         )
 
     @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+    def check_axiom_python(cls, candidate: AnonymousClass) -> bool:
         return any(issubclass_or_role(t, Person) for t in candidate.types) and HasProperty(candidate, Knows) and any(attr == candidate for attr in candidate.knows)
 
 
@@ -173,7 +174,7 @@ class Department(Organization):
 
 
 @dataclass(eq=False)
-class Employee(Role[Person], Symbol):
+class Employee(Role[Person], Symbol, HasPythonAxiom):
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Employee"
     # Role taker
     person: Person
@@ -198,7 +199,7 @@ class Employee(Role[Person], Symbol):
         )
 
     @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+    def check_axiom_python(cls, candidate: AnonymousClass) -> bool:
         return any(issubclass_or_role(t, Person) for t in candidate.types) and HasProperty(candidate, WorksFor) and any(issubclass_or_role(t, Organization) for attr in candidate.works_for for t in attr.types)
 
 
@@ -268,7 +269,7 @@ class Painting(Interest):
 
 
 @dataclass(eq=False)
-class PeopleWithHobby(Role[Person], Symbol):
+class PeopleWithHobby(Role[Person], Symbol, HasPythonAxiom):
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#PeopleWithHobby"
     # Role taker
     person: Person
@@ -288,7 +289,7 @@ class PeopleWithHobby(Role[Person], Symbol):
         )
 
     @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+    def check_axiom_python(cls, candidate: AnonymousClass) -> bool:
         return any(issubclass_or_role(t, Person) for t in candidate.types) and HasProperty(candidate, Likes) and any(issubclass_or_role(t, Interest) for attr in candidate.likes for t in attr.types)
 
 
@@ -336,7 +337,7 @@ class Sports(Interest):
 
 
 @dataclass(eq=False)
-class Student(Role[Person], Symbol):
+class Student(Role[Person], Symbol, HasPythonAxiom):
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Student"
     # Role taker
     person: Person
@@ -360,7 +361,7 @@ class Student(Role[Person], Symbol):
         )
 
     @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+    def check_axiom_python(cls, candidate: AnonymousClass) -> bool:
         return any(issubclass_or_role(t, Person) for t in candidate.types) and HasProperty(candidate, EnrollIn) and any(issubclass_or_role(t, Department) for attr in candidate.enroll_in for t in attr.types)
 
 
@@ -509,7 +510,7 @@ class English(HumanitiesAndSocialScience):
 
 
 @dataclass(eq=False)
-class Faculty(Employee):
+class Faculty(Employee, HasPythonAxiom):
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Faculty"
     is_faculty_of: Set[Organization] = field(kw_only=True, default_factory=set)
     teaches_course: Set[Course] = field(kw_only=True, default_factory=set)
@@ -524,7 +525,7 @@ class Faculty(Employee):
         )
 
     @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+    def check_axiom_python(cls, candidate: AnonymousClass) -> bool:
         return any(issubclass_or_role(t, Employee) for t in candidate.types) and HasProperty(candidate, TeachesCourse) and any(issubclass_or_role(t, Course) for attr in candidate.teaches_course for t in attr.types)
 
 
@@ -574,7 +575,7 @@ class LatinArts(FineArts):
 
 
 @dataclass(eq=False)
-class LeisureStudent(Role[Student], Symbol):
+class LeisureStudent(Role[Student], Symbol, HasPythonAxiom):
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#LeisureStudent"
     # Role taker
     student: Student
@@ -594,7 +595,7 @@ class LeisureStudent(Role[Student], Symbol):
         )
 
     @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+    def check_axiom_python(cls, candidate: AnonymousClass) -> bool:
         return any(issubclass_or_role(t, Student) for t in candidate.types) and HasProperty(candidate, TakesCourse) and (len([v for v in candidate.takes_course if any(issubclass_or_role(t, Course) for t in v.types) ]) <= 1)
 
 
@@ -664,7 +665,7 @@ class OperationsManagement(Management):
 
 
 @dataclass(eq=False)
-class PGStudent(Student):
+class PGStudent(Student, HasPythonAxiom):
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#PGStudent"
 
     @classmethod
@@ -677,12 +678,12 @@ class PGStudent(Student):
         )
 
     @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+    def check_axiom_python(cls, candidate: AnonymousClass) -> bool:
         return any(issubclass_or_role(t, Student) for t in candidate.types) and HasProperty(candidate, EnrollFor) and (len([v for v in candidate.enroll_for if any(issubclass_or_role(t, PGProgram) for t in v.types) ]) == 1)
 
 
 @dataclass(eq=False)
-class PeopleWithManyHobbies(PeopleWithHobby):
+class PeopleWithManyHobbies(PeopleWithHobby, HasPythonAxiom):
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#PeopleWithManyHobbies"
 
     @classmethod
@@ -695,7 +696,7 @@ class PeopleWithManyHobbies(PeopleWithHobby):
         )
 
     @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+    def check_axiom_python(cls, candidate: AnonymousClass) -> bool:
         return any(issubclass_or_role(t, Person) for t in candidate.types) and HasProperty(candidate, Likes) and (len([v for v in candidate.likes if any(issubclass_or_role(t, Interest) for t in v.types) ]) >= 3)
 
 
@@ -710,7 +711,7 @@ class PetroleumlEngineering(Engineering):
 
 
 @dataclass(eq=False)
-class PhDStudent(Student):
+class PhDStudent(Student, HasPythonAxiom):
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#PhDStudent"
 
     @classmethod
@@ -723,7 +724,7 @@ class PhDStudent(Student):
         )
 
     @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+    def check_axiom_python(cls, candidate: AnonymousClass) -> bool:
         return any(issubclass_or_role(t, Student) for t in candidate.types) and HasProperty(candidate, EnrollFor) and (len([v for v in candidate.enroll_for if any(issubclass_or_role(t, PhDProgram) for t in v.types) ]) == 1)
 
 
@@ -799,7 +800,7 @@ class Swimming(Sports):
 
 
 @dataclass(eq=False)
-class T20CricketFan(PeopleWithHobby):
+class T20CricketFan(PeopleWithHobby, HasPythonAxiom):
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#T20CricketFan"
 
     @classmethod
@@ -812,12 +813,12 @@ class T20CricketFan(PeopleWithHobby):
         )
 
     @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+    def check_axiom_python(cls, candidate: AnonymousClass) -> bool:
         return any(issubclass_or_role(t, Person) for t in candidate.types) and HasProperty(candidate, IsCrazyAbout) and ('http://benchmark/OWL2Bench#T20Cricket' in map(lambda x: str(x.uri), candidate.is_crazy_about))
 
 
 @dataclass(eq=False)
-class TeachingAssistant(Role[Student], Symbol):
+class TeachingAssistant(Role[Student], Symbol, HasPythonAxiom):
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#TeachingAssistant"
     # Role taker
     student: Student
@@ -838,7 +839,7 @@ class TeachingAssistant(Role[Student], Symbol):
         )
 
     @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+    def check_axiom_python(cls, candidate: AnonymousClass) -> bool:
         return any(issubclass_or_role(t, Student) for t in candidate.types) and HasProperty(candidate, IsTeachingAssistantOf) and any(issubclass_or_role(t, Course) for attr in candidate.is_teaching_assistant_of for t in attr.types)
 
 
@@ -863,7 +864,7 @@ class UGCourse(Course):
 
 
 @dataclass(eq=False)
-class UGStudent(Student):
+class UGStudent(Student, HasPythonAxiom):
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#UGStudent"
 
     @classmethod
@@ -876,12 +877,12 @@ class UGStudent(Student):
         )
 
     @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+    def check_axiom_python(cls, candidate: AnonymousClass) -> bool:
         return any(issubclass_or_role(t, Student) for t in candidate.types) and HasProperty(candidate, EnrollFor) and (len([v for v in candidate.enroll_for if any(issubclass_or_role(t, UGProgram) for t in v.types) ]) == 1)
 
 
 @dataclass(eq=False)
-class WomenCollege(College):
+class WomenCollege(College, HasPythonAxiom):
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#WomenCollege"
 
     @classmethod
@@ -894,7 +895,7 @@ class WomenCollege(College):
         )
 
     @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+    def check_axiom_python(cls, candidate: AnonymousClass) -> bool:
         return any(issubclass_or_role(t, College) for t in candidate.types) and HasProperty(candidate, HasStudent) and all(any(issubclass(t, Woman) for t in attr.types) for attr in candidate.has_student)
 
 
@@ -965,7 +966,7 @@ class VisitingProfessor(Professor):
 
 
 @dataclass(eq=False)
-class Chair(Role[FullProfessor], Symbol):
+class Chair(Role[FullProfessor], Symbol, HasPythonAxiom):
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Chair"
     # Role taker
     full_professor: FullProfessor
@@ -984,12 +985,12 @@ class Chair(Role[FullProfessor], Symbol):
         )
 
     @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+    def check_axiom_python(cls, candidate: AnonymousClass) -> bool:
         return HasProperty(candidate, IsHeadOf) and any(issubclass_or_role(t, Department) for attr in candidate.is_head_of for t in attr.types)
 
 
 @dataclass(eq=False)
-class Dean(Role[FullProfessor], Symbol):
+class Dean(Role[FullProfessor], Symbol, HasPythonAxiom):
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Dean"
     # Role taker
     full_professor: FullProfessor
@@ -1008,12 +1009,12 @@ class Dean(Role[FullProfessor], Symbol):
         )
 
     @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+    def check_axiom_python(cls, candidate: AnonymousClass) -> bool:
         return HasProperty(candidate, IsHeadOf) and any(issubclass_or_role(t, College) for attr in candidate.is_head_of for t in attr.types)
 
 
 @dataclass(eq=False)
-class Director(Role[FullProfessor], Symbol):
+class Director(Role[FullProfessor], Symbol, HasPythonAxiom):
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Director"
     # Role taker
     full_professor: FullProfessor
@@ -1032,7 +1033,7 @@ class Director(Role[FullProfessor], Symbol):
         )
 
     @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+    def check_axiom_python(cls, candidate: AnonymousClass) -> bool:
         return HasProperty(candidate, IsHeadOf) and any(issubclass_or_role(t, Program) for attr in candidate.is_head_of for t in attr.types)
 
 
