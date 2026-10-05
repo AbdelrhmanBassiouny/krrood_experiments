@@ -331,6 +331,7 @@ class Employee(Role[Person], Symbol):
         )
 
         return (
+            exists(IsSubClassOrRole(variable_from(candidate_var.types), Person)),
             HasProperty(candidate_var, WorksFor),
             exists(
                 IsSubClassOrRole(
@@ -341,10 +342,14 @@ class Employee(Role[Person], Symbol):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, WorksFor) and any(
-            issubclass_or_role(t, Organization)
-            for attr in candidate.works_for
-            for t in attr.types
+        return (
+            any(issubclass_or_role(t, Person) for t in candidate.types)
+            and HasProperty(candidate, WorksFor)
+            and any(
+                issubclass_or_role(t, Organization)
+                for attr in candidate.works_for
+                for t in attr.types
+            )
         )
 
 
@@ -535,6 +540,7 @@ class Student(Role[Person], Symbol):
         )
 
         return (
+            exists(IsSubClassOrRole(variable_from(candidate_var.types), Person)),
             HasProperty(candidate_var, EnrollIn),
             exists(
                 IsSubClassOrRole(
@@ -545,10 +551,14 @@ class Student(Role[Person], Symbol):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, EnrollIn) and any(
-            issubclass_or_role(t, Department)
-            for attr in candidate.enroll_in
-            for t in attr.types
+        return (
+            any(issubclass_or_role(t, Person) for t in candidate.types)
+            and HasProperty(candidate, EnrollIn)
+            and any(
+                issubclass_or_role(t, Department)
+                for attr in candidate.enroll_in
+                for t in attr.types
+            )
         )
 
 
@@ -713,6 +723,7 @@ class Faculty(Employee):
         )
 
         return (
+            exists(IsSubClassOrRole(variable_from(candidate_var.types), Employee)),
             HasProperty(candidate_var, TeachesCourse),
             exists(
                 IsSubClassOrRole(
@@ -723,10 +734,14 @@ class Faculty(Employee):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, TeachesCourse) and any(
-            issubclass_or_role(t, Course)
-            for attr in candidate.teaches_course
-            for t in attr.types
+        return (
+            any(issubclass_or_role(t, Employee) for t in candidate.types)
+            and HasProperty(candidate, TeachesCourse)
+            and any(
+                issubclass_or_role(t, Course)
+                for attr in candidate.teaches_course
+                for t in attr.types
+            )
         )
 
 
@@ -789,24 +804,8 @@ class LeisureStudent(Role[Student], Symbol):
         return next(iter(f for f in fields(cls) if f.name == "student"))
 
     @classmethod
-    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
-        super_axiom, candidate_var = get_super_axiom_and_candidate_var(
-            LeisureStudent, cls, candidate
-        )
-
-        return (
-            exists(IsSubClassOrRole(variable_from(candidate_var.types), Student)),
-            HasProperty(candidate_var, TakesCourse),
-            count(
-                IsSubClassOrRole(
-                    variable_from(candidate_var.takes_course.types), Course
-                )
-            )
-            <= 1,
-        )
-
-    @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+    def necessary_conditions_python(cls, candidate: AnonymousClass) -> bool:
+        """Necessary conditions of the class (superclass restrictions). They are not used for classification."""
         return (
             any(issubclass_or_role(t, Student) for t in candidate.types)
             and HasProperty(candidate, TakesCourse)
@@ -900,6 +899,7 @@ class PGStudent(Student):
         )
 
         return (
+            exists(IsSubClassOrRole(variable_from(candidate_var.types), Student)),
             HasProperty(candidate_var, EnrollFor),
             exists(
                 IsSubClassOrRole(
@@ -910,10 +910,14 @@ class PGStudent(Student):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, EnrollFor) and any(
-            issubclass_or_role(t, PGProgram)
-            for attr in candidate.enroll_for
-            for t in attr.types
+        return (
+            any(issubclass_or_role(t, Student) for t in candidate.types)
+            and HasProperty(candidate, EnrollFor)
+            and any(
+                issubclass_or_role(t, PGProgram)
+                for attr in candidate.enroll_for
+                for t in attr.types
+            )
         )
 
 
@@ -939,6 +943,7 @@ class PhDStudent(Student):
         )
 
         return (
+            exists(IsSubClassOrRole(variable_from(candidate_var.types), Student)),
             HasProperty(candidate_var, EnrollFor),
             exists(
                 IsSubClassOrRole(
@@ -949,10 +954,14 @@ class PhDStudent(Student):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, EnrollFor) and any(
-            issubclass_or_role(t, PhDProgram)
-            for attr in candidate.enroll_for
-            for t in attr.types
+        return (
+            any(issubclass_or_role(t, Student) for t in candidate.types)
+            and HasProperty(candidate, EnrollFor)
+            and any(
+                issubclass_or_role(t, PhDProgram)
+                for attr in candidate.enroll_for
+                for t in attr.types
+            )
         )
 
 
@@ -1016,6 +1025,7 @@ class ScienceStudent(Student):
         )
 
         return (
+            exists(IsSubClassOrRole(variable_from(candidate_var.types), Student)),
             HasProperty(candidate_var, HasMajor),
             exists(
                 IsSubClassOrRole(variable_from(candidate_var.has_major.types), Science)
@@ -1024,10 +1034,14 @@ class ScienceStudent(Student):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, HasMajor) and any(
-            issubclass_or_role(t, Science)
-            for attr in candidate.has_major
-            for t in attr.types
+        return (
+            any(issubclass_or_role(t, Student) for t in candidate.types)
+            and HasProperty(candidate, HasMajor)
+            and any(
+                issubclass_or_role(t, Science)
+                for attr in candidate.has_major
+                for t in attr.types
+            )
         )
 
 
@@ -1043,16 +1057,21 @@ class SportsLover(PeopleWithHobby):
         )
 
         return (
+            exists(IsSubClassOrRole(variable_from(candidate_var.types), Person)),
             HasProperty(candidate_var, Loves),
             exists(IsSubClassOrRole(variable_from(candidate_var.loves.types), Sports)),
         )
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, Loves) and any(
-            issubclass_or_role(t, Sports)
-            for attr in candidate.loves
-            for t in attr.types
+        return (
+            any(issubclass_or_role(t, Person) for t in candidate.types)
+            and HasProperty(candidate, Loves)
+            and any(
+                issubclass_or_role(t, Sports)
+                for attr in candidate.loves
+                for t in attr.types
+            )
         )
 
 
@@ -1100,6 +1119,7 @@ class TeachingAssistant(Role[Student], Symbol):
         )
 
         return (
+            exists(IsSubClassOrRole(variable_from(candidate_var.types), Student)),
             HasProperty(candidate_var, IsTeachingAssistantOf),
             exists(
                 IsSubClassOrRole(
@@ -1110,10 +1130,14 @@ class TeachingAssistant(Role[Student], Symbol):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, IsTeachingAssistantOf) and any(
-            issubclass_or_role(t, Course)
-            for attr in candidate.is_teaching_assistant_of
-            for t in attr.types
+        return (
+            any(issubclass_or_role(t, Student) for t in candidate.types)
+            and HasProperty(candidate, IsTeachingAssistantOf)
+            and any(
+                issubclass_or_role(t, Course)
+                for attr in candidate.is_teaching_assistant_of
+                for t in attr.types
+            )
         )
 
 
@@ -1151,6 +1175,7 @@ class UGStudent(Student):
         )
 
         return (
+            exists(IsSubClassOrRole(variable_from(candidate_var.types), Student)),
             HasProperty(candidate_var, EnrollFor),
             exists(
                 IsSubClassOrRole(
@@ -1161,10 +1186,14 @@ class UGStudent(Student):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, EnrollFor) and any(
-            issubclass_or_role(t, UGProgram)
-            for attr in candidate.enroll_for
-            for t in attr.types
+        return (
+            any(issubclass_or_role(t, Student) for t in candidate.types)
+            and HasProperty(candidate, EnrollFor)
+            and any(
+                issubclass_or_role(t, UGProgram)
+                for attr in candidate.enroll_for
+                for t in attr.types
+            )
         )
 
 
@@ -1173,24 +1202,8 @@ class WomanCollege(College):
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#WomanCollege"
 
     @classmethod
-    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
-        super_axiom, candidate_var = get_super_axiom_and_candidate_var(
-            WomanCollege, cls, candidate
-        )
-        candidate_has_student = variable_from(candidate_var.has_student)
-        return (
-            exists(IsSubClassOrRole(variable_from(candidate_var.types), College)),
-            HasProperty(candidate_var, HasStudent),
-            for_all(
-                candidate_has_student,
-                exists(
-                    IsSubClassOrRole(variable_from(candidate_has_student.types), Woman)
-                ),
-            ),
-        )
-
-    @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
+    def necessary_conditions_python(cls, candidate: AnonymousClass) -> bool:
+        """Necessary conditions of the class (superclass restrictions). They are not used for classification."""
         return (
             any(issubclass_or_role(t, College) for t in candidate.types)
             and HasProperty(candidate, HasStudent)
@@ -1213,6 +1226,7 @@ class BasketBallLover(SportsLover):
         )
 
         return (
+            exists(IsSubClassOrRole(variable_from(candidate_var.types), Person)),
             HasProperty(candidate_var, Loves),
             exists(
                 IsSubClassOrRole(variable_from(candidate_var.loves.types), BasketBall)
@@ -1221,10 +1235,14 @@ class BasketBallLover(SportsLover):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, Loves) and any(
-            issubclass_or_role(t, BasketBall)
-            for attr in candidate.loves
-            for t in attr.types
+        return (
+            any(issubclass_or_role(t, Person) for t in candidate.types)
+            and HasProperty(candidate, Loves)
+            and any(
+                issubclass_or_role(t, BasketBall)
+                for attr in candidate.loves
+                for t in attr.types
+            )
         )
 
 
@@ -1276,6 +1294,7 @@ class SportsFan(SportsLover):
         )
 
         return (
+            exists(IsSubClassOrRole(variable_from(candidate_var.types), Person)),
             HasProperty(candidate_var, IsCrazyAbout),
             exists(
                 IsSubClassOrRole(
@@ -1286,10 +1305,14 @@ class SportsFan(SportsLover):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, IsCrazyAbout) and any(
-            issubclass_or_role(t, Sports)
-            for attr in candidate.is_crazy_about
-            for t in attr.types
+        return (
+            any(issubclass_or_role(t, Person) for t in candidate.types)
+            and HasProperty(candidate, IsCrazyAbout)
+            and any(
+                issubclass_or_role(t, Sports)
+                for attr in candidate.is_crazy_about
+                for t in attr.types
+            )
         )
 
 
@@ -1333,6 +1356,7 @@ class BasketBallFan(SportsFan):
         )
 
         return (
+            exists(IsSubClassOrRole(variable_from(candidate_var.types), Person)),
             HasProperty(candidate_var, IsCrazyAbout),
             exists(
                 IsSubClassOrRole(
@@ -1343,10 +1367,14 @@ class BasketBallFan(SportsFan):
 
     @classmethod
     def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, IsCrazyAbout) and any(
-            issubclass_or_role(t, BasketBall)
-            for attr in candidate.is_crazy_about
-            for t in attr.types
+        return (
+            any(issubclass_or_role(t, Person) for t in candidate.types)
+            and HasProperty(candidate, IsCrazyAbout)
+            and any(
+                issubclass_or_role(t, BasketBall)
+                for attr in candidate.is_crazy_about
+                for t in attr.types
+            )
         )
 
 
