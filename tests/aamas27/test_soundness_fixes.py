@@ -248,3 +248,56 @@ def test_individuals_are_not_typed_with_the_class_they_are_named_after(registry)
     for uri, explanations in registry.type_explanations.items():
         for explanation in explanations.values():
             assert explanation.rule.value != "name"
+
+
+def objects_of(registry, local_name):
+    return registry._by_uri[rdflib.URIRef(NAMESPACE + local_name)]
+
+
+def uris(objects):
+    return {str(o.uri).removeprefix(NAMESPACE) for o in objects}
+
+
+def test_chain_facts_are_stored_on_the_role_that_declares_the_property(registry):
+    """
+    isStudentOf <- enrollIn o isSubOrganizationOf: U0C0D0UGS0 is enrolled in department U0C0D0, which is a
+    sub-organization of college U0C0 and university U0. The enrollIn fact is a node of the student's root object (a
+    Woman), while isStudentOf is declared by the student's UGStudent role, where the chain facts must be stored.
+    """
+    student = next(o for o in objects_of(registry, "U0C0D0UGS0") if isinstance(o, model.UGStudent))
+    assert {"U0C0D0", "U0C0", "U0"} <= uris(student.is_student_of)
+    woman = PropertyDescriptorRelation.root_role_taker(student)
+    college = objects_of(registry, "U0C0")[0]
+    relation = PropertyDescriptorRelation.find(woman, "is_student_of", college)
+    assert relation is not None and relation.rule == InferredThrough.CHAIN
+    university = objects_of(registry, "U0")[0]
+    assert any(o.uri == student.uri for o in university.has_student)
+
+
+def test_research_assistants_work_for_the_university_of_their_research_group(registry):
+    """worksFor <- worksFor o isSubOrganizationOf through a research group (37 facts were missing)."""
+    assistant = next(o for o in objects_of(registry, "U0RG0RA0") if isinstance(o, model.ResearchAssistant))
+    assert {"U0RG0", "U0"} <= uris(assistant.works_for)
+
+
+def test_research_groups_have_their_projects_as_work(registry):
+    """
+    hasResearchProject is a sub-property of hasWork, which only the Employee role declares. A research group's
+    Employee role has its own root (a Person), linked to the ResearchGroup object as the same individual.
+    """
+    for local_name in [f"U0RG{index}" for index in range(7)]:
+        objects = objects_of(registry, local_name)
+        group = next(o for o in objects if isinstance(o, model.ResearchGroup))
+        employee = next(o for o in objects if isinstance(o, model.Employee))
+        assert uris(group.has_research_project) <= uris(employee.has_work)
+        assert any(o is employee for o in PropertyDescriptorRelation.objects_of_individual(group))
+
+
+def test_relations_by_descriptor_class_are_yielded_once(registry):
+    """Fields of the same name declared by several classes share their relations and must not repeat them."""
+    graph = SymbolGraph()
+    assistant = PropertyDescriptorRelation.root_role_taker(objects_of(registry, "U0RG0RA0")[0])
+    node = graph.get_wrapped_instance(assistant)
+    relations = list(graph.get_outgoing_relations_by_descriptor_class(node, properties.WorksFor))
+    assert relations
+    assert len(relations) == len({id(relation) for relation in relations})

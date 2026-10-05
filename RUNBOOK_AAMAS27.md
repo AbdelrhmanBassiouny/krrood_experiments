@@ -96,10 +96,13 @@ Experiment changes (EXP branch `aamas27-experiments`):
   4212 reflexive ones), so this does not affect any answer.
 * FunctionalProperty detection in the generator compares `prop_type == OWL.FunctionalProperty` where `prop_type_uri`
   is meant, so functional properties are not recognised (not needed by any query).
-* Property-assertion completeness: 4037 object-property facts of the OWL 2 RL closure are not materialised by
-  KRROOD (isStudentOf/hasStudent from the chain `enrollIn o isSubOrganizationOf` 1978 each, worksFor/hasEmployee from
-  `worksFor o isSubOrganizationOf` 37 each, hasWork of the 7 research groups). None of them is asked by the 18 queries.
-  KRROOD derives no property fact that is not in the closure (section 11).
+* Property-assertion completeness: KRROOD materialises exactly the object-property facts of the OWL 2 RL closure
+  (section 11). Until 7e0c77ec63, 4037 were missing (isStudentOf/hasStudent from the chain
+  `enrollIn o isSubOrganizationOf` 1978 each, worksFor/hasEmployee from `worksFor o isSubOrganizationOf` 37 each,
+  hasWork of the 7 research groups): the rules stored an inferred fact only on the individual's root object or one
+  level of its roles, while these properties are declared by roles (UGStudent, ResearchAssistant) or by the
+  Employee role of a research group, which has a separate root (a Person, linked to the ResearchGroup by its IRI).
+  Every rule now stores the fact on the object of the individual that declares the property.
 * Q22: EQL and SQLAlchemy return 141 rows for 106 distinct answers (several role objects per individual); the answer
   sets are equal to GraphDB's. Report 106 in the "Results" column (the table script uses the distinct count of GraphDB).
 
@@ -116,7 +119,7 @@ git log -1 --format='%H %s'   # expected: the commit that contains this runbook,
 cd ~
 git clone git@github.com:AbdelrhmanBassiouny/cognitive_robot_abstract_machine.git cram_aamas27
 cd ~/cram_aamas27 && git fetch origin aamas27-experiments && git checkout aamas27-experiments
-git log -1 --format='%H %s'   # expected: b21251fb9a
+git log -1 --format='%H %s'   # expected: 7e0c77ec63
 
 cd ~
 git clone https://github.com/AbdelrhmanBassiouny/ripple_down_rules.git ripple_down_rules_aamas27
@@ -126,7 +129,7 @@ cd ~/ripple_down_rules_aamas27 && git checkout 3b994bb
 If you already have clones, use `git worktree add -b aamas27-experiments <dir> origin/aamas27-experiments` instead.
 CRAM has git submodules that are not needed (`krrood` has no submodule dependency); do not run `git submodule update`.
 
-Commits of the code that was verified locally (section 11): CRAM b21251fb9a, EXP 0d84891 (code), runbook commits on top,
+Commits of the code that was verified locally (section 11): CRAM 7e0c77ec63, EXP 0d84891 (code), runbook commits on top,
 ripple_down_rules 3b994bb.
 
 ## 4. Python environment
@@ -235,7 +238,7 @@ The facts of a symmetric-transitive component go through the relation path (supe
 equivalence rules, one explained relation per fact) only when the property implies other properties
 (`OwlLoader.implies_other_properties`). Otherwise they are stored in the attributes and explained once per component
 (`PropertyDescriptorRelation.find` still returns an explained relation for each of them). hasSameHomeTownWith implies no
-other property, so the branch head (b21251fb9a) loads OWL2Bench as fast as before 2f721b0fbc (about 16.5 s and
+other property, so the branch head loads OWL2Bench as fast as before 2f721b0fbc (about 16.5 s and
 340 MB here instead of 36 s and 960 MB) with the same answers. There is no variant to measure separately.
 
 ## 6. Experiments
@@ -370,6 +373,12 @@ logs.
   `python scripts/aamas27/graphdb_setup.py --delete <repository>`.
 * GraphDB upload fails with a license error: check `curl -s localhost:7200/rest/graphdb-settings/license`.
 * `psycopg2.OperationalError`: the container is not running (`docker start krrood-pg`) or the URI is wrong.
+* `sqlalchemy.orm.exc.FlushError: Attempting to flush an item of type <...InterestDAO> as a member of collection
+  "BasketBallLoverDAO.loves"` (SQLAlchemy queries or `krrood_ormatic` loading): an intermittent ORMatic persistence
+  error, about 1 in 7 runs on the development machine, with and without the fact-placement commit. The objects in
+  memory are correct (every BasketBallLover's `loves` values are BasketBall objects), and runs that persist answer
+  all 18 queries like GraphDB. Rerun the failed step; for the loading measurement, rerun only `krrood_ormatic`
+  (`--systems krrood_ormatic`) into a new results directory and keep the repetitions that finished.
 * A worker is killed with `status: memory_limit` only when `--memory-limit-gib` was given; `failed` with return code
   -9 means the kernel OOM killer stopped it (report "o.o.m.").
 * The answer-set check exits with 1: read `answer_check.json`; do not use `--allow-mismatch` for the paper numbers
@@ -385,7 +394,9 @@ are not comparable with the original machine. Result files: `results/aamas27/bas
 the development (not committed).
 
 Code states: before = CRAM 3685d1e0c3 (`origin/dl` + import fix) with EXP 0d53ec7 (`Tom/main` model); after =
-CRAM a6d22a95aa with EXP 0d84891 (and the new query definitions in both cases).
+CRAM a6d22a95aa with EXP 0d84891 (and the new query definitions in both cases). At the branch head
+(7e0c77ec63) EQL and SQLAlchemy were checked again and are equal to GraphDB on all 18 queries
+(`results/aamas27/bass-check-after-placement`, `bass-check-after-placement-sql`).
 
 **Hard answer-set check** (one repetition, reference GraphDB `aamas27_rl`, 18 queries):
 
@@ -406,6 +417,7 @@ property assertion of KRROOD compared with the OWL 2 RL closure of GraphDB.
 |-|--------------------------------|------------------------------|-----------------------------|---------------------------------|
 | before | 67 (53 LeisureStudent, 14 class-name heuristic) | 226 (PeopleWithHobby 181, BasketBallLover 31, Employee 7, Person 7) | 0 | 4037 |
 | after (a6d22a95aa) | 0 | 0 | 0 | 4037 (section 2) |
+| after fact placement (7e0c77ec63) | 0 | 0 | 0 | 0 |
 
 All 3667 named individuals of the closure are represented in KRROOD.
 
@@ -419,13 +431,14 @@ All 3667 named individuals of the closure are represented in KRROOD.
 | + complete type inference (a4b5c8f755) | 16.81 ± 0.07 | 339 MB |
 | + component facts through the relation path (2f721b0fbc) | 35.94 ± 0.19 | 961 MB |
 | + no class-name typing (a6d22a95aa; separate 5 runs) | 35.69 ± 0.38 | 961 MB |
-| + relation path only for properties that imply others (b21251fb9a, branch head; separate 5 runs) | 16.46 ± 0.53 | 338 MB |
+| + relation path only for properties that imply others (b21251fb9a; separate 5 runs) | 16.46 ± 0.53 | 338 MB |
+| + facts stored on the declaring object of the individual, relations looked up once per field name (7e0c77ec63, branch head; separate 5 runs) | 16.54 ± 0.47 | 325 MB |
 
 **Loading + reasoning of the raw data, one fresh process each (peak RSS of the process tree):**
 
 | System | Time [s] | Peak memory |
 |--------|----------|-------------|
-| KRROOD (branch head) | 16.5 (see above) | 338 MB |
+| KRROOD (branch head) | 16.5 (see above) | 325 MB |
 | KRROOD + ORMatic, persisting into PostgreSQL (a6d22a95aa)* | 34.6 loading + 44.1 persisting | 2.16 GB |
 | owlready2 + Pellet (Java heap 2000 MB)* | 61.1 | 2.26 GB |
 | RDFLib + owlrl* | did not finish within the 30 min cap | 860 MB when stopped |
