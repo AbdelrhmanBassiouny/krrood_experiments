@@ -58,6 +58,12 @@ Soundness fixes in Ontomatic (CRAM branch `aamas27-experiments`, one commit each
    (`hasResearchProject SubPropertyOf hasWork`, `hasWork rdfs:domain Employee`, `Employee SubClassOf Person`), and Q12
    now has the same answer set as GraphDB (2494).
 
+5. Individuals are no longer typed with the class they are named after (a6d22a95aa): the loader typed every
+   property-less individual whose local name equals a class name (e.g. `owl2bench:Engineering`, a value of
+   hasCollegeDiscipline) with that class (14 non-entailed memberships). Untyped individuals are now represented by
+   the ontology base class. EQL and SQLAlchemy Q21 therefore compare the discipline's URI with
+   `owl2bench:Engineering`, as the SPARQL query does (EXP 0d84891).
+
 Further CRAM changes: provenance of every inferred fact and type (46830ff78a: `PropertyDescriptorRelation.explain()`,
 `.find()`, `OwlInstancesRegistry.explain_type()`), symmetric-transitive component facts added through the relation
 path so that super-property/inverse/chain/equivalence implications apply (2f721b0fbc; this roughly doubles the KRROOD
@@ -89,10 +95,6 @@ Experiment changes (EXP branch `aamas27-experiments`):
   4212 reflexive ones), so this does not affect any answer.
 * FunctionalProperty detection in the generator compares `prop_type == OWL.FunctionalProperty` where `prop_type_uri`
   is meant, so functional properties are not recognised (not needed by any query).
-* Individuals without any property whose local name equals a class name (e.g. `owl2bench:Engineering`,
-  `owl2bench:Management`) are typed with that class by a loader heuristic (punning). This is not OWL 2 RL entailed:
-  14 class memberships of 8 individuals (section 11). Q21 relies on it in EQL/SQLAlchemy (`type(cd) == Engineering`),
-  its answer set is nevertheless equal to GraphDB's.
 * Property-assertion completeness: 4037 object-property facts of the OWL 2 RL closure are not materialised by
   KRROOD (isStudentOf/hasStudent from the chain `enrollIn o isSubOrganizationOf` 1978 each, worksFor/hasEmployee from
   `worksFor o isSubOrganizationOf` 37 each, hasWork of the 7 research groups). None of them is asked by the 18 queries.
@@ -113,7 +115,7 @@ git log -1 --format='%H %s'   # expected: the commit that contains this runbook,
 cd ~
 git clone git@github.com:AbdelrhmanBassiouny/cognitive_robot_abstract_machine.git cram_aamas27
 cd ~/cram_aamas27 && git fetch origin aamas27-experiments && git checkout aamas27-experiments
-git log -1 --format='%H %s'   # expected: 2f721b0fbc
+git log -1 --format='%H %s'   # expected: a6d22a95aa
 
 cd ~
 git clone https://github.com/AbdelrhmanBassiouny/ripple_down_rules.git ripple_down_rules_aamas27
@@ -123,7 +125,7 @@ cd ~/ripple_down_rules_aamas27 && git checkout 3b994bb
 If you already have clones, use `git worktree add -b aamas27-experiments <dir> origin/aamas27-experiments` instead.
 CRAM has git submodules that are not needed (`krrood` has no submodule dependency); do not run `git submodule update`.
 
-Commits of the code that was verified locally (section 11): CRAM 2f721b0fbc, EXP e532914/29c2302 (code), runbook commits on top,
+Commits of the code that was verified locally (section 11): CRAM a6d22a95aa, EXP 0d84891 (code), runbook commits on top,
 ripple_down_rules 3b994bb.
 
 ## 4. Python environment
@@ -228,14 +230,15 @@ download in README.md may be a different version).
 
 ### 5.4 With or without the component-propagation commit
 
-The CRAM branch head (2f721b0fbc) contains the commit that adds the facts of symmetric-transitive components through
-the relation path (complete propagation and provenance). On OWL2Bench it changes no query answer, but it raises the
-KRROOD loading time from about 17 s to 36 s and the peak memory from about 340 MB to 960 MB (section 11). Its parent
-a4b5c8f755 has all soundness and completeness fixes. Run the experiments at the branch head; to report KRROOD
-without that commit as well, repeat only the KRROOD loading measurements (with the environment of section 6):
+The CRAM branch head (a6d22a95aa) sits on top of 2f721b0fbc, the commit that adds the facts of symmetric-transitive
+components through the relation path (complete propagation and provenance). On OWL2Bench it changes no query answer,
+but it raises the KRROOD loading time from about 17 s to 36 s and the peak memory from about 340 MB to 960 MB
+(section 11). Run the experiments at the branch head. To report KRROOD without the component-propagation commit as well,
+revert it on a temporary branch and repeat only the KRROOD loading measurements (with the environment of section 6):
 
 ```bash
-cd ~/cram_aamas27 && git checkout a4b5c8f755 && cd ~/krrood_experiments_aamas27
+cd ~/cram_aamas27 && git checkout -b aamas27-without-component-propagation && git revert --no-edit 2f721b0fbc
+cd ~/krrood_experiments_aamas27
 python scripts/aamas27/run_loading.py --systems krrood,krrood_ormatic --repetitions 5 --results-dir $RUN/loading_without_component_propagation
 cd ~/cram_aamas27 && git checkout aamas27-experiments && cd ~/krrood_experiments_aamas27
 ```
@@ -267,7 +270,7 @@ python scripts/aamas27/run_queries.py --check-only --results-dir $RUN/check
 ```
 
 Expected: every framework equal to GraphDB for all 18 queries (exit status 0); this is the result of the final
-local check (section 11, `results/aamas27/bass-final-check`, about 7 min including set-up). If RDFLib or owlready2 differ, see `$RUN/check/answer_check.json`
+local check (section 11, `results/aamas27/bass-final-check-2`, about 7 min including set-up). If RDFLib or owlready2 differ, see `$RUN/check/answer_check.json`
 (set sizes and the first 20 elements of both differences); `--allow-mismatch` lets the script exit with 0.
 
 ### 6.3 Query timing (10 repetitions)
@@ -387,7 +390,7 @@ are not comparable with the original machine. Result files: `results/aamas27/bas
 the development (not committed).
 
 Code states: before = CRAM 3685d1e0c3 (`origin/dl` + import fix) with EXP 0d53ec7 (`Tom/main` model); after =
-CRAM 2f721b0fbc / a4b5c8f755 with EXP e532914 (and the new query definitions in both cases).
+CRAM a6d22a95aa with EXP 0d84891 (and the new query definitions in both cases).
 
 **Hard answer-set check** (one repetition, reference GraphDB `aamas27_rl`, 18 queries):
 
@@ -406,8 +409,10 @@ property assertion of KRROOD compared with the OWL 2 RL closure of GraphDB.
 
 | | class memberships not entailed | entailed memberships missing | property facts not entailed | entailed property facts missing |
 |-|--------------------------------|------------------------------|-----------------------------|---------------------------------|
-| before | 67 (53 LeisureStudent, 14 punning heuristic) | 226 (PeopleWithHobby 181, BasketBallLover 31, Employee 7, Person 7) | 0 | 4037 |
-| after  | 14 (punning heuristic only, section 2) | 0 | 0 | 4037 (section 2) |
+| before | 67 (53 LeisureStudent, 14 class-name heuristic) | 226 (PeopleWithHobby 181, BasketBallLover 31, Employee 7, Person 7) | 0 | 4037 |
+| after (a6d22a95aa) | 0 | 0 | 0 | 4037 (section 2) |
+
+All 3667 named individuals of the closure are represented in KRROOD.
 
 **KRROOD loading (raw data), 5 fresh processes per state, interleaved, nothing else running:**
 
@@ -417,7 +422,8 @@ property assertion of KRROOD compared with the OWL 2 RL closure of GraphDB.
 | soundness fixes 1-3 + implicit subsumptions (7ce1541932) | 15.01 ± 0.19 | 335 MB |
 | + provenance (46830ff78a) | 15.22 ± 0.26 | 337 MB |
 | + complete type inference (a4b5c8f755) | 16.81 ± 0.07 | 339 MB |
-| + component facts through the relation path (2f721b0fbc, branch head) | 35.94 ± 0.19 | 961 MB |
+| + component facts through the relation path (2f721b0fbc) | 35.94 ± 0.19 | 961 MB |
+| + no class-name typing (a6d22a95aa, branch head; separate 5 runs) | 35.69 ± 0.38 | 961 MB |
 
 **Loading + reasoning of the raw data, one fresh process each (peak RSS of the process tree):**
 
