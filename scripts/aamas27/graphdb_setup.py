@@ -9,7 +9,8 @@ Only repositories whose name starts with ``aamas27_`` are touched. Examples::
     # show rulesets and statement counts
     python scripts/aamas27/graphdb_setup.py --status
 
-    # regenerate the reasoned data file from the OWL 2 RL closure computed by GraphDB
+    # regenerate the reasoned data file from the OWL 2 RL closure computed by GraphDB (explicit statements plus the
+    # materialised class and property assertions of the named individuals)
     python scripts/aamas27/graphdb_setup.py --export-reasoned resources/owl2bench_statements_reasoned.rdf
 """
 
@@ -48,7 +49,10 @@ def main() -> int:
     parser.add_argument("--delete", metavar="REPOSITORY", help="delete a managed repository")
     parser.add_argument("--status", action="store_true", help="print rulesets and statement counts")
     parser.add_argument("--export-reasoned", metavar="FILE",
-                        help=f"export explicit and inferred statements of {RL_REPOSITORY} as RDF/XML")
+                        help=f"write the reasoned data file: explicit statements of {RL_REPOSITORY} plus the "
+                             f"materialised class and property assertions of its named individuals (RDF/XML)")
+    parser.add_argument("--export-full-closure", metavar="FILE",
+                        help=f"export every statement of {RL_REPOSITORY}, including axiomatic triples (RDF/XML)")
     parser.add_argument("--unreasoned-file", default=str(UNREASONED_FILE))
     parser.add_argument("--reasoned-file", default=str(REASONED_FILE))
     arguments = parser.parse_args()
@@ -78,6 +82,8 @@ def main() -> int:
                 print(f"loaded {data_file} into {repository_id} ({ruleset}) in {seconds:.1f} s")
     if arguments.export_reasoned:
         export(client, Path(arguments.export_reasoned))
+    if arguments.export_full_closure:
+        export_full(client, Path(arguments.export_full_closure))
     if arguments.status or arguments.setup_query_repositories:
         status = {}
         for repository_id in client.repository_ids():
@@ -89,9 +95,61 @@ def main() -> int:
     return 0
 
 
+INFERRED_ABOX_QUERY = """
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+CONSTRUCT { ?s ?p ?o }
+WHERE {
+  ?s a owl:NamedIndividual .
+  ?s ?p ?o .
+  FILTER ((?p = rdf:type && STRSTARTS(STR(?o), "http://benchmark/OWL2Bench#"))
+          || STRSTARTS(STR(?p), "http://benchmark/OWL2Bench#"))
+}
+"""
+"""
+The materialised assertions about the named individuals: their OWL2Bench class memberships and their OWL2Bench
+object and data property values. Axiomatic and schema-level triples of the closure (e.g. classes typed as
+rdfs:Resource, properties typed as rdf:Property) are left out, owlready2 cannot load them (punning).
+"""
+
+
 def export(client: GraphDBClient, target: Path) -> None:
     """
-    Export all statements (explicit and inferred) of the OWL 2 RL repository as RDF/XML.
+    Write the reasoned data file: all explicit statements of the raw data (ontology and assertions) plus the
+    materialised assertions of the OWL 2 RL closure about the named individuals (:data:`INFERRED_ABOX_QUERY`), as
+    RDF/XML.
+
+    :param client: The GraphDB client.
+    :param target: The output file.
+    """
+    import rdflib
+
+    graph = rdflib.Graph()
+    explicit = requests.get(
+        f"{client.endpoint(RL_REPOSITORY)}/statements",
+        params={"infer": "false"},
+        headers={"Accept": "application/n-triples"},
+        timeout=client.timeout_seconds,
+    )
+    explicit.raise_for_status()
+    graph.parse(data=explicit.text, format="nt")
+    explicit_count = len(graph)
+    inferred = requests.post(
+        client.endpoint(RL_REPOSITORY),
+        data={"query": INFERRED_ABOX_QUERY},
+        headers={"Accept": "application/n-triples"},
+        timeout=client.timeout_seconds,
+    )
+    inferred.raise_for_status()
+    graph.parse(data=inferred.text, format="nt")
+    graph.serialize(destination=str(target), format="xml")
+    print(f"exported {explicit_count} explicit statements and {len(graph) - explicit_count} materialised individual "
+          f"assertions of {RL_REPOSITORY} ({len(graph)} statements) to {target}")
+
+
+def export_full(client: GraphDBClient, target: Path) -> None:
+    """
+    Export all statements (explicit and inferred, including axiomatic triples) of the OWL 2 RL repository as RDF/XML.
 
     :param client: The GraphDB client.
     :param target: The output file.
