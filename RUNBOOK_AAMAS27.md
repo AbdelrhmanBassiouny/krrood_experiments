@@ -34,7 +34,7 @@ therefore starts with a cherry-pick of the author's one-line fix afd7f7d8fc (fro
 
 Soundness fixes in Ontomatic (CRAM branch `aamas27-experiments`, one commit each, each with a test):
 
-1. Only sufficient conditions classify individuals (946b5131b2). Restrictions in superclass position
+1. Only sufficient conditions classify individuals (e2ed0c8c4b). Restrictions in superclass position
    (`LeisureStudent SubClassOf (Student and takesCourse max 1 Course)`, `WomanCollege SubClassOf (College and
    hasStudent only not Man)`) were turned into classification axioms: 53 students were typed LeisureStudent although
    OWL 2 RL entails none (Q14 returned 53 instead of 0). They are now generated as `necessary_conditions_python`
@@ -43,14 +43,14 @@ Soundness fixes in Ontomatic (CRAM branch `aamas27-experiments`, one commit each
    Science) SubClassOf ScienceStudent` checks Student). The loader no longer types an individual with a specialised
    domain because a value matches the specialised range (reverse use of a restriction) and no longer evaluates an
    axiom inherited from a superclass for a subclass.
-2. No classification axioms synthesised from inverse properties (67f543c07c): e.g. `Organization <- hasEmployee some
+2. No classification axioms synthesised from inverse properties (8cd06f4fa3): e.g. `Organization <- hasEmployee some
    Employee`, `Course <- isTaughtBy some Faculty`, `Department/College/Program <- hasHead some Chair/Dean/Director`.
-3. No subclass or role relations guessed from shared properties (db3fc4fefb): SportsLover, SportsFan,
+3. No subclass or role relations guessed from shared properties (7ce1541932): SportsLover, SportsFan,
    BasketBallLover, BasketBallFan and T20CricketFan are now `Role[Person]` (they were a chain of subclasses of
    PeopleWithHobby), EvaluationCommittee is a plain class (it was `Role[Organization]`). This changes the class
-   structure and the ORM schema (regenerated). Revert this commit together with EXP 3d95541 to get the January
+   structure and the ORM schema (regenerated). Revert this commit together with EXP 29b72a3 to get the January
    class structure back.
-4. Complete OWL 2 RL type inference (ab4778a76b): inferred types are visible to the classification axioms (fixpoint);
+4. Complete OWL 2 RL type inference (a4b5c8f755): inferred types are visible to the classification axioms (fixpoint);
    values implied through super-, equivalent and inverse properties and symmetry are taken into account before
    typing (prp-spo1, prp-eqp, prp-inv, prp-symp); prp-dom/prp-rng use the `rdfs:domain`/`rdfs:range` declared in the
    ontology (the generator now emits them as `rdfs_domains`/`rdfs_ranges` on every property descriptor). As a
@@ -58,11 +58,11 @@ Soundness fixes in Ontomatic (CRAM branch `aamas27-experiments`, one commit each
    (`hasResearchProject SubPropertyOf hasWork`, `hasWork rdfs:domain Employee`, `Employee SubClassOf Person`), and Q12
    now has the same answer set as GraphDB (2494).
 
-Further CRAM changes: provenance of every inferred fact and type (aa5b4367db: `PropertyDescriptorRelation.explain()`,
+Further CRAM changes: provenance of every inferred fact and type (46830ff78a: `PropertyDescriptorRelation.explain()`,
 `.find()`, `OwlInstancesRegistry.explain_type()`), symmetric-transitive component facts added through the relation
-path so that super-property/inverse/chain/equivalence implications apply (772a07336b; this roughly doubles the KRROOD
+path so that super-property/inverse/chain/equivalence implications apply (2f721b0fbc; this roughly doubles the KRROOD
 loading time on OWL2Bench, see section 11, without changing any query answer), and an ablation flag
-`PropertyDescriptorRelation.eager_symmetric_transitive_closure` (7586e75abc).
+`PropertyDescriptorRelation.eager_symmetric_transitive_closure` (42563662af).
 
 Experiment changes (EXP branch `aamas27-experiments`):
 
@@ -108,12 +108,12 @@ Assuming the two branches were pushed to the authors' remotes as `aamas27-experi
 cd ~
 git clone git@github.com:AbdelrhmanBassiouny/krrood_experiments.git krrood_experiments_aamas27
 cd ~/krrood_experiments_aamas27 && git fetch origin aamas27-experiments && git checkout aamas27-experiments
-git log -1 --format='%H %s'   # expected: {{EXP_HEAD}} or later
+git log -1 --format='%H %s'   # expected: the commit that contains this runbook, or later
 
 cd ~
 git clone git@github.com:AbdelrhmanBassiouny/cognitive_robot_abstract_machine.git cram_aamas27
 cd ~/cram_aamas27 && git fetch origin aamas27-experiments && git checkout aamas27-experiments
-git log -1 --format='%H %s'   # expected: {{CRAM_HEAD}}
+git log -1 --format='%H %s'   # expected: 2f721b0fbc
 
 cd ~
 git clone https://github.com/AbdelrhmanBassiouny/ripple_down_rules.git ripple_down_rules_aamas27
@@ -123,7 +123,7 @@ cd ~/ripple_down_rules_aamas27 && git checkout 3b994bb
 If you already have clones, use `git worktree add -b aamas27-experiments <dir> origin/aamas27-experiments` instead.
 CRAM has git submodules that are not needed (`krrood` has no submodule dependency); do not run `git submodule update`.
 
-Commits of the code that was verified locally (section 11): CRAM {{CRAM_HEAD}}, EXP {{EXP_CODE}},
+Commits of the code that was verified locally (section 11): CRAM 2f721b0fbc, EXP e532914/29c2302 (code), runbook commits on top,
 ripple_down_rules 3b994bb.
 
 ## 4. Python environment
@@ -226,6 +226,20 @@ sha256 `5d30e2c0cd851c929fa2ddaaf5dab5164fb8103f89b768209dfbdb2c914b68ef`) conta
 that was the file used in January, RDFLib and owlready2 cannot have returned 20 answers for Q5 with it (the nextcloud
 download in README.md may be a different version).
 
+### 5.4 With or without the component-propagation commit
+
+The CRAM branch head (2f721b0fbc) contains the commit that adds the facts of symmetric-transitive components through
+the relation path (complete propagation and provenance). On OWL2Bench it changes no query answer, but it raises the
+KRROOD loading time from about 17 s to 36 s and the peak memory from about 340 MB to 960 MB (section 11). Its parent
+a4b5c8f755 has all soundness and completeness fixes. Run the experiments at the branch head; to report KRROOD
+without that commit as well, repeat only the KRROOD loading measurements (with the environment of section 6):
+
+```bash
+cd ~/cram_aamas27 && git checkout a4b5c8f755 && cd ~/krrood_experiments_aamas27
+python scripts/aamas27/run_loading.py --systems krrood,krrood_ormatic --repetitions 5 --results-dir $RUN/loading_without_component_propagation
+cd ~/cram_aamas27 && git checkout aamas27-experiments && cd ~/krrood_experiments_aamas27
+```
+
 ## 6. Experiments
 
 Always in the activated venv, with `PYTHONPATH` unset and the two environment variables set:
@@ -252,8 +266,8 @@ Expected: `9 passed`.
 python scripts/aamas27/run_queries.py --check-only --results-dir $RUN/check
 ```
 
-Expected: every framework equal to GraphDB for all 18 queries (exit status 0). Locally (section 11) EQL and
-SQLAlchemy are equal on all 18 queries. If RDFLib or owlready2 differ, see `$RUN/check/answer_check.json`
+Expected: every framework equal to GraphDB for all 18 queries (exit status 0); this is the result of the final
+local check (section 11, `results/aamas27/bass-final-check`, about 7 min including set-up). If RDFLib or owlready2 differ, see `$RUN/check/answer_check.json`
 (set sizes and the first 20 elements of both differences); `--allow-mismatch` lets the script exit with 0.
 
 ### 6.3 Query timing (10 repetitions)
@@ -367,4 +381,67 @@ logs.
 
 ## 11. Results on the development machine (correctness, memory and same-machine deltas only)
 
-{{LOCAL_RESULTS}}
+Machine: hostname `bass`, 12th Gen Intel Core i7-12700H, 15.3 GB RAM (about 9 GB used by other work), Ubuntu
+24.04.4, Python 3.12.3, GraphDB 11.2.0 Free (1 core, -Xmx3g, port 7333), PostgreSQL 18.1 (Docker). These timings
+are not comparable with the original machine. Result files: `results/aamas27/bass-*` in the EXP worktree used for
+the development (not committed).
+
+Code states: before = CRAM 3685d1e0c3 (`origin/dl` + import fix) with EXP 0d53ec7 (`Tom/main` model); after =
+CRAM 2f721b0fbc / a4b5c8f755 with EXP e532914 (and the new query definitions in both cases).
+
+**Hard answer-set check** (one repetition, reference GraphDB `aamas27_rl`, 18 queries):
+
+| Query | GraphDB | before: EQL / SQLAlchemy | after: EQL / SQLAlchemy | after: RDFLib / owlready2 |
+|-------|---------|--------------------------|-------------------------|---------------------------|
+| Q2, Q3, Q4, Q5, Q7, Q8, Q9, Q10, Q11, Q13, Q15, Q16, Q19, Q20, Q21, Q22 | 7421, 55, 2486, 20, 1684, 6, 0, 666, 2422, 0, 21, 21, 858, 1311932, 145, 106 | equal | equal | equal |
+| Q12 | 2494 | 2487 (missing U0RG0 ... U0RG6) | equal | equal |
+| Q14 | 0 | 53 (unsound LeisureStudent) | equal | equal |
+
+SQLAlchemy "before" already uses the corrected projections (section 1); with the January statements Q2, Q15, Q16
+differ in shape and Q22 returned 12 of 106 answers. EQL and SQLAlchemy return 141 rows for the 106 distinct answers
+of Q22.
+
+**Soundness audit** (`python -m krrood_experiments.aamas27.soundness_audit`): every class membership and object
+property assertion of KRROOD compared with the OWL 2 RL closure of GraphDB.
+
+| | class memberships not entailed | entailed memberships missing | property facts not entailed | entailed property facts missing |
+|-|--------------------------------|------------------------------|-----------------------------|---------------------------------|
+| before | 67 (53 LeisureStudent, 14 punning heuristic) | 226 (PeopleWithHobby 181, BasketBallLover 31, Employee 7, Person 7) | 0 | 4037 |
+| after  | 14 (punning heuristic only, section 2) | 0 | 0 | 4037 (section 2) |
+
+**KRROOD loading (raw data), 5 fresh processes per state, interleaved, nothing else running:**
+
+| State (CRAM commit) | Loading + reasoning [s] | Peak RSS |
+|---------------------|-------------------------|----------|
+| before (3685d1e0c3) | 15.00 ± 0.33 | 335 MB |
+| soundness fixes 1-3 + implicit subsumptions (7ce1541932) | 15.01 ± 0.19 | 335 MB |
+| + provenance (46830ff78a) | 15.22 ± 0.26 | 337 MB |
+| + complete type inference (a4b5c8f755) | 16.81 ± 0.07 | 339 MB |
+| + component facts through the relation path (2f721b0fbc, branch head) | 35.94 ± 0.19 | 961 MB |
+
+**Loading + reasoning of the raw data, one fresh process each (peak RSS of the process tree):**
+
+| System | Time [s] | Peak memory |
+|--------|----------|-------------|
+| KRROOD (branch head) | 35.9 (see above) | 961 MB |
+| KRROOD + ORMatic, persisting into PostgreSQL (branch head)* | 34.6 loading + 44.1 persisting | 2.16 GB |
+| owlready2 + Pellet (Java heap 2000 MB)* | 61.1 | 2.26 GB |
+| RDFLib + owlrl* | did not finish within the 30 min cap | 860 MB when stopped |
+| GraphDB, owl2-rl-optimized (server JVM, -Xmx3g, 1 core) | 2552 (a second load: 2583) | 2.55 GB peak RSS, +0.86 GB during the load |
+
+\* measured while the GraphDB measurement ran on another core (CPU contention possible; memory unaffected).
+The paper reports 36.0 s for RDFLib + owlrl on the raw data; on this machine owlrl did not finish in 30 min. Measure
+it on the original machine with the 3 h cap. The reasoned input was not measured here (memory).
+
+**Ablation** (eager closure of hasSameHomeTownWith, no connected components): stopped by the 30 min cap after 75 % of the
+property assignments (single hasSameHomeTownWith assignments took up to 387 s), peak RSS 651 MB. The connected-
+components version needs 15-17 s. Measure the full run on the original machine with the 2 h cap.
+
+**ResearchGroup typing (Q12):** the OWL 2 RL closure types the 7 ResearchGroups as Employee and Person through
+`U0RG0 hasResearchProject U0RG0RP` (asserted), `hasResearchProject rdfs:subPropertyOf hasWork` (prp-spo1:
+`U0RG0 hasWork U0RG0RP`), `hasWork rdfs:domain Employee` (prp-dom: `U0RG0 a Employee`), `Employee rdfs:subClassOf
+Person` (cax-sco: `U0RG0 a Person`). Verified in GraphDB (`aamas27_rl`: `U0RG0 hasWork U0RG0RP` and `U0RG0 a
+Employee, Person` are inferred) and with owlrl on exactly these four TBox/ABox triples. This is plain RDFS reasoning,
+not specific to the owl-max ruleset. KRROOD after the fixes derives the same types (the ResearchGroup individual gets
+an Organization object and, as a role, an Employee/Person object).
+

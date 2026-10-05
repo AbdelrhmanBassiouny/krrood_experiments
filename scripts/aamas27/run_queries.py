@@ -40,13 +40,11 @@ from krrood_experiments.aamas27.graphdb import GraphDBClient
 from krrood_experiments.aamas27.memory import run_measured
 from krrood_experiments.aamas27.query_worker import FRAMEWORKS, RL_QUERIES
 
-KNOWN_DIFFERENCES = {
-    12: "Q12 (?x rdf:type Person): the OWL 2 RL closure types the ResearchGroup individuals as Person; the KRROOD "
-        "model keeps ResearchGroup an Organization, so EQL and SQLAlchemy return fewer answers.",
-}
+KNOWN_DIFFERENCES = {}
 """
-Differences that are expected and explained in the paper. They are still reported and still make the check fail
-unless ``--allow-mismatch`` is given.
+Differences that are expected and explained in the paper, by query number. Since the type-inference fixes of krrood
+aamas27-experiments, all 18 queries have equal answer sets in every framework (Q12 included), so none is expected.
+They would still be reported and make the check fail unless ``--allow-mismatch`` is given.
 """
 
 

@@ -76,7 +76,12 @@ def loading_cells(runs: List[Dict[str, Any]]) -> Dict[str, Any]:
     failed = [r for r in runs if r.get("status") != "ok"]
     cells: Dict[str, Any] = {"repetitions": len(ok)}
     if ok:
-        times = [r["worker_result"]["load_and_reasoning_seconds"] for r in ok]
+        times = [
+            r["worker_result"].get(
+                "load_reasoning_and_persist_seconds", r["worker_result"]["load_and_reasoning_seconds"]
+            )
+            for r in ok
+        ]
         cells["time"] = mean_std(times)
         cells["memory_mib"] = max(r["peak_rss_mib"] for r in ok)
         if ok[0].get("peak_minus_before_mib") is not None:
