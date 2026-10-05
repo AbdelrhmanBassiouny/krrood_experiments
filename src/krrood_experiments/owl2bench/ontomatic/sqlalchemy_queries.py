@@ -27,7 +27,11 @@ class SQLAlchemyQuery:
     """
 
 
-sqlalchemy_q2 = select(organizationdao_has_member_association)
+# Columns in the order of the SPARQL query (?x member, ?y organization).
+sqlalchemy_q2 = select(
+    organizationdao_has_member_association.c.target_persondao_id,
+    organizationdao_has_member_association.c.source_organizationdao_id,
+)
 q2 = SQLAlchemyQuery(sparql_queries.q2, sqlalchemy_q2)
 
 sqlalchemy_q3 = select(organizationdao_is_part_of_association)
@@ -86,10 +90,14 @@ sqlalchemy_q14 = select(LeisureStudentDAO)
 q14 = SQLAlchemyQuery(sparql_queries.q14, sqlalchemy_q14)
 
 
-sqlalchemy_q15 = select(persondao_is_head_of_association)
+# SPARQL selects DISTINCT ?x only.
+sqlalchemy_q15 = select(persondao_is_head_of_association.c.source_persondao_id).distinct()
 q15 = SQLAlchemyQuery(sparql_queries.q15, sqlalchemy_q15)
 
-sqlalchemy_q16 = select(organizationdao_has_head_association)
+# SPARQL selects DISTINCT ?x only.
+sqlalchemy_q16 = select(
+    organizationdao_has_head_association.c.source_organizationdao_id
+).distinct()
 q16 = SQLAlchemyQuery(sparql_queries.q16, sqlalchemy_q16)
 
 sqlalchemy_q17 = select(UGStudentDAO)
@@ -139,10 +147,9 @@ sqlalchemy_q22 = (
         organization.database_id
         == organizationdao_has_dean_association.c.source_organizationdao_id,
     )
-    .where(
-        student.polymorphic_type.in_(["PGStudentDAO", "PhDStudentDAO", "UGStudentDAO"])
-    )
 )
+# The January 2026 version restricted the students to the polymorphic types PGStudentDAO, PhDStudentDAO and
+# UGStudentDAO, which dropped all other students (12 instead of 106 answers on the RL data).
 q22 = SQLAlchemyQuery(sparql_queries.q22, sqlalchemy_q22)
 
 all_queries = [

@@ -134,6 +134,9 @@ def main() -> int:
                         help=f"comma separated subset of {ALL_SYSTEMS} (default: all)")
     parser.add_argument("--inputs", default="raw,reasoned", help="comma separated subset of raw,reasoned")
     parser.add_argument("--repetitions", type=int, default=5)
+    parser.add_argument("--repetitions-per-system", default="graphdb=1,rdflib_owlrl=1",
+                        help="comma separated overrides SYSTEM=N of --repetitions (default: graphdb=1,rdflib_owlrl=1, "
+                             "these take 30-180 min per run)")
     parser.add_argument("--timeout-seconds", type=float, default=3 * 3600,
                         help="wall-clock cap per measurement of every worker-based system (default 3 h)")
     parser.add_argument("--rdflib-timeout-seconds", type=float, default=None,
@@ -168,10 +171,14 @@ def main() -> int:
 
         record["runs"] = json.loads(output.read_text())["runs"]
 
+    repetitions = {system: arguments.repetitions for system in systems}
+    for override in filter(None, arguments.repetitions_per_system.split(",")):
+        system, count = override.split("=")
+        repetitions[system] = int(count)
     for system in systems:
         for input_name in inputs:
             input_file = files[input_name]
-            for repetition in range(arguments.repetitions):
+            for repetition in range(repetitions[system]):
                 print(f"[{time.strftime('%H:%M:%S')}] {system} / {input_name} / repetition {repetition + 1}",
                       flush=True)
                 if system == "graphdb":

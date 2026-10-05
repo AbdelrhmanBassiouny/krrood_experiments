@@ -1,0 +1,13 @@
+{
+  "_comment": "Fill in the manual Protege 5.6.7 + Pellet measurements (see RUNBOOK_AAMAS27.md). seconds may be a number or a list of repetitions; use status 'timeout', 'o.o.m.' or 'n/a' instead of seconds when a run did not finish. Query times in milliseconds.",
+  "protege_version": "5.6.7",
+  "pellet_plugin_version": "",
+  "java_options": "",
+  "loading": {
+    "raw": {"seconds": null, "peak_rss_mib": null, "status": "n/a"},
+    "reasoned": {"seconds": null, "peak_rss_mib": null, "status": "n/a"}
+  },
+  "queries": {
+    "2": {"mean_ms": null, "std_ms": null, "results": null}
+  }
+}
