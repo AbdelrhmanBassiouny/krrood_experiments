@@ -38,6 +38,9 @@ from krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates import (
     T20CricketFan,
     Faculty,
     Engineering,
+    College,
+    WomanCollege,
+    LeisureStudent,
 )
 
 
@@ -73,6 +76,15 @@ def get_eql_queries(
     q8 = an(set_of(o1, o2))
     q8 = QueryWithSelectables(q8, {"x": o1, "y": o2}, 8)
 
+    c = variable(College, domain=None)
+    d = variable_from(c.has_college_discipline)
+    q9 = an(
+        entity(c)
+        .where(d.uri == "http://benchmark/OWL2Bench#NonScience")
+        .distinct(c.uri)
+    )
+    q9 = QueryWithSelectables(q9, {"x": c}, 9)
+
     p1 = variable(Person, domain=None)
     p2 = variable_from(p1.has_collaboration_with)
     q10 = an(set_of(p1, p2))
@@ -86,6 +98,14 @@ def get_eql_queries(
     p1 = variable(Person, domain=None)
     q12 = an(entity(p1).distinct(p1.uri))
     q12 = QueryWithSelectables(q12, {"x": p1}, 12)
+
+    w = variable(WomanCollege, domain=None)
+    q13 = an(entity(w))
+    q13 = QueryWithSelectables(q13, {"x": w}, 13)
+
+    s = variable(LeisureStudent, domain=None)
+    q14 = an(entity(s))
+    q14 = QueryWithSelectables(q14, {"x": s}, 14)
 
     p = variable(Person, domain=None)
     q15 = an(entity(p).where(p.is_head_of))
@@ -125,9 +145,12 @@ def get_eql_queries(
         q5,
         q7,
         q8,
+        q9,
         q10,
         q11,
         q12,
+        q13,
+        q14,
         q15,
         q16,
         q19,

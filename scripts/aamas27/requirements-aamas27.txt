@@ -1,0 +1,16 @@
+# Pinned versions for the AAMAS 2027 OWL2Bench experiments.
+# Versions match the environment used for the January 2026 runs
+# (~/.virtualenvs/krrood_experiments on the authors' machine) where known.
+rdflib==7.4.0
+owlrl==7.1.4
+owlready2==0.49
+SQLAlchemy==2.0.44
+SPARQLWrapper==2.0.0
+numpy==2.3.4
+rustworkx==0.17.1
+psycopg2-binary==2.9.11
+tqdm==4.67.1
+psutil==7.2.2
+pytest==9.0.1
+line-profiler==5.0.0
+typing_extensions==4.15.0

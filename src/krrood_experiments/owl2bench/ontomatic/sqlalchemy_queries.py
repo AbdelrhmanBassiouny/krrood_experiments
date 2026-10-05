@@ -33,7 +33,8 @@ q2 = SQLAlchemyQuery(sparql_queries.q2, sqlalchemy_q2)
 sqlalchemy_q3 = select(organizationdao_is_part_of_association)
 q3 = SQLAlchemyQuery(sparql_queries.q3, sqlalchemy_q3)
 
-sqlalchemy_q4 = select(PersonDAO.has_age).where(
+# The subject is selected as well, as in the SPARQL query (?x ?y); the January 2026 version selected only the age.
+sqlalchemy_q4 = select(PersonDAO.database_id, PersonDAO.has_age).where(
     PersonDAO.has_age.is_not(None), PersonDAO.has_age != ""
 )
 q4 = SQLAlchemyQuery(sparql_queries.q4, sqlalchemy_q4)
@@ -55,8 +56,16 @@ q7 = SQLAlchemyQuery(sparql_queries.q7, sqlalchemy_q7)
 sqlalchemy_q8 = select(organizationdao_is_affiliated_organization_of_association)
 q8 = SQLAlchemyQuery(sparql_queries.q8, sqlalchemy_q8)
 
-sqlalchemy_q9 = select(collegedao_has_college_discipline_association).join(
-    MaterialScienceEngineeringDAO
+college_discipline = aliased(OWL2BenchThingDAO, flat=True)
+sqlalchemy_q9 = (
+    select(collegedao_has_college_discipline_association.c.source_collegedao_id)
+    .join(
+        college_discipline,
+        college_discipline.database_id
+        == collegedao_has_college_discipline_association.c.target_collegedisciplinedao_id,
+    )
+    .where(college_discipline.uri == "http://benchmark/OWL2Bench#NonScience")
+    .distinct()
 )
 q9 = SQLAlchemyQuery(sparql_queries.q9, sqlalchemy_q9)
 
@@ -145,12 +154,12 @@ all_queries = [
     # q6,
     q7,
     q8,
-    # q9,
+    q9,
     q10,
     q11,
     q12,
-    # q13,
-    # q14,
+    q13,
+    q14,
     q15,
     q16,
     # q17,
