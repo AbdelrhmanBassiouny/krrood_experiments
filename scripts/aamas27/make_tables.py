@@ -31,11 +31,11 @@ from typing import Any, Dict, List, Optional, Tuple
 LOADING_ROWS = [
     ("krrood", "KRROOD"),
     ("rdflib_owlrl", "RDFLib"),
-    ("owlready2_pellet", "owlready2"),
-    ("protege", "Protege"),
+    ("owlready2_pellet", "Owlready2"),
+    ("protege", "Prot\\'eg\\'e"),
     ("graphdb", "GraphDB"),
     ("krrood_ormatic", "KRROOD + ORMatic"),
-    ("krrood_eager_symmetric_transitive", "KRROOD (no WCC, ablation)"),
+    ("krrood_eager_symmetric_transitive", "KRROOD, eager chaining (ablation)"),
 ]
 """
 Systems of the loading table in display order (system key, label).
@@ -46,8 +46,8 @@ QUERY_COLUMNS = [
     ("graphdb", "GraphDB"),
     ("eql", "EQL"),
     ("rdflib", "RDFLib"),
-    ("owlready2", "owlready2"),
-    ("protege", "Protege"),
+    ("owlready2", "Owlready2"),
+    ("protege", "Prot\\'eg\\'e"),
 ]
 """
 Frameworks of the query table in display order (framework key, label).
@@ -153,13 +153,13 @@ def loading_table(loading: Optional[Dict[str, Any]], protege: Optional[Dict[str,
     latex = "\n".join(
         [
             "\\begin{tabular}{lllll}",
-            "\\hline",
+            "\\toprule",
             "\\textbf{Framework} & \\multicolumn{2}{l}{\\textbf{Loading + Reasoning Raw}} & "
             "\\multicolumn{2}{l}{\\textbf{Loading + Reasoning Reasoned}}\\\\",
             " & \\textbf{Time [s]} & \\textbf{Peak memory} & \\textbf{Time [s]} & \\textbf{Peak memory}\\\\",
-            "\\hline",
+            "\\midrule",
             *rows,
-            "\\hline",
+            "\\bottomrule",
             "\\end{tabular}",
         ]
     )
@@ -228,13 +228,13 @@ def query_table(queries: Dict[str, Any], check: Optional[Dict[str, Any]], proteg
     latex = "\n".join(
         [
             "\\begin{tabular}{l" + "l" * (len(columns) + 1) + "}",
-            "\\hline",
+            "\\toprule",
             header,
-            "\\hline",
+            "\\midrule",
             *rows,
-            "\\hline",
+            "\\midrule",
             "\\textbf{Geom. Mean} & --- & " + " & ".join(geometric_cells) + "\\\\",
-            "\\hline",
+            "\\bottomrule",
             "\\end{tabular}",
             f"% geometric mean over the {len(all_completed)} queries completed by all frameworks: "
             + ", ".join(f"Q{n}" for n in all_completed),
