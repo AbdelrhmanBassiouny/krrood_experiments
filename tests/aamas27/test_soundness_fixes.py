@@ -18,6 +18,7 @@ import rdflib
 from krrood.class_diagrams.utils import Role, issubclass_or_role
 from krrood.entity_query_language.symbol_graph import SymbolGraph
 from krrood.ontomatic.ontology_to_python.owl_instances_loader import (
+    OwlLoader,
     TypeInferredThrough,
 )
 from krrood.ontomatic.property_descriptor.property_descriptor_relation import (
@@ -27,6 +28,7 @@ from krrood.ontomatic.property_descriptor.property_descriptor_relation import (
 
 from krrood_experiments.aamas27.environment import UNREASONED_FILE
 from krrood_experiments.owl2bench.ontomatic import owl2bench_with_predicates as model
+from krrood_experiments.owl2bench.ontomatic import owl2bench_with_predicates_properties as properties
 from krrood_experiments.owl2bench.ontomatic.helpers import (
     load_instances_for_owl2bench_with_predicates,
 )
@@ -131,9 +133,6 @@ def test_every_inferred_relation_is_explained(registry):
             assert len(chain) >= 2
             for left, right in zip(chain, chain[1:]):
                 assert left.target.instance is right.source.instance
-        elif relation.rule == InferredThrough.SYMMETRIC_TRANSITIVE_COMPONENT:
-            name, component_id, size = relation.premises
-            assert name == "HasSameHomeTownWith" and size >= 1
     for rule in [
         InferredThrough.INVERSE,
         InferredThrough.SUPER,
@@ -141,9 +140,38 @@ def test_every_inferred_relation_is_explained(registry):
         InferredThrough.SYMMETRY,
         InferredThrough.TRANSITIVE,
         InferredThrough.CHAIN,
-        InferredThrough.SYMMETRIC_TRANSITIVE_COMPONENT,
     ]:
         assert rules[rule] > 0, rule
+
+
+def test_symmetric_transitive_component_facts_are_explained_by_their_component(registry):
+    """
+    hasSameHomeTownWith implies no other property, so its component facts are stored only in the attributes and
+    explained by their weakly connected component (one record per member instead of one relation per fact).
+    """
+    assert not OwlLoader.implies_other_properties(properties.HasSameHomeTownWith)
+    persons = [o for o in objects_of_type(registry, model.Person) if o.has_same_home_town_with]
+    assert persons
+    rules = Counter()
+    for person in persons[:50]:
+        for other in person.has_same_home_town_with:
+            relation = PropertyDescriptorRelation.find(person, "has_same_home_town_with", other)
+            assert relation is not None, (person.uri, other.uri)
+            rules[relation.rule] += 1
+            if relation.rule == InferredThrough.SYMMETRIC_TRANSITIVE_COMPONENT:
+                name, component_id, size = relation.premises
+                assert name == "HasSameHomeTownWith"
+                assert size >= 2
+    assert rules[InferredThrough.SYMMETRIC_TRANSITIVE_COMPONENT] > 0
+    assert not any(
+        relation.rule == InferredThrough.SYMMETRIC_TRANSITIVE_COMPONENT for relation in SymbolGraph().relations()
+    )
+
+
+def test_properties_that_imply_other_properties():
+    assert OwlLoader.implies_other_properties(properties.IsStudentOf)  # sub-property of isMemberOf
+    assert OwlLoader.implies_other_properties(properties.HasSubOrganization)  # inverse of isSubOrganizationOf
+    assert OwlLoader.implies_other_properties(properties.EnrollIn)  # occurs in property chains
 
 
 def test_relation_explanation_api(registry):

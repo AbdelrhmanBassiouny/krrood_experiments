@@ -66,8 +66,9 @@ Soundness fixes in Ontomatic (CRAM branch `aamas27-experiments`, one commit each
 
 Further CRAM changes: provenance of every inferred fact and type (46830ff78a: `PropertyDescriptorRelation.explain()`,
 `.find()`, `OwlInstancesRegistry.explain_type()`), symmetric-transitive component facts added through the relation
-path so that super-property/inverse/chain/equivalence implications apply (2f721b0fbc; this roughly doubles the KRROOD
-loading time on OWL2Bench, see section 11, without changing any query answer), and an ablation flag
+path when the property implies other properties (super-property, inverse, equivalent property or property chain), and
+otherwise stored in the attributes with one explanation per component (2f721b0fbc, refined by b21251fb9a; on OWL2Bench
+hasSameHomeTownWith implies no other property, so loading costs the same as without the relation path, see section 11), and an ablation flag
 `PropertyDescriptorRelation.eager_symmetric_transitive_closure` (42563662af).
 
 Experiment changes (EXP branch `aamas27-experiments`):
@@ -115,7 +116,7 @@ git log -1 --format='%H %s'   # expected: the commit that contains this runbook,
 cd ~
 git clone git@github.com:AbdelrhmanBassiouny/cognitive_robot_abstract_machine.git cram_aamas27
 cd ~/cram_aamas27 && git fetch origin aamas27-experiments && git checkout aamas27-experiments
-git log -1 --format='%H %s'   # expected: a6d22a95aa
+git log -1 --format='%H %s'   # expected: b21251fb9a
 
 cd ~
 git clone https://github.com/AbdelrhmanBassiouny/ripple_down_rules.git ripple_down_rules_aamas27
@@ -125,7 +126,7 @@ cd ~/ripple_down_rules_aamas27 && git checkout 3b994bb
 If you already have clones, use `git worktree add -b aamas27-experiments <dir> origin/aamas27-experiments` instead.
 CRAM has git submodules that are not needed (`krrood` has no submodule dependency); do not run `git submodule update`.
 
-Commits of the code that was verified locally (section 11): CRAM a6d22a95aa, EXP 0d84891 (code), runbook commits on top,
+Commits of the code that was verified locally (section 11): CRAM b21251fb9a, EXP 0d84891 (code), runbook commits on top,
 ripple_down_rules 3b994bb.
 
 ## 4. Python environment
@@ -228,20 +229,14 @@ sha256 `5d30e2c0cd851c929fa2ddaaf5dab5164fb8103f89b768209dfbdb2c914b68ef`) conta
 that was the file used in January, RDFLib and owlready2 cannot have returned 20 answers for Q5 with it (the nextcloud
 download in README.md may be a different version).
 
-### 5.4 With or without the component-propagation commit
+### 5.4 Symmetric-transitive components (no choice needed)
 
-The CRAM branch head (a6d22a95aa) sits on top of 2f721b0fbc, the commit that adds the facts of symmetric-transitive
-components through the relation path (complete propagation and provenance). On OWL2Bench it changes no query answer,
-but it raises the KRROOD loading time from about 17 s to 36 s and the peak memory from about 340 MB to 960 MB
-(section 11). Run the experiments at the branch head. To report KRROOD without the component-propagation commit as well,
-revert it on a temporary branch and repeat only the KRROOD loading measurements (with the environment of section 6):
-
-```bash
-cd ~/cram_aamas27 && git checkout -b aamas27-without-component-propagation && git revert --no-edit 2f721b0fbc
-cd ~/krrood_experiments_aamas27
-python scripts/aamas27/run_loading.py --systems krrood,krrood_ormatic --repetitions 5 --results-dir $RUN/loading_without_component_propagation
-cd ~/cram_aamas27 && git checkout aamas27-experiments && cd ~/krrood_experiments_aamas27
-```
+The facts of a symmetric-transitive component go through the relation path (super-property, inverse, chain and
+equivalence rules, one explained relation per fact) only when the property implies other properties
+(`OwlLoader.implies_other_properties`). Otherwise they are stored in the attributes and explained once per component
+(`PropertyDescriptorRelation.find` still returns an explained relation for each of them). hasSameHomeTownWith implies no
+other property, so the branch head (b21251fb9a) loads OWL2Bench as fast as before 2f721b0fbc (about 16.5 s and
+340 MB here instead of 36 s and 960 MB) with the same answers. There is no variant to measure separately.
 
 ## 6. Experiments
 
@@ -423,14 +418,15 @@ All 3667 named individuals of the closure are represented in KRROOD.
 | + provenance (46830ff78a) | 15.22 ± 0.26 | 337 MB |
 | + complete type inference (a4b5c8f755) | 16.81 ± 0.07 | 339 MB |
 | + component facts through the relation path (2f721b0fbc) | 35.94 ± 0.19 | 961 MB |
-| + no class-name typing (a6d22a95aa, branch head; separate 5 runs) | 35.69 ± 0.38 | 961 MB |
+| + no class-name typing (a6d22a95aa; separate 5 runs) | 35.69 ± 0.38 | 961 MB |
+| + relation path only for properties that imply others (b21251fb9a, branch head; separate 5 runs) | 16.46 ± 0.53 | 338 MB |
 
 **Loading + reasoning of the raw data, one fresh process each (peak RSS of the process tree):**
 
 | System | Time [s] | Peak memory |
 |--------|----------|-------------|
-| KRROOD (branch head) | 35.9 (see above) | 961 MB |
-| KRROOD + ORMatic, persisting into PostgreSQL (branch head)* | 34.6 loading + 44.1 persisting | 2.16 GB |
+| KRROOD (branch head) | 16.5 (see above) | 338 MB |
+| KRROOD + ORMatic, persisting into PostgreSQL (a6d22a95aa)* | 34.6 loading + 44.1 persisting | 2.16 GB |
 | owlready2 + Pellet (Java heap 2000 MB)* | 61.1 | 2.26 GB |
 | RDFLib + owlrl* | did not finish within the 30 min cap | 860 MB when stopped |
 | GraphDB, owl2-rl-optimized (server JVM, -Xmx3g, 1 core) | 2552 (a second load: 2583) | 2.55 GB peak RSS, +0.86 GB during the load |
