@@ -177,3 +177,29 @@ def test_every_type_rule_is_recorded(registry):
                 assert property_name and subject is not None
             if explanation.rule == TypeInferredThrough.AXIOM:
                 assert issubclass_or_role(cls, explanation.premises[0])
+
+
+def test_types_entailed_through_inferred_types_and_super_properties(registry):
+    """
+    Completeness checks against the OWL 2 RL closure (GraphDB, owl2-rl-optimized):
+
+    * UGStudent <- Student and (enrollFor some UGProgram): the Student type is itself inferred (enrollIn domain), so
+      the axiom must see inferred types (765 UGStudents in the closure).
+    * ResearchGroup individuals are Employees: hasResearchProject SubPropertyOf hasWork, hasWork rdfs:domain Employee
+      (prp-spo1 + prp-dom), hence also Persons (Q12 returns 2494 in GraphDB).
+    """
+    assert len({o.uri for o in objects_of_type(registry, model.UGStudent)}) == 765
+    research_groups = {o.uri for o in objects_of_type(registry, model.ResearchGroup)}
+    assert len(research_groups) == 7
+    employees = {o.uri for o in objects_of_type(registry, model.Employee)}
+    assert research_groups <= employees
+    for uri in research_groups:
+        explanation = registry.explain_type(uri, model.Employee)
+        assert explanation.rule == TypeInferredThrough.DOMAIN
+        assert explanation.premises[0][1] == "HasWork"
+    persons = {
+        uri
+        for uri, objects in registry._by_uri.items()
+        if any(issubclass_or_role(type(o), model.Person) for o in objects)
+    }
+    assert len(persons) == 2494

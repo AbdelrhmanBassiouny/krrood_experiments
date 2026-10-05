@@ -46,11 +46,20 @@ def model_classes() -> Dict[str, type]:
     from krrood_experiments.owl2bench.ontomatic import owl2bench_with_predicates as model
 
     classes = {}
-    for value in vars(model).values():
+    for name, value in vars(model).items():
         uri = getattr(value, "cls_uri", None) if isinstance(value, type) else None
         if isinstance(uri, str) and uri.startswith(NAMESPACE):
             classes[uri] = value
+            # owl:equivalentClass aliases (e.g. School = College) are module attributes with another name
+            classes.setdefault(NAMESPACE + name, value)
     return classes
+
+
+IGNORED_CLASSES = {"Role"}
+"""
+OWL classes that only encode the role pattern in the ontology (``Role``, ``roleFor``) and have no counterpart class
+in the generated model; they are excluded from the comparison.
+"""
 
 
 @lru_cache(maxsize=None)
@@ -199,6 +208,8 @@ def audit(registry, client: GraphDBClient, repository: str, include_properties: 
             by_class_reference[class_uri].add(individual)
     classes = {}
     for class_uri in sorted(set(by_class_krrood) | set(by_class_reference)):
+        if class_uri[len(NAMESPACE):] in IGNORED_CLASSES:
+            continue
         classes[class_uri[len(NAMESPACE):]] = difference_entry(
             by_class_krrood[class_uri], by_class_reference[class_uri]
         )
