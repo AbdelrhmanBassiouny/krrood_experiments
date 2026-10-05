@@ -112,13 +112,15 @@ q20 = SQLAlchemyQuery(sparql_queries.q20, sqlalchemy_q20)
 
 org = aliased(OrganizationDAO, flat=True)
 college = aliased(CollegeDAO, flat=True)
-engineering = aliased(EngineeringDAO, flat=True)
+discipline = aliased(CollegeDisciplineDAO, flat=True)
 
+# owl2bench:Engineering in the SPARQL query is an individual (a value of hasCollegeDiscipline), not the class.
 sqlalchemy_q21 = (
     select(StudentDAO, org)
     .join(org, StudentDAO.is_student_of)
     .join(college, org.is_part_of)
-    .join(engineering, college.has_college_discipline)
+    .join(discipline, college.has_college_discipline)
+    .where(discipline.uri == "http://benchmark/OWL2Bench#Engineering")
     .distinct()
 )
 q21 = SQLAlchemyQuery(sparql_queries.q21, sqlalchemy_q21)

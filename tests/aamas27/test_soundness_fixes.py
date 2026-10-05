@@ -203,3 +203,20 @@ def test_types_entailed_through_inferred_types_and_super_properties(registry):
         if any(issubclass_or_role(type(o), model.Person) for o in objects)
     }
     assert len(persons) == 2494
+
+
+def test_individuals_are_not_typed_with_the_class_they_are_named_after(registry):
+    """
+    owl2bench:Engineering (and Science, Management, ...) are individuals used as values of hasCollegeDiscipline. OWL 2
+    RL types them CollegeDiscipline (rdfs:range of hasCollegeDiscipline) but not with the class of the same name. The
+    loader used to type every property-less individual with its namesake class (14 non-entailed memberships).
+    """
+    for name in ["Engineering", "Science", "Management", "FineArts", "HumanitiesAndSocial", "HumanResourceManagement"]:
+        objects = registry._by_uri[rdflib.URIRef(NAMESPACE + name)]
+        assert objects, name
+        assert not any(isinstance(o, getattr(model, name)) for o in objects), name
+    engineering = registry._by_uri[rdflib.URIRef(NAMESPACE + "Engineering")]
+    assert any(isinstance(o, model.CollegeDiscipline) for o in engineering)
+    for uri, explanations in registry.type_explanations.items():
+        for explanation in explanations.values():
+            assert explanation.rule.value != "name"

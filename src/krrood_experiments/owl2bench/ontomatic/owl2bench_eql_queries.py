@@ -128,7 +128,12 @@ def get_eql_queries(
     so = variable_from(s.is_student_of)
     po = variable_from(so.is_part_of)
     cd = variable_from(po.has_college_discipline)
-    q21 = an(set_of(s, so).where(exists_on(so, eql.type(cd) == Engineering)))
+    # owl2bench:Engineering in the SPARQL query is an individual (a value of hasCollegeDiscipline), not the class.
+    q21 = an(
+        set_of(s, so).where(
+            exists_on(so, cd.uri == "http://benchmark/OWL2Bench#Engineering")
+        )
+    )
     q21 = QueryWithSelectables(q21, {"x": s, "y": so}, 21)
 
     s = variable(Student, domain=None)
