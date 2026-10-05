@@ -33,6 +33,20 @@ class Base(DeclarativeBase):
 
 
 # Association tables for many-to-many relationships
+basketballfandao_is_crazy_about_association = Table(
+    "basketballfandao_is_crazy_about_association",
+    Base.metadata,
+    Column("source_basketballfandao_id", ForeignKey("BasketBallFanDAO.database_id")),
+    Column("target_basketballdao_id", ForeignKey("BasketBallDAO.database_id")),
+)
+basketballloverdao_loves_association = Table(
+    "basketballloverdao_loves_association",
+    Base.metadata,
+    Column(
+        "source_basketballloverdao_id", ForeignKey("BasketBallLoverDAO.database_id")
+    ),
+    Column("target_basketballdao_id", ForeignKey("BasketBallDAO.database_id")),
+)
 chairdao_is_head_of_association = Table(
     "chairdao_is_head_of_association",
     Base.metadata,
@@ -93,24 +107,6 @@ employeedao_works_for_association = Table(
     Column("source_employeedao_id", ForeignKey("EmployeeDAO.database_id")),
     Column("target_organizationdao_id", ForeignKey("OrganizationDAO.database_id")),
 )
-evaluationcommitteedao_evaluates_association = Table(
-    "evaluationcommitteedao_evaluates_association",
-    Base.metadata,
-    Column(
-        "source_evaluationcommitteedao_id",
-        ForeignKey("EvaluationCommitteeDAO.database_id"),
-    ),
-    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
-)
-evaluationcommitteedao_has_committee_members_association = Table(
-    "evaluationcommitteedao_has_committee_members_association",
-    Base.metadata,
-    Column(
-        "source_evaluationcommitteedao_id",
-        ForeignKey("EvaluationCommitteeDAO.database_id"),
-    ),
-    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
-)
 facultydao_is_faculty_of_association = Table(
     "facultydao_is_faculty_of_association",
     Base.metadata,
@@ -146,6 +142,24 @@ owl2benchthingdao_knows_association = Table(
     Base.metadata,
     Column("source_owl2benchthingdao_id", ForeignKey("OWL2BenchThingDAO.database_id")),
     Column("target_owl2benchthingdao_id", ForeignKey("OWL2BenchThingDAO.database_id")),
+)
+evaluationcommitteedao_evaluates_association = Table(
+    "evaluationcommitteedao_evaluates_association",
+    Base.metadata,
+    Column(
+        "source_evaluationcommitteedao_id",
+        ForeignKey("EvaluationCommitteeDAO.database_id"),
+    ),
+    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
+)
+evaluationcommitteedao_has_committee_members_association = Table(
+    "evaluationcommitteedao_has_committee_members_association",
+    Base.metadata,
+    Column(
+        "source_evaluationcommitteedao_id",
+        ForeignKey("EvaluationCommitteeDAO.database_id"),
+    ),
+    Column("target_persondao_id", ForeignKey("PersonDAO.database_id")),
 )
 organizationdao_has_dean_association = Table(
     "organizationdao_has_dean_association",
@@ -588,17 +602,17 @@ researchgroupdao_is_research_group_of_association = Table(
     Column("source_researchgroupdao_id", ForeignKey("ResearchGroupDAO.database_id")),
     Column("target_universitydao_id", ForeignKey("UniversityDAO.database_id")),
 )
-sportsloverdao_loves_association = Table(
-    "sportsloverdao_loves_association",
-    Base.metadata,
-    Column("source_sportsloverdao_id", ForeignKey("SportsLoverDAO.database_id")),
-    Column("target_interestdao_id", ForeignKey("InterestDAO.database_id")),
-)
 sportsfandao_is_crazy_about_association = Table(
     "sportsfandao_is_crazy_about_association",
     Base.metadata,
     Column("source_sportsfandao_id", ForeignKey("SportsFanDAO.database_id")),
     Column("target_sportsdao_id", ForeignKey("SportsDAO.database_id")),
+)
+sportsloverdao_loves_association = Table(
+    "sportsloverdao_loves_association",
+    Base.metadata,
+    Column("source_sportsloverdao_id", ForeignKey("SportsLoverDAO.database_id")),
+    Column("target_interestdao_id", ForeignKey("InterestDAO.database_id")),
 )
 studentdao_enroll_for_association = Table(
     "studentdao_enroll_for_association",
@@ -629,6 +643,12 @@ sciencestudentdao_has_major_association = Table(
     Base.metadata,
     Column("source_sciencestudentdao_id", ForeignKey("ScienceStudentDAO.database_id")),
     Column("target_sciencedao_id", ForeignKey("ScienceDAO.database_id")),
+)
+t20cricketfandao_is_crazy_about_association = Table(
+    "t20cricketfandao_is_crazy_about_association",
+    Base.metadata,
+    Column("source_t20cricketfandao_id", ForeignKey("T20CricketFanDAO.database_id")),
+    Column("target_cricketdao_id", ForeignKey("CricketDAO.database_id")),
 )
 teachingassistantdao_is_teaching_assistant_of_association = Table(
     "teachingassistantdao_is_teaching_assistant_of_association",
@@ -670,6 +690,68 @@ coursedao_is_taught_by_association = Table(
     Column("source_coursedao_id", ForeignKey("CourseDAO.database_id")),
     Column("target_facultydao_id", ForeignKey("FacultyDAO.database_id")),
 )
+
+
+class BasketBallFanDAO(
+    Base,
+    DataAccessObject[
+        krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates.BasketBallFan
+    ],
+):
+
+    __tablename__ = "BasketBallFanDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        Integer, primary_key=True, use_existing_column=True
+    )
+
+    person_id: Mapped[int] = mapped_column(
+        ForeignKey("PersonDAO.database_id", use_alter=True),
+        nullable=True,
+        use_existing_column=True,
+    )
+
+    person: Mapped[PersonDAO] = relationship(
+        "PersonDAO", uselist=False, foreign_keys=[person_id], post_update=True
+    )
+    is_crazy_about: Mapped[builtins.set[BasketBallDAO]] = relationship(
+        "BasketBallDAO",
+        secondary="basketballfandao_is_crazy_about_association",
+        primaryjoin="BasketBallFanDAO.database_id == basketballfandao_is_crazy_about_association.c.source_basketballfandao_id",
+        secondaryjoin="BasketBallDAO.database_id == basketballfandao_is_crazy_about_association.c.target_basketballdao_id",
+        cascade="save-update, merge",
+    )
+
+
+class BasketBallLoverDAO(
+    Base,
+    DataAccessObject[
+        krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates.BasketBallLover
+    ],
+):
+
+    __tablename__ = "BasketBallLoverDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        Integer, primary_key=True, use_existing_column=True
+    )
+
+    person_id: Mapped[int] = mapped_column(
+        ForeignKey("PersonDAO.database_id", use_alter=True),
+        nullable=True,
+        use_existing_column=True,
+    )
+
+    person: Mapped[PersonDAO] = relationship(
+        "PersonDAO", uselist=False, foreign_keys=[person_id], post_update=True
+    )
+    loves: Mapped[builtins.set[BasketBallDAO]] = relationship(
+        "BasketBallDAO",
+        secondary="basketballloverdao_loves_association",
+        primaryjoin="BasketBallLoverDAO.database_id == basketballloverdao_loves_association.c.source_basketballloverdao_id",
+        secondaryjoin="BasketBallDAO.database_id == basketballloverdao_loves_association.c.target_basketballdao_id",
+        cascade="save-update, merge",
+    )
 
 
 class ChairDAO(
@@ -853,77 +935,6 @@ class EmployeeDAO(
     __mapper_args__ = {
         "polymorphic_on": "polymorphic_type",
         "polymorphic_identity": "EmployeeDAO",
-    }
-
-
-class EvaluationCommitteeDAO(
-    Base,
-    DataAccessObject[
-        krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates.EvaluationCommittee
-    ],
-):
-
-    __tablename__ = "EvaluationCommitteeDAO"
-
-    database_id: Mapped[builtins.int] = mapped_column(
-        Integer, primary_key=True, use_existing_column=True
-    )
-
-    polymorphic_type: Mapped[str] = mapped_column(
-        String(255), nullable=False, use_existing_column=True
-    )
-
-    organization_id: Mapped[int] = mapped_column(
-        ForeignKey("OrganizationDAO.database_id", use_alter=True),
-        nullable=True,
-        use_existing_column=True,
-    )
-
-    organization: Mapped[OrganizationDAO] = relationship(
-        "OrganizationDAO",
-        uselist=False,
-        foreign_keys=[organization_id],
-        post_update=True,
-    )
-    evaluates: Mapped[builtins.set[PersonDAO]] = relationship(
-        "PersonDAO",
-        secondary="evaluationcommitteedao_evaluates_association",
-        primaryjoin="EvaluationCommitteeDAO.database_id == evaluationcommitteedao_evaluates_association.c.source_evaluationcommitteedao_id",
-        secondaryjoin="PersonDAO.database_id == evaluationcommitteedao_evaluates_association.c.target_persondao_id",
-        cascade="save-update, merge",
-    )
-    has_committee_members: Mapped[builtins.set[PersonDAO]] = relationship(
-        "PersonDAO",
-        secondary="evaluationcommitteedao_has_committee_members_association",
-        primaryjoin="EvaluationCommitteeDAO.database_id == evaluationcommitteedao_has_committee_members_association.c.source_evaluationcommitteedao_id",
-        secondaryjoin="PersonDAO.database_id == evaluationcommitteedao_has_committee_members_association.c.target_persondao_id",
-        cascade="save-update, merge",
-    )
-
-    __mapper_args__ = {
-        "polymorphic_on": "polymorphic_type",
-        "polymorphic_identity": "EvaluationCommitteeDAO",
-    }
-
-
-class EmployeeEvaluationCommitteeDAO(
-    EvaluationCommitteeDAO,
-    DataAccessObject[
-        krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates.EmployeeEvaluationCommittee
-    ],
-):
-
-    __tablename__ = "EmployeeEvaluationCommitteeDAO"
-
-    database_id: Mapped[builtins.int] = mapped_column(
-        ForeignKey(EvaluationCommitteeDAO.database_id),
-        primary_key=True,
-        use_existing_column=True,
-    )
-
-    __mapper_args__ = {
-        "polymorphic_identity": "EmployeeEvaluationCommitteeDAO",
-        "inherit_condition": database_id == EvaluationCommitteeDAO.database_id,
     }
 
 
@@ -1760,6 +1771,63 @@ class MarketingManagementDAO(
     }
 
 
+class EvaluationCommitteeDAO(
+    OWL2BenchThingDAO,
+    DataAccessObject[
+        krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates.EvaluationCommittee
+    ],
+):
+
+    __tablename__ = "EvaluationCommitteeDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(OWL2BenchThingDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    evaluates: Mapped[builtins.set[PersonDAO]] = relationship(
+        "PersonDAO",
+        secondary="evaluationcommitteedao_evaluates_association",
+        primaryjoin="EvaluationCommitteeDAO.database_id == evaluationcommitteedao_evaluates_association.c.source_evaluationcommitteedao_id",
+        secondaryjoin="PersonDAO.database_id == evaluationcommitteedao_evaluates_association.c.target_persondao_id",
+        cascade="save-update, merge",
+    )
+    has_committee_members: Mapped[builtins.set[PersonDAO]] = relationship(
+        "PersonDAO",
+        secondary="evaluationcommitteedao_has_committee_members_association",
+        primaryjoin="EvaluationCommitteeDAO.database_id == evaluationcommitteedao_has_committee_members_association.c.source_evaluationcommitteedao_id",
+        secondaryjoin="PersonDAO.database_id == evaluationcommitteedao_has_committee_members_association.c.target_persondao_id",
+        cascade="save-update, merge",
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "EvaluationCommitteeDAO",
+        "inherit_condition": database_id == OWL2BenchThingDAO.database_id,
+    }
+
+
+class EmployeeEvaluationCommitteeDAO(
+    EvaluationCommitteeDAO,
+    DataAccessObject[
+        krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates.EmployeeEvaluationCommittee
+    ],
+):
+
+    __tablename__ = "EmployeeEvaluationCommitteeDAO"
+
+    database_id: Mapped[builtins.int] = mapped_column(
+        ForeignKey(EvaluationCommitteeDAO.database_id),
+        primary_key=True,
+        use_existing_column=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "EmployeeEvaluationCommitteeDAO",
+        "inherit_condition": database_id == EvaluationCommitteeDAO.database_id,
+    }
+
+
 class InterestDAO(
     OWL2BenchThingDAO,
     DataAccessObject[
@@ -2271,10 +2339,6 @@ class PeopleWithHobbyDAO(
         Integer, primary_key=True, use_existing_column=True
     )
 
-    polymorphic_type: Mapped[str] = mapped_column(
-        String(255), nullable=False, use_existing_column=True
-    )
-
     person_id: Mapped[int] = mapped_column(
         ForeignKey("PersonDAO.database_id", use_alter=True),
         nullable=True,
@@ -2284,11 +2348,6 @@ class PeopleWithHobbyDAO(
     person: Mapped[PersonDAO] = relationship(
         "PersonDAO", uselist=False, foreign_keys=[person_id], post_update=True
     )
-
-    __mapper_args__ = {
-        "polymorphic_on": "polymorphic_type",
-        "polymorphic_identity": "PeopleWithHobbyDAO",
-    }
 
 
 class PerformingArtsDAO(
@@ -3414,58 +3473,8 @@ class FootBallDAO(
     }
 
 
-class SportsLoverDAO(
-    PeopleWithHobbyDAO,
-    DataAccessObject[
-        krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates.SportsLover
-    ],
-):
-
-    __tablename__ = "SportsLoverDAO"
-
-    database_id: Mapped[builtins.int] = mapped_column(
-        ForeignKey(PeopleWithHobbyDAO.database_id),
-        primary_key=True,
-        use_existing_column=True,
-    )
-
-    loves: Mapped[builtins.set[InterestDAO]] = relationship(
-        "InterestDAO",
-        secondary="sportsloverdao_loves_association",
-        primaryjoin="SportsLoverDAO.database_id == sportsloverdao_loves_association.c.source_sportsloverdao_id",
-        secondaryjoin="InterestDAO.database_id == sportsloverdao_loves_association.c.target_interestdao_id",
-        cascade="save-update, merge",
-    )
-
-    __mapper_args__ = {
-        "polymorphic_identity": "SportsLoverDAO",
-        "inherit_condition": database_id == PeopleWithHobbyDAO.database_id,
-    }
-
-
-class BasketBallLoverDAO(
-    SportsLoverDAO,
-    DataAccessObject[
-        krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates.BasketBallLover
-    ],
-):
-
-    __tablename__ = "BasketBallLoverDAO"
-
-    database_id: Mapped[builtins.int] = mapped_column(
-        ForeignKey(SportsLoverDAO.database_id),
-        primary_key=True,
-        use_existing_column=True,
-    )
-
-    __mapper_args__ = {
-        "polymorphic_identity": "BasketBallLoverDAO",
-        "inherit_condition": database_id == SportsLoverDAO.database_id,
-    }
-
-
 class SportsFanDAO(
-    SportsLoverDAO,
+    Base,
     DataAccessObject[
         krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates.SportsFan
     ],
@@ -3474,11 +3483,18 @@ class SportsFanDAO(
     __tablename__ = "SportsFanDAO"
 
     database_id: Mapped[builtins.int] = mapped_column(
-        ForeignKey(SportsLoverDAO.database_id),
-        primary_key=True,
+        Integer, primary_key=True, use_existing_column=True
+    )
+
+    person_id: Mapped[int] = mapped_column(
+        ForeignKey("PersonDAO.database_id", use_alter=True),
+        nullable=True,
         use_existing_column=True,
     )
 
+    person: Mapped[PersonDAO] = relationship(
+        "PersonDAO", uselist=False, foreign_keys=[person_id], post_update=True
+    )
     is_crazy_about: Mapped[builtins.set[SportsDAO]] = relationship(
         "SportsDAO",
         secondary="sportsfandao_is_crazy_about_association",
@@ -3487,29 +3503,36 @@ class SportsFanDAO(
         cascade="save-update, merge",
     )
 
-    __mapper_args__ = {
-        "polymorphic_identity": "SportsFanDAO",
-        "inherit_condition": database_id == SportsLoverDAO.database_id,
-    }
 
-
-class BasketBallFanDAO(
-    SportsFanDAO,
+class SportsLoverDAO(
+    Base,
     DataAccessObject[
-        krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates.BasketBallFan
+        krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates.SportsLover
     ],
 ):
 
-    __tablename__ = "BasketBallFanDAO"
+    __tablename__ = "SportsLoverDAO"
 
     database_id: Mapped[builtins.int] = mapped_column(
-        ForeignKey(SportsFanDAO.database_id), primary_key=True, use_existing_column=True
+        Integer, primary_key=True, use_existing_column=True
     )
 
-    __mapper_args__ = {
-        "polymorphic_identity": "BasketBallFanDAO",
-        "inherit_condition": database_id == SportsFanDAO.database_id,
-    }
+    person_id: Mapped[int] = mapped_column(
+        ForeignKey("PersonDAO.database_id", use_alter=True),
+        nullable=True,
+        use_existing_column=True,
+    )
+
+    person: Mapped[PersonDAO] = relationship(
+        "PersonDAO", uselist=False, foreign_keys=[person_id], post_update=True
+    )
+    loves: Mapped[builtins.set[InterestDAO]] = relationship(
+        "InterestDAO",
+        secondary="sportsloverdao_loves_association",
+        primaryjoin="SportsLoverDAO.database_id == sportsloverdao_loves_association.c.source_sportsloverdao_id",
+        secondaryjoin="InterestDAO.database_id == sportsloverdao_loves_association.c.target_interestdao_id",
+        cascade="save-update, merge",
+    )
 
 
 class StatisticsDAO(
@@ -3801,7 +3824,7 @@ class SystemStaffDAO(
 
 
 class T20CricketFanDAO(
-    SportsFanDAO,
+    Base,
     DataAccessObject[
         krrood_experiments.owl2bench.ontomatic.owl2bench_with_predicates.T20CricketFan
     ],
@@ -3810,13 +3833,25 @@ class T20CricketFanDAO(
     __tablename__ = "T20CricketFanDAO"
 
     database_id: Mapped[builtins.int] = mapped_column(
-        ForeignKey(SportsFanDAO.database_id), primary_key=True, use_existing_column=True
+        Integer, primary_key=True, use_existing_column=True
     )
 
-    __mapper_args__ = {
-        "polymorphic_identity": "T20CricketFanDAO",
-        "inherit_condition": database_id == SportsFanDAO.database_id,
-    }
+    person_id: Mapped[int] = mapped_column(
+        ForeignKey("PersonDAO.database_id", use_alter=True),
+        nullable=True,
+        use_existing_column=True,
+    )
+
+    person: Mapped[PersonDAO] = relationship(
+        "PersonDAO", uselist=False, foreign_keys=[person_id], post_update=True
+    )
+    is_crazy_about: Mapped[builtins.set[CricketDAO]] = relationship(
+        "CricketDAO",
+        secondary="t20cricketfandao_is_crazy_about_association",
+        primaryjoin="T20CricketFanDAO.database_id == t20cricketfandao_is_crazy_about_association.c.source_t20cricketfandao_id",
+        secondaryjoin="CricketDAO.database_id == t20cricketfandao_is_crazy_about_association.c.target_cricketdao_id",
+        cascade="save-update, merge",
+    )
 
 
 class TeachingAssistantDAO(
