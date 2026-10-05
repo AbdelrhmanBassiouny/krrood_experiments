@@ -80,29 +80,6 @@ class Organization(OWL2BenchThing):
     is_women_college_of: Set[Organization] = field(kw_only=True, default_factory=set)
     org_publication: Set[Publication] = field(kw_only=True, default_factory=set)
 
-    @classmethod
-    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
-        super_axiom, candidate_var = get_super_axiom_and_candidate_var(
-            Organization, cls, candidate
-        )
-
-        return (
-            HasProperty(candidate_var, HasEmployee),
-            exists(
-                IsSubClassOrRole(
-                    variable_from(candidate_var.has_employee.types), Employee
-                )
-            ),
-        )
-
-    @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, HasEmployee) and any(
-            issubclass_or_role(t, Employee)
-            for attr in candidate.has_employee
-            for t in attr.types
-        )
-
 
 @dataclass(eq=False)
 class Person(OWL2BenchThing):
@@ -139,27 +116,6 @@ class Program(OWL2BenchThing):
 
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Program"
     has_head: Set[Director] = field(kw_only=True, default_factory=set)
-
-    @classmethod
-    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
-        super_axiom, candidate_var = get_super_axiom_and_candidate_var(
-            Program, cls, candidate
-        )
-
-        return (
-            HasProperty(candidate_var, HasHead),
-            exists(
-                IsSubClassOrRole(variable_from(candidate_var.has_head.types), Director)
-            ),
-        )
-
-    @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, HasHead) and any(
-            issubclass_or_role(t, Director)
-            for attr in candidate.has_head
-            for t in attr.types
-        )
 
 
 @dataclass(eq=False)
@@ -199,25 +155,6 @@ class College(Organization):
     has_head: Set[Dean] = field(kw_only=True, default_factory=set)
     is_college_of: Set[University] = field(kw_only=True, default_factory=set)
 
-    @classmethod
-    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
-        super_axiom, candidate_var = get_super_axiom_and_candidate_var(
-            College, cls, candidate
-        )
-
-        return (
-            HasProperty(candidate_var, HasHead),
-            exists(IsSubClassOrRole(variable_from(candidate_var.has_head.types), Dean)),
-        )
-
-    @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, HasHead) and any(
-            issubclass_or_role(t, Dean)
-            for attr in candidate.has_head
-            for t in attr.types
-        )
-
 
 School = College
 
@@ -226,29 +163,6 @@ School = College
 class Course(Work):
     cls_uri: ClassVar[str] = "http://benchmark/OWL2Bench#Course"
     is_taught_by: Set[Faculty] = field(kw_only=True, default_factory=set)
-
-    @classmethod
-    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
-        super_axiom, candidate_var = get_super_axiom_and_candidate_var(
-            Course, cls, candidate
-        )
-
-        return (
-            HasProperty(candidate_var, IsTaughtBy),
-            exists(
-                IsSubClassOrRole(
-                    variable_from(candidate_var.is_taught_by.types), Faculty
-                )
-            ),
-        )
-
-    @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, IsTaughtBy) and any(
-            issubclass_or_role(t, Faculty)
-            for attr in candidate.is_taught_by
-            for t in attr.types
-        )
 
 
 TeachingCourse = Course
@@ -283,27 +197,6 @@ class Department(Organization):
     )
     is_department_of: Set[College] = field(kw_only=True, default_factory=set)
     offer_course: Set[Course] = field(kw_only=True, default_factory=set)
-
-    @classmethod
-    def axiom(cls, candidate: AnonymousClass) -> Tuple[ConditionType, ...]:
-        super_axiom, candidate_var = get_super_axiom_and_candidate_var(
-            Department, cls, candidate
-        )
-
-        return (
-            HasProperty(candidate_var, HasHead),
-            exists(
-                IsSubClassOrRole(variable_from(candidate_var.has_head.types), Chair)
-            ),
-        )
-
-    @classmethod
-    def axiom_python(cls, candidate: AnonymousClass) -> bool:
-        return HasProperty(candidate, HasHead) and any(
-            issubclass_or_role(t, Chair)
-            for attr in candidate.has_head
-            for t in attr.types
-        )
 
 
 @dataclass(eq=False)
