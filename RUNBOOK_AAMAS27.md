@@ -497,7 +497,7 @@ of `check_owl2_rl()`.
 | after fact placement (7e0c77ec63) | 0 | 0 | 0 | 0 |
 | after the remaining RL rules (ec7c922b9f) | 0 | 0 | 0 | 0 |
 
-Data property assertions (12 properties, 23,000 assertions): 0 not entailed; entailed but missing 2487 at 59b48844e9
+Data property assertions (12 properties, 20,933 assertions): 0 not entailed; entailed but missing 2487 at 59b48844e9
 (hasCode 2486, hasID 1), 0 at ec7c922b9f (`results/aamas27/bass-audit-rl-rules`). `check_owl2_rl()`: no equality,
 no inconsistency (0.5 s); the only expressions outside OWL 2 RL are the 15 role markers.
 
