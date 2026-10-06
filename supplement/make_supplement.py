@@ -49,7 +49,7 @@ EXCLUDE = {
 LISTINGS = HERE / "listings"   # executable versions of the paper's listings, run on the current version
 
 IDENTIFYING = re.compile(
-    r"bassiouny|abdelrhman|schierenbeck|tomsch|sorinar|sorin|\barion\b|beetz|bremen|aicor|vasantak|hoanggia"
+    r"bassiouny|bassioun|abdelrhman|ms-7d32|schierenbeck|tomsch|sorinar|sorin|\barion\b|beetz|bremen|aicor|vasantak|hoanggia"
     r"|\bnaren\b|\bgiang\b|cram2|github\.com|gitlab\.com|/home/|/tmp/claude|@[a-z0-9.-]+\.(de|com|org|net)\b"
     r"|\bbass\b|tom_sch|ec7c922b9f|eeeb2e48db|3b994bb|b0b59087a6",
     re.IGNORECASE,

@@ -23,12 +23,20 @@ It asks for your password once if it has to install something. It then:
 1. installs Docker from Ubuntu's packages (`docker.io`, `docker-compose-v2`) if needed, not the snap, which can't
    read `~/.graphdb`;
 2. adds you to the `docker` group and continues with that group active, so you don't need to log out;
-3. finds the GraphDB license (`~/.graphdb/work/graphdb.license`, else it searches `~` and `/opt`) and the zip
-   (`~` or `~/Downloads`), and checks for 15 GB of free disk;
+3. finds the GraphDB license (`~/.graphdb/work/graphdb.license`, `~/graphdb.license`, `~/Downloads/graphdb.license`,
+   else any `*.license` file with "graphdb" in its name or folder under `~`, `/opt` and `/etc`) and the zip (`~` or
+   `~/Downloads`), and checks for 15 GB of free disk;
 4. unzips the bundle into `~/krrood-aamas27-supplement` (an existing `state/` folder with results is kept) and
    prints the BUNDLE id: **write it down**;
-5. builds the Docker image (5-10 min) and runs the listing tests (expected: `19 passed`, then `1 passed`);
-6. starts the full run in the background, blocks suspend while it runs, and waits until GraphDB has started.
+5. builds the Docker image (5-10 min), runs the listing tests (expected: `19 passed`, then `1 passed`), and starts
+   GraphDB once with the license to check that GraphDB accepts it;
+6. records the PC's details in `state/results/aamas27/run/host/host.json`: CPU, frequency governor, turbo, power
+   profile, RAM, disk, board, OS, kernel and Docker version (no hostname or user name, since the results are
+   shipped anonymized);
+7. starts the full run in the background, blocks suspend while it runs, and waits until GraphDB has started;
+8. starts a monitor that writes every 30 s to `host/monitor.csv`: load, memory and swap, mean CPU frequency, maximum
+   temperature, and the programs outside Docker that used at least 5 % of a CPU (`busy_outside_docker`, which
+   should stay empty). It stops when the run ends.
 
 When it prints **"The run is going"**, leave the PC alone until tomorrow (about 9-13 hours): screen lock is fine,
 but don't log out, and don't use the PC. These are the timings for the paper.
@@ -36,6 +44,19 @@ but don't log out, and don't use the PC. These are the timings for the paper.
 If it stops with an error, read the message: it says what is missing (license, zip, disk space) or shows the end of
 the log. After fixing it, run the same command again. It never starts a second run while one is going, and a
 stopped run resumes after its last finished step.
+
+### If it says "No GraphDB license file found"
+
+GraphDB 11 needs a license file, even the free edition. Save the license file `graphdb.license` from the Claude
+conversation (the laptop's license) as `~/.graphdb/work/graphdb.license`:
+
+```bash
+mkdir -p ~/.graphdb/work && cp ~/Downloads/graphdb.license ~/.graphdb/work/graphdb.license
+```
+
+Or request a free license on the GraphDB website and save it there. If the license is somewhere else, run
+`GRAPHDB_LICENSE=/path/to/file.license bash ~/Downloads/pc_run.sh`. If GraphDB rejects the license, the script stops
+and shows GraphDB's answer.
 
 ### If Docker says "permission denied"
 
@@ -56,7 +77,7 @@ If it persists after logging back in, check `groups | grep -w docker || echo "no
 bash ~/Downloads/pc_run.sh status
 ```
 
-It shows whether the run is going, the finished steps, and the end of the log
+It shows whether the run is going, the finished steps, the last samples of the monitor, and the end of the log
 (`~/krrood-aamas27-supplement/state/reproduce.log`).
 
 ## 4. When it's finished (next morning)
@@ -98,6 +119,8 @@ Copy to the laptop, into `~/Projects/krrood_aamas/planning/`:
 - `~/krrood-aamas27-supplement/state/aamas27_results.tgz`
 - `~/aamas27_run.log` and `~/protege_*_time.txt`
 - the BUNDLE id you wrote down
+
+(The archive already contains `host/host.json` and `host/monitor.csv`.)
 
 Then tell the paper session. It checks the results, puts the tables into the paper, adds the results to the
 supplementary zip and writes the "[TBD]" paragraphs.
