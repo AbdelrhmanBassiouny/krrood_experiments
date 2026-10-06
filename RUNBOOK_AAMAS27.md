@@ -28,7 +28,10 @@ cd ~ && { git clone -b aamas27-experiments https://github.com/AbdelrhmanBassioun
 tail -f ~/aamas27_run.log
 ```
 
-The settings (directories, GraphDB location, heap and license, ports, repetitions) are environment variables listed at
+The script checks out CRAM at the pinned commit ec7c922b9f (`AAMAS27_CRAM_COMMIT` overrides it). The committed
+Ontomatic model (`src/krrood_experiments/owl2bench/ontomatic/`) is the one this commit generates
+(`scripts/aamas27/regenerate_owl2bench_model.sh` gives no diff), so it is not regenerated. The settings (directories,
+GraphDB location, heap and license, ports, repetitions) are environment variables listed at
 the top of the script. Results go to `results/aamas27/<hostname>-run/`. Afterwards do Protégé by hand (section 7), save
 `protege.json` into that directory and run `bash scripts/aamas27/run_all.sh tables` to add its rows to the tables and
 re-pack the archive. The sections below describe the same steps one by one.
@@ -193,8 +196,8 @@ git log -1 --format='%H %s'   # expected: the commit that contains this runbook,
 
 cd ~
 git clone git@github.com:AbdelrhmanBassiouny/cognitive_robot_abstract_machine.git cram_aamas27
-cd ~/cram_aamas27 && git fetch origin aamas27-experiments && git checkout aamas27-experiments
-git log -1 --format='%H %s'   # expected: ec7c922b9f
+cd ~/cram_aamas27 && git fetch origin aamas27-experiments && git checkout --detach ec7c922b9f
+git log -1 --format='%H %s'   # expected: ec7c922b9ff66ae49f380f044e6e50db883264f1
 
 cd ~
 git clone https://github.com/AbdelrhmanBassiouny/ripple_down_rules.git ripple_down_rules_aamas27

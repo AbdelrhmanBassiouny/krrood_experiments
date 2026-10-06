@@ -12,3 +12,6 @@ __pycache__/
 *.egg-info/
 results/aamas27/
 resources/owl2bench_statements_reasoned.rdf
+
+# results archive packed by scripts/aamas27/run_all.sh
+aamas27_results_*.tgz

@@ -12,6 +12,7 @@
 # Settings (environment variables, defaults in brackets):
 #   AAMAS27_RUN            results directory [results/aamas27/<hostname>-run]
 #   AAMAS27_CRAM_DIR       CRAM clone [~/cram_aamas27]
+#   AAMAS27_CRAM_COMMIT    CRAM commit that is checked out [ec7c922b9f, the commit verified in the runbook]
 #   AAMAS27_RDR_DIR        ripple_down_rules clone [~/ripple_down_rules_aamas27]
 #   AAMAS27_VENV           virtual environment [~/venvs/krrood_aamas27]
 #   AAMAS27_PYTHON         interpreter for a new virtual environment [python3.12]
@@ -46,6 +47,7 @@ MIN_FREE_DISK_PERCENT="${MIN_FREE_DISK_PERCENT:-12}"
 QUERY_REPETITIONS="${QUERY_REPETITIONS:-10}"
 LOADING_REPETITIONS="${LOADING_REPETITIONS:-5}"
 BRANCH=aamas27-experiments
+CRAM_COMMIT="${AAMAS27_CRAM_COMMIT:-ec7c922b9f}"
 RDR_COMMIT=3b994bb
 POSTGRES_CONTAINER=krrood-pg
 RAW_FILE=resources/owl2bench_statements_unreasoned.rdf
@@ -111,6 +113,7 @@ update_repository() {
 get_code() {
     git -C "$EXPERIMENTS_DIR" diff --quiet || fail "$EXPERIMENTS_DIR has uncommitted changes"
     update_repository "$CRAM_DIR" https://github.com/AbdelrhmanBassiouny/cognitive_robot_abstract_machine.git
+    git -C "$CRAM_DIR" checkout -q --detach "$CRAM_COMMIT"
     if [[ ! -d "$RDR_DIR/.git" ]]; then
         git clone https://github.com/AbdelrhmanBassiouny/ripple_down_rules.git "$RDR_DIR"
     fi
