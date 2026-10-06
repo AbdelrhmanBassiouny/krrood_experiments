@@ -19,7 +19,9 @@
 #   GRAPHDB_HOME_DIR       GraphDB home [~/.graphdb]
 #   GRAPHDB_HEAP           GraphDB maximum heap [8g]
 #   GRAPHDB_PORT           GraphDB port [7200]
+#   GRAPHDB_JAVA_OPTIONS   extra JVM options of a GraphDB started by this script []
 #   POSTGRES_PORT          PostgreSQL port of the container [5432]
+#   MIN_FREE_DISK_PERCENT  free disk needed by GraphDB [12]
 #   QUERY_REPETITIONS      [10]   LOADING_REPETITIONS [5]
 set -euo pipefail
 
@@ -34,7 +36,9 @@ GRAPHDB_JAVA="${GRAPHDB_JAVA:-/opt/graphdb-desktop/lib/runtime/bin/java}"
 GRAPHDB_HOME_DIR="${GRAPHDB_HOME_DIR:-$HOME/.graphdb}"
 GRAPHDB_HEAP="${GRAPHDB_HEAP:-8g}"
 GRAPHDB_PORT="${GRAPHDB_PORT:-7200}"
+read -r -a GRAPHDB_JAVA_OPTIONS <<< "${GRAPHDB_JAVA_OPTIONS:-}"
 POSTGRES_PORT="${POSTGRES_PORT:-5432}"
+MIN_FREE_DISK_PERCENT="${MIN_FREE_DISK_PERCENT:-12}"
 QUERY_REPETITIONS="${QUERY_REPETITIONS:-10}"
 LOADING_REPETITIONS="${LOADING_REPETITIONS:-5}"
 BRANCH=aamas27-experiments
@@ -79,6 +83,10 @@ $GRAPHDB_APP was not found (set GRAPHDB_APP and GRAPHDB_JAVA, or start GraphDB y
     if pgrep -f "graphdb-desktop/lib/app" >/dev/null && ! graphdb_is_up; then
         fail "GraphDB Desktop seems to run on another port; close it first"
     fi
+    local free_percent
+    free_percent=$(df --output=pcent "$(dirname "$GRAPHDB_HOME_DIR")" | tail -1 | tr -dc 0-9)
+    (( 100 - free_percent >= MIN_FREE_DISK_PERCENT )) || fail "only $((100 - free_percent))% of the disk of $GRAPHDB_HOME_DIR is free; \
+GraphDB stops answering below 10%. Free some space first"
 }
 
 update_repository() {
@@ -158,6 +166,7 @@ start_graphdb() {
         --add-exports jdk.management.agent/jdk.internal.agent=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED \
         --enable-native-access=ALL-UNNAMED -cp "$GRAPHDB_APP/lib/*" "-Dgraphdb.dist=$GRAPHDB_APP" \
         "-Dgraphdb.home=$GRAPHDB_HOME_DIR" "-Dgraphdb.connector.port=$GRAPHDB_PORT" "${license[@]}" \
+        "${GRAPHDB_JAVA_OPTIONS[@]}" \
         com.ontotext.graphdb.server.GraphDBWorkbench > "$RUN/graphdb.log" 2>&1 &
     STARTED_GRAPHDB_PID=$!
     for _ in $(seq 120); do
@@ -175,28 +184,45 @@ stop_services() {
     docker stop "$POSTGRES_CONTAINER" >/dev/null 2>&1 && log "stopped PostgreSQL container" || true
 }
 
+# Writes the repositories of GraphDB with their rulesets and statement counts to $RUN/graphdb_status.json.
+graphdb_status() {
+    python scripts/aamas27/graphdb_setup.py --status > "$RUN/graphdb_status.json" \
+        || fail "GraphDB does not answer the status request; see $RUN/graphdb.log or $GRAPHDB_HOME_DIR/logs"
+}
+
+# Prints the number of explicit statements of a repository in the last status, or "missing".
 explicit_statements() {
-    python scripts/aamas27/graphdb_setup.py --status | python -c "
+    python - "$RUN/graphdb_status.json" "$1" <<'PY'
 import json, sys
-print(json.load(sys.stdin)['repositories'].get('$1', {}).get('explicit', 0))"
+repository = json.load(open(sys.argv[1]))["repositories"].get(sys.argv[2])
+print("missing" if repository is None else repository.get("explicit", 0))
+PY
 }
 
 prepare_data() {
-    if [[ "$(explicit_statements aamas27_rl)" != 54901 ]]; then
+    local raw_statements
+    graphdb_status
+    raw_statements="$(explicit_statements aamas27_rl)"
+    if [[ "$raw_statements" == missing || "$raw_statements" == 0 ]]; then
         log "loading the raw data into aamas27_rl (OWL 2 RL materialisation, 30-45 min)"
-        python scripts/aamas27/graphdb_setup.py --delete aamas27_rl 2>/dev/null || true
         python scripts/aamas27/graphdb_setup.py --create aamas27_rl owl2-rl-optimized --load aamas27_rl "$RAW_FILE"
+    elif [[ "$raw_statements" != 54901 ]]; then
+        fail "aamas27_rl holds $raw_statements explicit statements instead of 54901; delete it with
+    python scripts/aamas27/graphdb_setup.py --delete aamas27_rl
+and run this script again"
     fi
     if [[ ! -f "$REASONED_FILE" ]] || ! grep -q T20CricketFan "$REASONED_FILE"; then
         [[ -f "$REASONED_FILE" ]] && mv "$REASONED_FILE" "${REASONED_FILE%.rdf}_old_$(date +%s).rdf"
         python scripts/aamas27/graphdb_setup.py --export-reasoned "$REASONED_FILE"
     fi
-    if [[ "$(explicit_statements aamas27_noinf)" == 0 ]]; then
-        python scripts/aamas27/graphdb_setup.py --setup-query-repositories
-    fi
-    python scripts/aamas27/graphdb_setup.py --status | tee "$RUN/graphdb_status.json"
+    python scripts/aamas27/graphdb_setup.py --setup-query-repositories
+    graphdb_status
     [[ "$(explicit_statements aamas27_rl)" == 54901 ]] || fail "aamas27_rl does not hold the 54901 raw statements"
-    [[ "$(explicit_statements aamas27_noinf)" -gt 1400000 ]] || fail "aamas27_noinf is not loaded"
+    local reasoned_statements
+    reasoned_statements="$(explicit_statements aamas27_noinf)"
+    [[ "$reasoned_statements" != missing && "$reasoned_statements" -gt 1400000 ]] \
+        || fail "aamas27_noinf holds $reasoned_statements statements; delete it and run this script again"
+    cat "$RUN/graphdb_status.json"
     sha256sum resources/*.rdf > "$RUN/checksums.txt"
 }
 
