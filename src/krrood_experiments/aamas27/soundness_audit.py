@@ -4,7 +4,9 @@ Compare everything KRROOD derives from the raw OWL2Bench data with the OWL 2 RL 
 For every named OWL2Bench class, the set of individuals KRROOD types with that class (through Python inheritance and
 role-taker chains) is compared with the individuals that have that ``rdf:type`` in the reference repository. For every
 object property, the set of (subject, object) pairs stored in the corresponding attribute is compared with the
-property assertions in the reference repository.
+property assertions in the reference repository, and for every data property the (subject, value) pairs. The report
+also contains the result of KRROOD's check of the OWL 2 RL rules that derive equality or inconsistency
+(``OwlInstancesRegistry.check_owl2_rl``).
 
 * ``unsound``: derived by KRROOD but not entailed by OWL 2 RL (according to the reference repository).
 * ``missing``: entailed by OWL 2 RL but not derived by KRROOD.
@@ -155,6 +157,64 @@ def object_properties(client: GraphDBClient, repository: str) -> List[str]:
     return sorted(binding["p"]["value"][len(NAMESPACE):] for binding in result["results"]["bindings"])
 
 
+def data_properties(client: GraphDBClient, repository: str) -> List[str]:
+    """
+    :return: Local names of the OWL2Bench data properties declared in the reference repository.
+    """
+    result = client.select(
+        repository,
+        "PREFIX owl: <http://www.w3.org/2002/07/owl#> "
+        f"SELECT DISTINCT ?p FROM <http://www.ontotext.com/explicit> WHERE {{ ?p a owl:DatatypeProperty . "
+        f"FILTER(STRSTARTS(STR(?p), \"{NAMESPACE}\")) }}",
+    )
+    return sorted(binding["p"]["value"][len(NAMESPACE):] for binding in result["results"]["bindings"])
+
+
+def normalized_value(value: Any) -> str:
+    """
+    :return: The value of a literal or a Python attribute value as a comparable string.
+    """
+    return str(value.toPython() if hasattr(value, "toPython") else value)
+
+
+def reference_data_pairs(client: GraphDBClient, repository: str, property_local_name: str,
+                         individuals: Set[str]) -> Set[Tuple[str, str]]:
+    """
+    :return: The (subject, value) pairs of a data property of individuals in the reference repository.
+    """
+    import rdflib
+
+    result = client.select(
+        repository, f"SELECT ?s ?o WHERE {{ ?s <{NAMESPACE}{property_local_name}> ?o . FILTER(isLiteral(?o)) }}"
+    )
+    pairs = set()
+    for binding in result["results"]["bindings"]:
+        if binding["s"]["value"] not in individuals:
+            continue
+        datatype = binding["o"].get("datatype")
+        literal = rdflib.Literal(binding["o"]["value"], datatype=rdflib.URIRef(datatype) if datatype else None)
+        pairs.add((binding["s"]["value"], normalized_value(literal)))
+    return pairs
+
+
+def krrood_data_pairs(registry, property_local_names: Iterable[str]) -> Dict[str, Set[Tuple[str, str]]]:
+    """
+    :return: Mapping from data property local name to the (subject URI, value) pairs stored by KRROOD.
+    """
+    from krrood.ontomatic.ontology_to_python.owl_instances_loader import to_snake
+
+    pairs: Dict[str, Set[Tuple[str, str]]] = defaultdict(set)
+    for uri, objects in registry._by_uri.items():
+        for instance in objects:
+            for name in property_local_names:
+                value = getattr(instance, to_snake(name), None)
+                if value is None:
+                    continue
+                for member in value if isinstance(value, (set, list, tuple)) else (value,):
+                    pairs[name].add((str(uri), normalized_value(member)))
+    return pairs
+
+
 def reference_pairs(client: GraphDBClient, repository: str, property_local_name: str,
                     individuals: Set[str]) -> Set[Tuple[str, str]]:
     """
@@ -245,6 +305,20 @@ def audit(registry, client: GraphDBClient, repository: str, include_properties: 
             "unsound": sum(entry["unsound"] for entry in properties.values()),
             "missing": sum(entry["missing"] for entry in properties.values()),
         }
+        names = data_properties(client, repository)
+        krrood_values = krrood_data_pairs(registry, names)
+        values = {
+            name: difference_entry(
+                {pair for pair in krrood_values.get(name, set()) if pair[0] in individuals_in_both},
+                reference_data_pairs(client, repository, name, individuals_in_both),
+            )
+            for name in names
+        }
+        report["data_properties"] = values
+        report["data_property_totals"] = {
+            "unsound": sum(entry["unsound"] for entry in values.values()),
+            "missing": sum(entry["missing"] for entry in values.values()),
+        }
     return report
 
 
@@ -265,14 +339,28 @@ def main() -> int:
     client = GraphDBClient(arguments.graphdb_url) if arguments.graphdb_url else GraphDBClient()
     report = audit(registry, client, arguments.graphdb_repository, not arguments.no_properties)
     report["krrood_loading_seconds"] = loading_seconds
+    start = time.perf_counter()
+    owl2_rl_check = registry.check_owl2_rl()
+    report["owl2_rl_check"] = owl2_rl_check.summary()
+    report["owl2_rl_check"]["seconds"] = time.perf_counter() - start
+    report["owl2_rl_check"]["findings"] = [
+        [finding.rule.value, list(finding.individuals), finding.detail]
+        for finding in (owl2_rl_check.equalities + owl2_rl_check.inconsistencies)[:EXAMPLES]
+    ]
     write_json(Path(arguments.output), report)
     print(json.dumps({"class_totals": report["class_totals"],
-                      "object_property_totals": report.get("object_property_totals")}, indent=2))
+                      "object_property_totals": report.get("object_property_totals"),
+                      "data_property_totals": report.get("data_property_totals"),
+                      "owl2_rl_check": {key: report["owl2_rl_check"][key]
+                                        for key in ("passed", "equalities", "inconsistencies", "seconds")}},
+                     indent=2))
     for name, entry in report["classes"].items():
         if entry["unsound"] or entry["missing"]:
             print(f"class {name}: krrood={entry['krrood']} reference={entry['reference']} "
                   f"unsound={entry['unsound']} missing={entry['missing']}")
-    for name, entry in report.get("object_properties", {}).items():
+    for name, entry in list(report.get("object_properties", {}).items()) + list(
+        report.get("data_properties", {}).items()
+    ):
         if entry["unsound"] or entry["missing"]:
             print(f"property {name}: krrood={entry['krrood']} reference={entry['reference']} "
                   f"unsound={entry['unsound']} missing={entry['missing']}")

@@ -14,7 +14,8 @@ original machine.
 
 `scripts/aamas27/run_all.sh` performs sections 3-6 and 8 unattended: it clones or updates the code, creates the
 virtual environment, starts PostgreSQL (Docker) and GraphDB (headless, from the Desktop installation), loads and exports
-the data, and runs the tests, the answer-set check, query timing, loading + reasoning, the ablation and the tables, then
+the data, and runs the tests, the answer-set check, the soundness audit (section 11), query timing, loading +
+reasoning, the ablation and the tables, then
 packs `aamas27_results_<hostname>.tgz`. It stops at the first failure with a message; calling it again resumes after the
 last finished step (a step that did not finish starts over). It never deletes a GraphDB repository. Close GraphDB
 Desktop and other applications first, keep at least 12 % of the disk free (GraphDB stops answering below 10 %), and
@@ -90,6 +91,11 @@ Soundness fixes in Ontomatic (CRAM branch `aamas27-experiments`, one commit each
    too on the first object, root first, whose declared range admits the value (59b48844e9). Before, an asserted fact
    went to whichever object of the individual had been created first; this varied between processes and made ORMatic
    persistence fail in about one of seven runs (section 10).
+7. The remaining OWL 2 RL/RDF rules (ec7c922b9f, section 2.1): necessary conditions read from the ontology
+   (cax-sco, cls-int2, cls-hv1, cls-avf), transitivity and property chains applied before typing, the data-property
+   rules (prp-dom, prp-spo1, prp-eqp1/2; before, the 2486 hasID values were not hasCode values, hasCode being
+   equivalent to hasID), and `OwlInstancesRegistry.check_owl2_rl()`, which checks the rules that derive equality or
+   inconsistency.
 
 Further CRAM changes: provenance of every inferred fact and type (46830ff78a: `PropertyDescriptorRelation.explain()`,
 `.find()`, `OwlInstancesRegistry.explain_type()`), symmetric-transitive component facts added through the relation
@@ -117,14 +123,15 @@ Experiment changes (EXP branch `aamas27-experiments`):
 
 ## 2. Known limitations (to state in the paper)
 
-* No equality reasoning: KRROOD adopts the unique-name assumption; `owl:sameAs`, and the OWL 2 RL rules that derive
-  it (functional/inverse-functional properties, keys, max cardinality 1), are not supported. On this data set the
-  OWL 2 RL closure (GraphDB, sameAs enabled) contains no `owl:sameAs` between two different individuals (only the
-  4212 reflexive ones), so this does not affect any answer.
+* Unique names: KRROOD does not merge individuals. Instead, `check_owl2_rl()` evaluates every rule that derives
+  `owl:sameAs` (prp-fp, prp-ifp, prp-key, cls-maxc2, cls-maxqc3/4, asserted sameAs); on this data set none fires, so
+  the unique-name assumption is entailed (the GraphDB closure, sameAs enabled, also has only the 4212 reflexive
+  `owl:sameAs`).
 * FunctionalProperty detection in the generator compares `prop_type == OWL.FunctionalProperty` where `prop_type_uri`
-  is meant, so functional properties are not recognised (not needed by any query).
-* Property-assertion completeness: KRROOD materialises exactly the object-property facts of the OWL 2 RL closure
-  (section 11). Until 7e0c77ec63, 4037 were missing (isStudentOf/hasStudent from the chain
+  is meant, so the generated model does not mark functional properties. The check reads them from the ontology.
+* Completeness: KRROOD materialises exactly the class memberships, object-property and data-property assertions of
+  the OWL 2 RL closure (section 11). Until ec7c922b9f, 2487 data-property assertions were missing (hasCode/hasID).
+  Until 7e0c77ec63, 4037 object-property assertions were missing (isStudentOf/hasStudent from the chain
   `enrollIn o isSubOrganizationOf` 1978 each, worksFor/hasEmployee from `worksFor o isSubOrganizationOf` 37 each,
   hasWork of the 7 research groups): the rules stored an inferred fact only on the individual's root object or one
   level of its roles, while these properties are declared by roles (UGStudent, ResearchAssistant) or by the
@@ -132,6 +139,47 @@ Experiment changes (EXP branch `aamas27-experiments`):
   Every rule now stores the fact on the object of the individual that declares the property.
 * Q22: EQL and SQLAlchemy return 141 rows for 106 distinct answers (several role objects per individual); the answer
   sets are equal to GraphDB's. Report 106 in the "Results" column (the table script uses the distinct count of GraphDB).
+
+## 2.1 OWL 2 RL rules and the benchmark ontology
+
+Reference: the OWL 2 RL/RDF rules of the W3C OWL 2 Profiles recommendation, Section 4.3, Tables 4-9 (78 rules).
+OWL2Bench prescribes no rule set; its RL TBox is an OWL 2 RL ontology, so the expected entailments are those of OWL 2
+RL, which Theorem PR1 equates with the RL/RDF rules for ontologies without punning. GraphDB's `owl2-rl-optimized`
+ruleset (`configs/rules/builtin_owl2-rl-optimized.pie` of the installation) implements these rules: cls-int2 and
+cls-uni through scm-int/scm-uni with cax-sco, the equality rules through its sameAs optimisation, and all consistency
+rules; it omits only the datatype rule (dt-*).
+
+KRROOD (CRAM ec7c922b9f):
+
+| Rules | How |
+|-------|-----|
+| cax-sco, cax-eqc1/2, scm-* | generated class and descriptor hierarchy (inheritance, aliases) |
+| cls-int1, cls-svf1, cls-hv2, cls-uni (subclass position) | generated sufficient conditions (axioms), while typing |
+| cls-int2, cls-hv1, cls-avf, cax-sco (superclass position) | `Owl2RlTerminology` superclass expressions, while typing and after assignment |
+| prp-dom, prp-rng | while typing (object and data properties) |
+| prp-spo1, prp-eqp1/2, prp-inv1/2, prp-symp | while typing and on every assignment (data properties: prp-spo1, prp-eqp) |
+| prp-trp, prp-spo2 | while typing (properties used in a restriction or chain) and on every assignment |
+| prp-fp, prp-ifp, prp-key, cls-maxc2, cls-maxqc3/4, owl:sameAs | `check_owl2_rl()`: reports the equalities (none on OWL2Bench) |
+| eq-diff1-3, prp-irp, prp-asyp, prp-pdw, prp-adp, prp-npa1/2, cls-com, cls-nothing2, cls-maxc1, cls-maxqc1/2, cax-dw, cax-adc | `check_owl2_rl()`: reports the inconsistencies (none on OWL2Bench) |
+| eq-ref, eq-sym, eq-trans, eq-rep-* | not needed when no equality is derived |
+| dt-* | literals are stored as Python values; not applied |
+| cls-oo, cls-svf2 | not supported by the generator (not used by OWL2Bench) |
+
+The benchmark ontology (`resources/owl2bench_statements_unreasoned.rdf`) is the OWL2Bench RL TBox of kracr/owl2bench
+commit 55dc0c6e73 (2020-03-26, the version with the namespace `http://benchmark/OWL2Bench#`) with one university of
+generated data, with these differences (axiom by axiom, blank nodes compared structurally):
+
+* added for KRROOD: the class `Role`, the property `roleFor` and the role markers `C SubClassOf roleFor some D` on 15
+  classes, and the definition `T20CricketFan EquivalentTo isCrazyAbout value T20Cricket` (Q5), `knows` declared;
+* missing: the 8 college-discipline classes Engineering, FineArts, HumanitiesAndSocial, Management, Science,
+  HumanResourceManagement, MarketingManagement, PublicRelationsManagement (already in the first commit of this file).
+
+The OWL API 5.5.1 profile checker (`OWL2RLProfile`) finds the official TBoxes (2020 and current) inside OWL 2 RL, and
+our file outside it only because of the 15 role markers (an existential in superclass position). Every marked class is
+already a subclass of its role taker (e.g. `Chair SubClassOf FullProfessor`), so the markers form a conservative
+extension and change no entailment over the benchmark's vocabulary. OWL2Bench uses 47 IRIs both as classes and as
+individuals (college disciplines), which Theorem PR1 excludes; the reference of all comparisons is therefore the
+RL/RDF rule closure computed by GraphDB.
 
 ## 3. Get the code
 
@@ -146,7 +194,7 @@ git log -1 --format='%H %s'   # expected: the commit that contains this runbook,
 cd ~
 git clone git@github.com:AbdelrhmanBassiouny/cognitive_robot_abstract_machine.git cram_aamas27
 cd ~/cram_aamas27 && git fetch origin aamas27-experiments && git checkout aamas27-experiments
-git log -1 --format='%H %s'   # expected: 59b48844e9
+git log -1 --format='%H %s'   # expected: ec7c922b9f
 
 cd ~
 git clone https://github.com/AbdelrhmanBassiouny/ripple_down_rules.git ripple_down_rules_aamas27
@@ -156,7 +204,7 @@ cd ~/ripple_down_rules_aamas27 && git checkout 3b994bb
 If you already have clones, use `git worktree add -b aamas27-experiments <dir> origin/aamas27-experiments` instead.
 CRAM has git submodules that are not needed (`krrood` has no submodule dependency); do not run `git submodule update`.
 
-Commits of the code that was verified locally (section 11): CRAM 59b48844e9, EXP 0d84891 (code), runbook commits on top,
+Commits of the code that was verified locally (section 11): CRAM ec7c922b9f, EXP 0d84891 (code), runbook commits on top,
 ripple_down_rules 3b994bb.
 
 ## 4. Python environment
@@ -286,7 +334,7 @@ RUN=results/aamas27/$(hostname)-$(date +%Y%m%d)
 python -m pytest -q -o addopts="" tests/aamas27
 ```
 
-Expected: `18 passed`.
+Expected: `24 passed`.
 
 ### 6.2 Hard answer-set check (15-25 min)
 
@@ -435,14 +483,20 @@ SQLAlchemy "before" already uses the corrected projections (section 1); with the
 differ in shape and Q22 returned 12 of 106 answers. EQL and SQLAlchemy return 141 rows for the 106 distinct answers
 of Q22.
 
-**Soundness audit** (`python -m krrood_experiments.aamas27.soundness_audit`): every class membership and object
-property assertion of KRROOD compared with the OWL 2 RL closure of GraphDB.
+**Soundness audit** (`python -m krrood_experiments.aamas27.soundness_audit`): every class membership, object
+property assertion and data property assertion of KRROOD compared with the OWL 2 RL closure of GraphDB, and the result
+of `check_owl2_rl()`.
 
 | | class memberships not entailed | entailed memberships missing | property facts not entailed | entailed property facts missing |
 |-|--------------------------------|------------------------------|-----------------------------|---------------------------------|
 | before | 67 (53 LeisureStudent, 14 class-name heuristic) | 226 (PeopleWithHobby 181, BasketBallLover 31, Employee 7, Person 7) | 0 | 4037 |
 | after (a6d22a95aa) | 0 | 0 | 0 | 4037 (section 2) |
 | after fact placement (7e0c77ec63) | 0 | 0 | 0 | 0 |
+| after the remaining RL rules (ec7c922b9f) | 0 | 0 | 0 | 0 |
+
+Data property assertions (12 properties, 23,000 assertions): 0 not entailed; entailed but missing 2487 at 59b48844e9
+(hasCode 2486, hasID 1), 0 at ec7c922b9f (`results/aamas27/bass-audit-rl-rules`). `check_owl2_rl()`: no equality,
+no inconsistency (0.5 s); the only expressions outside OWL 2 RL are the 15 role markers.
 
 All 3667 named individuals of the closure are represented in KRROOD.
 

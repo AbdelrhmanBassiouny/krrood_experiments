@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Run every automated AAMAS 2027 OWL2Bench experiment of RUNBOOK_AAMAS27.md on this machine with one command:
-# code and Python environment, PostgreSQL and GraphDB, the data files, the tests, the answer-set check, query timing,
+# code and Python environment, PostgreSQL and GraphDB, the data files, the tests, the answer-set check, the comparison
+# of KRROOD's knowledge base with the OWL 2 RL closure of GraphDB (soundness audit), query timing,
 # loading + reasoning, the ablation, the LaTeX tables and the results archive. Only Protégé (runbook section 7) stays
 # manual.
 #
@@ -236,6 +237,11 @@ answer_check() {
         || fail "an answer set differs from GraphDB, see $RUN/check/answer_check.json"
 }
 
+soundness_audit() {
+    mkdir -p "$RUN/audit"
+    python -m krrood_experiments.aamas27.soundness_audit --output "$RUN/audit/audit.json"
+}
+
 query_timing() {
     rm -rf "$RUN/queries"
     python scripts/aamas27/run_queries.py --repetitions "$QUERY_REPETITIONS" --results-dir "$RUN/queries"
@@ -301,6 +307,7 @@ main() {
     step data prepare_data
     step tests run_tests
     step answer_check answer_check
+    step soundness_audit soundness_audit
     step query_timing query_timing
     for system in krrood owlready2_pellet rdflib_owlrl graphdb krrood_ormatic; do
         step "loading_$system" loading_system "$system"

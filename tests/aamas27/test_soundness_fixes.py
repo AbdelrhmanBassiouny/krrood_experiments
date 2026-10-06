@@ -351,3 +351,26 @@ def test_stored_values_are_in_the_range_declared_by_the_holder(registry):
                 ):
                     outside[(type(individual_object).__name__, field_name, type(v).__name__)] += 1
     assert not outside, outside.most_common(10)
+
+
+def test_equivalent_data_properties_share_their_values(registry):
+    """
+    hasCode is equivalent to hasID (prp-eqp1/2 for data properties). Before the fix, the 2486 hasID values were not
+    hasCode values (2487 data assertions of the OWL 2 RL closure were missing).
+    """
+    with_id = [
+        o for objects in registry._by_uri.values() for o in objects if getattr(o, "has_id", None) is not None
+    ]
+    assert len({str(o.uri) for o in with_id}) == 2487
+    assert all(o.has_code == o.has_id for o in with_id)
+
+
+def test_the_owl2_rl_equality_and_consistency_check_passes(registry):
+    """
+    No OWL 2 RL rule derives the equality of two different individuals or an inconsistency, so the unique-name
+    assumption of KRROOD is entailed. Only the role markers (roleFor some C in superclass position) are outside RL.
+    """
+    report = registry.check_owl2_rl()
+    assert report.passed, report.summary()
+    assert len(report.outside_owl2_rl) == 15
+    assert all("roleFor" in expression for expression in report.outside_owl2_rl)
