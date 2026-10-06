@@ -10,7 +10,29 @@ and repository rulesets, the GraphDB JVM options, and the PostgreSQL version.
 Do not mix timings measured on another machine (for example the numbers in section 11) with the timings of the
 original machine.
 
-## 0. Overview
+## 0. One command
+
+`scripts/aamas27/run_all.sh` performs sections 3-6 and 8 unattended: it clones or updates the code, creates the
+virtual environment, starts PostgreSQL (Docker) and GraphDB (headless, from the Desktop installation), loads and exports
+the data, and runs the tests, the answer-set check, query timing, loading + reasoning, the ablation and the tables, then
+packs `aamas27_results_<hostname>.tgz`. It stops at the first failure with a message; calling it again resumes after the
+last finished step (a step that did not finish starts over). It never deletes a GraphDB repository. Close GraphDB
+Desktop and other applications first, keep at least 12 % of the disk free (GraphDB stops answering below 10 %), and
+expect 10-13 hours:
+
+```bash
+cd ~ && { git clone -b aamas27-experiments https://github.com/AbdelrhmanBassiouny/krrood_experiments.git \
+    krrood_experiments_aamas27 || git -C krrood_experiments_aamas27 pull --ff-only; } \
+  && nohup bash krrood_experiments_aamas27/scripts/aamas27/run_all.sh > ~/aamas27_run.log 2>&1 &
+tail -f ~/aamas27_run.log
+```
+
+The settings (directories, GraphDB location, heap and license, ports, repetitions) are environment variables listed at
+the top of the script. Results go to `results/aamas27/<hostname>-run/`. Afterwards do Protégé by hand (section 7), save
+`protege.json` into that directory and run `bash scripts/aamas27/run_all.sh tables` to add its rows to the tables and
+re-pack the archive. The sections below describe the same steps one by one.
+
+## 0.1 Overview
 
 | # | Experiment | Command (section) | Duration on the original machine (estimate) | Peak RAM |
 |---|------------|-------------------|---------------------------------------------|----------|
@@ -63,6 +85,11 @@ Soundness fixes in Ontomatic (CRAM branch `aamas27-experiments`, one commit each
    hasCollegeDiscipline) with that class (14 non-entailed memberships). Untyped individuals are now represented by
    the ontology base class. EQL and SQLAlchemy Q21 therefore compare the discipline's URI with
    `owl2bench:Engineering`, as the SPARQL query does (EXP 0d84891).
+
+6. Every fact is stored on the object of its individual that declares the property (7e0c77ec63), and for asserted facts
+   too on the first object, root first, whose declared range admits the value (59b48844e9). Before, an asserted fact
+   went to whichever object of the individual had been created first; this varied between processes and made ORMatic
+   persistence fail in about one of seven runs (section 10).
 
 Further CRAM changes: provenance of every inferred fact and type (46830ff78a: `PropertyDescriptorRelation.explain()`,
 `.find()`, `OwlInstancesRegistry.explain_type()`), symmetric-transitive component facts added through the relation
@@ -119,7 +146,7 @@ git log -1 --format='%H %s'   # expected: the commit that contains this runbook,
 cd ~
 git clone git@github.com:AbdelrhmanBassiouny/cognitive_robot_abstract_machine.git cram_aamas27
 cd ~/cram_aamas27 && git fetch origin aamas27-experiments && git checkout aamas27-experiments
-git log -1 --format='%H %s'   # expected: 7e0c77ec63
+git log -1 --format='%H %s'   # expected: 59b48844e9
 
 cd ~
 git clone https://github.com/AbdelrhmanBassiouny/ripple_down_rules.git ripple_down_rules_aamas27
@@ -129,7 +156,7 @@ cd ~/ripple_down_rules_aamas27 && git checkout 3b994bb
 If you already have clones, use `git worktree add -b aamas27-experiments <dir> origin/aamas27-experiments` instead.
 CRAM has git submodules that are not needed (`krrood` has no submodule dependency); do not run `git submodule update`.
 
-Commits of the code that was verified locally (section 11): CRAM 7e0c77ec63, EXP 0d84891 (code), runbook commits on top,
+Commits of the code that was verified locally (section 11): CRAM 59b48844e9, EXP 0d84891 (code), runbook commits on top,
 ripple_down_rules 3b994bb.
 
 ## 4. Python environment
@@ -259,7 +286,7 @@ RUN=results/aamas27/$(hostname)-$(date +%Y%m%d)
 python -m pytest -q -o addopts="" tests/aamas27
 ```
 
-Expected: `9 passed`.
+Expected: `18 passed`.
 
 ### 6.2 Hard answer-set check (15-25 min)
 
@@ -374,11 +401,9 @@ logs.
 * GraphDB upload fails with a license error: check `curl -s localhost:7200/rest/graphdb-settings/license`.
 * `psycopg2.OperationalError`: the container is not running (`docker start krrood-pg`) or the URI is wrong.
 * `sqlalchemy.orm.exc.FlushError: Attempting to flush an item of type <...InterestDAO> as a member of collection
-  "BasketBallLoverDAO.loves"` (SQLAlchemy queries or `krrood_ormatic` loading): an intermittent ORMatic persistence
-  error, about 1 in 7 runs on the development machine, with and without the fact-placement commit. The objects in
-  memory are correct (every BasketBallLover's `loves` values are BasketBall objects), and runs that persist answer
-  all 18 queries like GraphDB. Rerun the failed step; for the loading measurement, rerun only `krrood_ormatic`
-  (`--systems krrood_ormatic`) into a new results directory and keep the repetitions that finished.
+  "BasketBallLoverDAO.loves"`: fixed in CRAM 59b48844e9. The loader stored an asserted fact on whichever object of the
+  individual came first, which varied between processes, so a BasketBallLover role (`loves: Set[BasketBall]`) could
+  receive a movie. If it appears, krrood is not at 59b48844e9 or later.
 * A worker is killed with `status: memory_limit` only when `--memory-limit-gib` was given; `failed` with return code
   -9 means the kernel OOM killer stopped it (report "o.o.m.").
 * The answer-set check exits with 1: read `answer_check.json`; do not use `--allow-mismatch` for the paper numbers
