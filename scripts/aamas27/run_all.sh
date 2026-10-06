@@ -17,6 +17,7 @@
 #   GRAPHDB_APP            GraphDB Desktop application directory [/opt/graphdb-desktop/lib/app]
 #   GRAPHDB_JAVA           Java of GraphDB [/opt/graphdb-desktop/lib/runtime/bin/java]
 #   GRAPHDB_HOME_DIR       GraphDB home [~/.graphdb]
+#   GRAPHDB_LICENSE        GraphDB license file [$GRAPHDB_HOME_DIR/work/graphdb.license, else ~/.graphdb/work/...]
 #   GRAPHDB_HEAP           GraphDB maximum heap [8g]
 #   GRAPHDB_PORT           GraphDB port [7200]
 #   GRAPHDB_JAVA_OPTIONS   extra JVM options of a GraphDB started by this script []
@@ -34,6 +35,8 @@ RUN="${AAMAS27_RUN:-$EXPERIMENTS_DIR/results/aamas27/$(hostname)-run}"
 GRAPHDB_APP="${GRAPHDB_APP:-/opt/graphdb-desktop/lib/app}"
 GRAPHDB_JAVA="${GRAPHDB_JAVA:-/opt/graphdb-desktop/lib/runtime/bin/java}"
 GRAPHDB_HOME_DIR="${GRAPHDB_HOME_DIR:-$HOME/.graphdb}"
+GRAPHDB_LICENSE="${GRAPHDB_LICENSE:-$GRAPHDB_HOME_DIR/work/graphdb.license}"
+[[ -f "$GRAPHDB_LICENSE" ]] || GRAPHDB_LICENSE="$HOME/.graphdb/work/graphdb.license"
 GRAPHDB_HEAP="${GRAPHDB_HEAP:-8g}"
 GRAPHDB_PORT="${GRAPHDB_PORT:-7200}"
 read -r -a GRAPHDB_JAVA_OPTIONS <<< "${GRAPHDB_JAVA_OPTIONS:-}"
@@ -79,6 +82,8 @@ check_prerequisites() {
     if ! graphdb_is_up; then
         [[ -d "$GRAPHDB_APP" && -x "$GRAPHDB_JAVA" ]] || fail "GraphDB is not running on port $GRAPHDB_PORT and \
 $GRAPHDB_APP was not found (set GRAPHDB_APP and GRAPHDB_JAVA, or start GraphDB yourself)"
+        [[ -f "$GRAPHDB_LICENSE" ]] || fail "no GraphDB license file at $GRAPHDB_LICENSE (set GRAPHDB_LICENSE); \
+GraphDB does not answer queries without one"
     fi
     if pgrep -f "graphdb-desktop/lib/app" >/dev/null && ! graphdb_is_up; then
         fail "GraphDB Desktop seems to run on another port; close it first"
@@ -159,13 +164,10 @@ start_graphdb() {
         log "GraphDB is running on port $GRAPHDB_PORT"
         return
     fi
-    local license=()
-    [[ -f "$GRAPHDB_HOME_DIR/work/graphdb.license" ]] \
-        && license=("-Dgraphdb.license.file=$GRAPHDB_HOME_DIR/work/graphdb.license")
     nohup "$GRAPHDB_JAVA" -Xms1g "-Xmx$GRAPHDB_HEAP" -Djava.awt.headless=true \
         --add-exports jdk.management.agent/jdk.internal.agent=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED \
         --enable-native-access=ALL-UNNAMED -cp "$GRAPHDB_APP/lib/*" "-Dgraphdb.dist=$GRAPHDB_APP" \
-        "-Dgraphdb.home=$GRAPHDB_HOME_DIR" "-Dgraphdb.connector.port=$GRAPHDB_PORT" "${license[@]}" \
+        "-Dgraphdb.home=$GRAPHDB_HOME_DIR" "-Dgraphdb.connector.port=$GRAPHDB_PORT" "-Dgraphdb.license.file=$GRAPHDB_LICENSE" \
         "${GRAPHDB_JAVA_OPTIONS[@]}" \
         com.ontotext.graphdb.server.GraphDBWorkbench > "$RUN/graphdb.log" 2>&1 &
     STARTED_GRAPHDB_PID=$!
