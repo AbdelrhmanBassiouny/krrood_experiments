@@ -80,7 +80,7 @@ def strip_pyproject(path: Path) -> None:
 def sanitize(bundle: Path) -> None:
     for pyproject in bundle.rglob("pyproject.toml"):
         strip_pyproject(pyproject)
-    for lock in bundle.rglob("requirements-aamas27-lock.txt"):
+    for lock in [*bundle.rglob("requirements-aamas27-lock.txt"), *bundle.rglob("requirements-aamas27.txt")]:
         lock.write_text("".join(line for line in lock.read_text().splitlines(keepends=True)
                                 if not line.startswith("#")))
     for path in bundle.rglob("*.py"):

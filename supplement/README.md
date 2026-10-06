@@ -11,7 +11,7 @@ There are three levels, from a few minutes to a night:
 
 | Level | Command | Needs | Time | Reproduces |
 |-------|---------|-------|------|------------|
-| 1 | `listings` | Docker | 10 min (mostly the build) | the paper's listings, as tests |
+| 1 | `listings` | Docker | 5-15 min (the first build downloads about 1.5 GB) | the paper's listings, as tests |
 | 2 | `check` | Docker, a free GraphDB license, 16 GB RAM | 1-1.5 h | Section 7.1: answers of all 18 queries, and the knowledge base compared with the OWL 2 RL closure |
 | 3 | `all` | as level 2, 32 GB RAM | 9-13 h | also Sections 7.2-7.3: query time, loading time and memory, the ablation |
 
@@ -38,7 +38,7 @@ In a terminal, in the folder that contains the zip:
 ```bash
 unzip krrood-aamas27-supplement.zip && cd krrood-aamas27-supplement
 mkdir -p state                       # the results folder; create it yourself so that you own its files
-docker compose build                 # 5-10 min
+docker compose build                 # 5-15 min the first time (downloads about 1.5 GB)
 docker run --rm krrood-aamas27 listings   # krrood-aamas27 is the image that the build created
 ```
 
@@ -55,7 +55,7 @@ docker compose down
 
 With 32 GB RAM or more, leave out `GRAPHDB_HEAP=4g` (the default heap is 8 GB). Most of the time goes into
 GraphDB computing the OWL 2 RL closure (30-60 min). The log is printed and also written to `state/reproduce.log`.
-At the end it shows:
+It ends like this (`...` stands for lines left out here):
 
 ```
 ...
