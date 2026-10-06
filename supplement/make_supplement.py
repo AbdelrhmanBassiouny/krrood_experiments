@@ -23,6 +23,9 @@ import zipfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+# The clones of the pinned commits on the authors' machine. Every commit below is on the authors' forks:
+# CRAM branch aamas27-experiments (earlier version) and fix/eql-to-sql-collections (current version),
+# krrood_experiments branch aamas27-experiments, ripple_down_rules 3b994bb.
 SCRATCH = Path("/tmp/claude-1000/-home-bass-Projects-krrood-aamas/33ba4645-d3a6-450c-b474-694a7d4a326f/scratchpad")
 NAME = "krrood-aamas27-supplement"
 
@@ -43,7 +46,7 @@ SOURCES = [
 EXCLUDE = {
     "code/earlier/experiments/scripts/aamas27/run_all.sh",
 }
-LISTINGS = SCRATCH / "listings"
+LISTINGS = HERE / "listings"   # executable versions of the paper's listings, run on the current version
 
 IDENTIFYING = re.compile(
     r"bassiouny|abdelrhman|schierenbeck|tomsch|sorinar|sorin|\barion\b|beetz|bremen|aicor|vasantak|hoanggia"
