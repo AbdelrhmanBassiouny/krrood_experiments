@@ -310,3 +310,16 @@ def test_paper_kr_listing_transitive_descriptor():
     college.is_part_of.add(university)
     department.is_part_of.add(college)
     assert university in department.is_part_of
+
+
+def test_paper_rule_evaluation_is_idempotent():
+    """Section 4: like a Skolem term, a derived object is identified by its class and its arguments, so evaluating
+    the rule again returns the same object. (An explicit domain: the lst:kr test resets the symbol graph.)"""
+    from krrood.entity_query_language.factories import inference
+    p = variable(Person, domain=people)
+    fan = inference(T20CricketFan)(role_taker=p)
+    fans = an(entity(fan).where(T20CricketFan.axiom(p)))
+    first, second = list(fans.evaluate()), list(fans.evaluate())
+    assert len(first) == 1 and first[0] is second[0]
+    other_rule = inference(T20CricketFan)(role_taker=p)
+    assert list(an(entity(other_rule).where(T20CricketFan.axiom(p))).evaluate())[0] is first[0]

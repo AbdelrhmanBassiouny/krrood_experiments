@@ -39,7 +39,7 @@ SOURCES = [
     (SCRATCH / "exp/exp", "HEAD",
      ["pyproject.toml", "requirements.txt", "src", "scripts/aamas27", "tests/aamas27",
       "resources/owl2bench_statements_unreasoned.rdf"], "code/earlier/experiments", ""),
-    (Path("/home/bass/Projects/cram-eql-sql-fix"), "eeeb2e48db",
+    (Path("/home/bass/Projects/cram-eql-sql-fix"), "3308cb252f",
      ["krrood/pyproject.toml", "krrood/src", "krrood/LICENSE"], "code/current", ""),
 ]
 # Files of the experiment repository that only serve the authors' own machines.
@@ -51,7 +51,7 @@ LISTINGS = HERE / "listings"   # executable versions of the paper's listings, ru
 IDENTIFYING = re.compile(
     r"bassiouny|bassioun|abdelrhman|ms-7d32|schierenbeck|tomsch|sorinar|sorin|\barion\b|beetz|bremen|aicor|vasantak|hoanggia"
     r"|\bnaren\b|\bgiang\b|cram2|github\.com|gitlab\.com|/home/|/tmp/claude|@[a-z0-9.-]+\.(de|com|org|net)\b"
-    r"|\bbass\b|tom_sch|ec7c922b9f|eeeb2e48db|3b994bb|b0b59087a6",
+    r"|\bbass\b|tom_sch|ec7c922b9f|eeeb2e48db|3308cb252f|3b994bb|b0b59087a6|ccf8367709",
     re.IGNORECASE,
 )
 # Matches that are not identifying: generated person names of the OWL2Bench data (e.g. "Jamarion").
@@ -159,6 +159,10 @@ def main() -> None:
     for name in ("Dockerfile", "compose.yaml", "reproduce.sh", "README.md", "AI_USE.md", ".dockerignore"):
         shutil.copy(HERE / name, bundle / name)
     shutil.copytree(HERE / "environment", bundle / "environment")
+    # The formalization of EQL: LaTeX source and the PDF compiled from it.
+    (bundle / "formalization").mkdir()
+    for name in ("eql_formalization.tex", "eql_formalization.pdf"):
+        shutil.copy(HERE / "formalization" / name, bundle / "formalization" / name)
     if arguments.results:
         copy_results(Path(arguments.results), bundle / "results")
     sanitize(bundle)

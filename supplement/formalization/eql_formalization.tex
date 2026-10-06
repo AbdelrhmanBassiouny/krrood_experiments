@@ -1,0 +1,904 @@
+% ============================================================
+%  Entity Query Language: Syntax, Semantics, and Complexity
+%  Standalone document — compile with pdflatex
+% ============================================================
+
+\documentclass[11pt, a4paper]{article}
+
+% ---------- packages ----------
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{mathtools}
+% Semantic brackets, as in stmaryrd, without that package.
+\newcommand{\llbracket}{\mathopen{[\![}}
+\newcommand{\rrbracket}{\mathclose{]\!]}}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{listings}
+
+% Python colour scheme
+\definecolor{codebg}{RGB}{248,248,248}
+\definecolor{kwcolor}{RGB}{0,100,180}
+\definecolor{strcolor}{RGB}{60,140,60}
+\definecolor{cmtcolor}{RGB}{130,130,130}
+\definecolor{decocolor}{RGB}{160,60,160}
+\definecolor{builtincolor}{RGB}{180,80,0}
+
+\lstdefinestyle{eqlpython}{
+  language=Python,
+  backgroundcolor=\color{codebg},
+  basicstyle=\small\ttfamily,
+  keywordstyle=\color{kwcolor}\bfseries,
+  keywordstyle=[2]\color{decocolor}\bfseries,
+  keywords=[2]{dataclass},
+  stringstyle=\color{strcolor},
+  commentstyle=\color{cmtcolor}\itshape,
+  emphstyle=\color{builtincolor},
+  emph={True,False,None,List,any,sum,not,len},
+  showstringspaces=false,
+  breaklines=true,
+  frame=none,
+  xleftmargin=0pt,
+  xrightmargin=0pt,
+  aboveskip=6pt,
+  belowskip=4pt,
+}
+\lstset{style=eqlpython}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=NavyBlue, citecolor=NavyBlue, urlcolor=NavyBlue}
+
+% ---------- theorem environments ----------
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% ---------- title ----------
+\title{\textbf{Entity Query Language}\\[4pt]
+       \large Syntax, Semantics, and Complexity}
+\author{Anonymous Author(s)}
+\date{\today}
+
+% ============================================================
+\begin{document}
+% ============================================================
+
+\maketitle
+\tableofcontents
+\bigskip
+
+% ============================================================
+\section{Overview}
+\label{sec:eql:overview}
+% ============================================================
+
+Entity Query Language (EQL) is a symbolic, declarative, relational query language  with a First Order Logic like syntax that is embedded natively in
+Python, designed to make Python object-oriented domain models directly queryable without any
+additional representation layer. It separates symbolic, syntactical representation from evaluation semantics, thus allowing for different evaluation backends each with different semantics (e.g. open world vs closed world vs probabilistic inference). Furthermore, this layer separation increases maintainability of the language due to the separation of concerns between syntax and evaluation semantics.
+
+The evaluation semantics of this document represent the default backend of EQL which obeys closed world reasoning that includes Domain Closure, and Negation as Failure. Future work will include other backends.
+
+This document provides a formal specification of EQL's
+syntax, semantics, and computational complexity.
+
+\subsection{Motivation and Design Principles}
+
+Existing query languages impose a representational gap between the domain model and the query
+layer.  SQL operates over flat relational tables and requires either manual schema maintenance
+or an Object-Relational Mapping (ORM) layer to bridge the gap to object-oriented code.
+SPARQL operates over RDF triples, requiring a separate knowledge graph representation.  Datalog
+and its extensions operate over symbolic facts that must be populated from the application
+separately.  In all cases, the developer must maintain two representations of the same domain:
+one in their programming language, one in the query system.
+
+EQL eliminates this gap.  Its design rests on the following principles:
+
+\begin{enumerate}
+  \item \textbf{No Impedence Mismatch and No Symbol Grounding Problems.}  EQL operates directly on live Python objects.
+        There is no schema to define, no tables to populate, and no ORM to configure.  The
+        object-oriented domain model the developer already writes \emph{is} the knowledge base.
+
+  \item \textbf{Executable queries as first-class Python.}  Queries are Python expressions, not
+        strings passed to an external compiler.  This means queries are statically analysable
+        by development tools, debuggable at runtime, and subject to normal Python error
+        handling and type checking.  There is no compilation boundary between query and
+        application code.
+
+  \item \textbf{General programs as query components.}  Any Python callable---including
+        arbitrary programs---can participate in a query as a predicate or symbolic function,
+        subject to determinism and purity requirements.  This goes beyond the built-in
+        predicates of SQL or the fixed vocabulary of SPARQL.
+
+  \item \textbf{Structural depth.}  EQL queries traverse nested objects, lists, and
+        dictionaries natively.  There is no restriction to flat relational structure.  An
+        attribute of a field that is itself a list of objects is queried by index or method
+        access, not by a join.
+
+  \item \textbf{FOL axioms in class definitions.}  Predicates are Python classes, and their
+        characteristic functions can encode arbitrary first-order-logic constraints over the
+        domain.  These axioms live directly in the class definition alongside the data model,
+        making the logical structure of the domain inspectable and revisable.
+\end{enumerate}
+
+\subsection{Relation to Existing Query Languages}
+
+EQL's logical foundations are drawn from conjunctive query evaluation over finite relational
+structures~\cite{chandra1977optimal,abiteboul1995foundations}, Negation as
+Failure~\cite{clark1978negation}, and the TBox/ABox distinction of Description
+Logics~\cite{baader2003description}.  It differs from these traditions in three key respects.
+
+\emph{SQL and relational databases}: SQL requires a separate schema, table-based
+storage, and an ORM layer to map objects to relations.  EQL queries the object model directly;
+there are no tables and no joins -- object traversal replaces join navigation.
+
+\emph{Datalog}: Datalog rules are stored in the knowledge base and applied to a
+fixpoint.  In EQL, rules are user-invoked programs; there is no fixpoint.  EQL's fact base is always a flat finite set of ground object instances. Even though rules exist they are not automatically invoked when answering queries unless they are called as part of the query.
+
+\emph{SPARQL and RDF}: SPARQL requires a triple-store representation distinct from the
+application model.  EQL operates on the application's own Python objects with no translation
+step.
+
+\paragraph{Contributions.}
+This document makes the following formal contributions:
+\begin{enumerate}
+  \item A typed signature $\Sigma = (\mathcal{S}, \mathcal{C}, \mathcal{M}, \mathcal{P},
+        \mathcal{F})$ for EQL with a formal TBox/ABox knowledge base structure and a
+        subsumption ordering on class symbols.
+  \item A distinction between query variables $\mathcal{V}_Q$ (user-supplied finite domains,
+        optional class annotation) and inference variables $\mathcal{V}_I$ (class-annotated,
+        domain populated from rule body answer sets), formalising EQL's rule mechanism.
+  \item An abstract syntax covering terms with structural depth (field, index, and method
+        access), three atom forms including Boolean term atoms $[t]_\mathbb{B}$, body formulas,
+        conjunctive queries, unions, result quantifiers, and rules.
+  \item A denotational semantics grounded in Clark's completion for negation as failure and
+        the $\gamma$ operator of relational algebra for aggregation.
+  \item Computational complexity bounds for progressively richer EQL query classes,
+        distinguishing data complexity from combined complexity.
+\end{enumerate}
+% ============================================================
+\section{Vocabulary and the Knowledge Base}
+\label{sec:eql:vocab}
+% ============================================================
+
+\subsection{Signature}
+
+A \emph{signature} $\Sigma = (\mathcal{S}, \mathcal{C}, \mathcal{M}, \mathcal{P}, \mathcal{F})$
+consists of non-logical symbols over which the EQL language is built.  Variable symbols
+$\mathcal{V}$ are logical symbols introduced separately in Section~\ref{sec:eql:vars}.
+
+\paragraph{Class symbols.}
+A finite set of \emph{class symbols} $\mathcal{S} = \{S_1, S_2, \ldots, S_k\}$ corresponds to
+Python classes.  The class hierarchy defined by the developer induces a \emph{subsumption
+ordering} $\sqsubseteq$ on $\mathcal{S}$, where $S' \sqsubseteq S$ if and only if $S'$ is a
+subclass of $S$ in Python's class system (i.e., \texttt{issubclass($S'$, $S$)} holds).
+
+\paragraph{Constant symbols.}
+A finite set of \emph{constant symbols} $\mathcal{C}$ denotes the Python object instances
+populating the domain.  Each constant is typed by one or more classes via the class hierarchy.
+
+\paragraph{Mapped symbols.}
+A finite set of \emph{mapped symbols} $\mathcal{M}$.  Each $m \in \mathcal{M}$ is a named
+attribute of a class $S \in \mathcal{S}$, representing a property that is intrinsic to $S$
+and accessible on any instance of $S$ via dot notation. They are referred to as Mapped symbols because they can be seen as a mapping applied to S. The attribute $m$ may be:
+
+\begin{itemize}
+  \item a \emph{field}, typed $m : S \to T$, returning a value of type $T$.
+  \item an \emph{indexable field}, typed $m : S \to \mathrm{Indexable}[K, T]$, supporting
+        element access by key $k \in K$, where $K$ is any hashable key type (e.g.,
+        $\mathbb{Z}$ (i.e., integers) for lists and tuples, or an arbitrary hashable type for dictionaries).
+  \item a \emph{method}, typed $m : S \times T_1 \times \cdots \times T_n \to T$, invocable
+        with arguments.
+\end{itemize}
+
+\noindent
+How these attributes are accessed syntactically is defined in the term grammar (Section~\ref{sec:eql:syntax}).
+
+\paragraph{Predicate symbols.}
+A finite set of \emph{predicate class symbols} $\mathcal{P}$.  Each $p \in \mathcal{P}$ is a
+Python class that is a subclass of \texttt{Predicate} and implements a characteristic function
+via \texttt{\_\_call\_\_(self) -> bool}.  Predicates occupy two roles:
+
+\begin{enumerate}
+  \item \emph{Constraint role} (query body): the expression $p(\bar{t})$ is an atomic formula
+        whose truth value is determined at evaluation time by Boolean-casting the ground
+        predicate instance (Section~\ref{sec:eql:atoms_eval}).
+
+  \item \emph{Domain role} (fact base): instances of $p$ are ordinary Python objects and may be
+        stored in $\mathcal{D}$, queried over, and used as arguments in other atoms.
+\end{enumerate}
+
+\paragraph{Function symbols.}
+A finite set of \emph{symbolic functions} $\mathcal{F}$.  Each $f \in \mathcal{F}$ is a
+Python callable of one of the following forms:
+\begin{enumerate}
+    \item A Python function decorated with \texttt{@symbolic\_function}.
+    \item A class method accessed through an EQL variable.
+\end{enumerate}
+\noindent
+Function outputs are not automatically stored in $\mathcal{D}$.
+\newline
+
+Every $f \in \mathcal{F}$ and every characteristic function $p \in \mathcal{P}$ is assumed
+\textbf{pure} (no side effects on $\mathcal{D}$ or shared state) and \textbf{deterministic}
+(same inputs always produce the same output), and \textbf{terminating} on every input
+that evaluation passes to it.  These conditions are required at all times to ensure
+correctness and termination of query evaluation.  An acyclic call graph over
+$\mathcal{F} \cup \mathcal{P}$ rules out unbounded mutual recursion between callables, but it
+does not imply termination, since a single non-recursive callable may loop.  These are
+semantic preconditions (Section~\ref{sec:eql:eval}); they are not statically checkable for
+arbitrary Python callables~\cite{rice1953classes}.
+
+% ------------------------------------------------------------
+\subsection{The Knowledge Base}
+% ------------------------------------------------------------
+
+\begin{definition}[EQL Knowledge Base]
+\label{def:kb}
+An EQL \emph{knowledge base} is a pair $\mathcal{K} = (\mathcal{T},\,\mathcal{D})$ where:
+\begin{itemize}
+  \item $\mathcal{T}$ \emph{(TBox)} is the Python class hierarchy: the set of class symbols
+        $\mathcal{S}$, their attribute symbols $\mathcal{M}$, and the subsumption ordering
+        $\sqsubseteq$.
+
+  \item $\mathcal{D}$ \emph{(ABox)} is a finite set of ground typed object
+        instances.  $\mathcal{D}$ contains no disjunctive
+        assertions, no conditional facts, and no evaluatable statements.
+\end{itemize}
+\end{definition}
+
+% ------------------------------------------------------------
+\subsection{Variable Symbols}
+\label{sec:eql:vars}
+% ------------------------------------------------------------
+
+Let $\mathcal{V} = \mathcal{V}_Q \cup \mathcal{V}_I$ be the set of \emph{variable symbols}. These are the logical symbols of EQL, ranging over domains of constants drawn from $\mathcal{C}$.
+EQL provides two types of variables:
+
+\emph{Query variables} $\mathcal{V}_Q$: each carries a finite \emph{domain} $D \subseteq
+\mathcal{C}$, which is the only mandatory annotation.  A class annotation $S \in \mathcal{S}$
+is optional; when supplied it constrains which objects are admissible in $D$. The domain
+can be user-supplied or if $S$ is given and no $D$ is provided, then the full class extension $\mathrm{dom}(S)$ is used as $D$ instead.
+Query variables are used in query bodies and heads.
+
+\emph{Inference variables} $\mathcal{V}_I$: each carries a class annotation $S \in
+\mathcal{S}$ and
+constructor keyword arguments $\bar{k}$ mapping field names to body variables.  An inference
+variable carries no pre-specified domain; its domain is populated at rule invocation time:
+\[
+  D_{x_I} \;=\;
+  \bigl\{\, H(\bar{k}(\bar{a})) \;\bigm|\; \bar{a} \in \mathrm{ans}(Q_{\mathrm{body}},\,\mathcal{K}) \,\bigr\}
+\]
+In EQL, inference variables are constructed via \texttt{inference(H)(**kwargs)}.
+
+% ============================================================
+\section{Syntax}
+\label{sec:eql:syntax}
+% ============================================================
+
+This section defines the \emph{abstract syntax} of EQL: the grammar of well-formed terms,
+atoms, formulas, queries, and rules, independently of their Python surface representation.
+The Python API constitutes a concrete realisation of this abstract language; where relevant,
+correspondences to specific API constructs are noted as glosses (e.g., $\wedge$ is expressed
+in EQL via \texttt{and\_()} or multiple arguments to \texttt{.where()}).
+
+\subsection{Terms}
+
+Terms are defined inductively over $\Sigma$:
+\[
+  t \;::=\;
+    c
+  \;\mid\; x
+  \;\mid\; t.m
+  \;\mid\; t.m[i]
+  \;\mid\; t.m(\bar{t})
+  \;\mid\; f(t_1, \ldots, t_n)
+\]
+where:
+\begin{itemize}
+  \item $c \in \mathcal{C}$ is a constant (ground object), also called a \emph{Literal} in
+        EQL; e.g., a specific \texttt{Robot} instance.
+  \item $x \in \mathcal{V}$ is a domain-annotated and (optionally) class-annotated variable;
+        e.g., \texttt{r = variable(Robot, domain=robots)}.
+  \item $t.m$ is a field access on term $t$, returning the value of field $m$; e.g.,
+        \texttt{r.battery}.  Access chains such as $t.m.b$ are admitted, since $t.m$ is
+        itself a term; e.g., \texttt{r.tasks[0].completed}.
+  \item $t.m[i]$ is an index access retrieving the element at position $i$ (or with key $i$
+        for a dictionary) of the indexable field $m$ of $t$; e.g., \texttt{r.tasks[0]}.
+  \item $t.m(\bar{t})$ is a method call invoking method $m$ on $t$ with arguments $\bar{t}$;
+        when $t$ or any element of $\bar{t}$ is an unground variable, the call is deferred;
+        e.g., \texttt{r.name.startswith("R")}.
+  \item $f(t_1, \ldots, t_n)$ is an explicit symbolic function application; when any $t_i$ is
+        an unground variable, evaluation is deferred; e.g., \texttt{distance(r.position, base)}.
+\end{itemize}
+
+\subsection{Atomic Formulas}
+\label{sec:eql:atoms}
+
+An \emph{atom} has one of the following forms:
+\[
+  \alpha \;::=\;
+    p(t_1, \ldots, t_n)
+  \;\mid\;
+    t_1 \bowtie t_2
+  \;\mid\;
+    [t]_\mathbb{B}
+\]
+
+\begin{itemize}
+  \item $p(t_1,\ldots,t_n)$ is a \emph{predicate atom}: it denotes the instance of predicate
+        class $p$ constructed with terms $t_1,\ldots,t_n$ as arguments.  Its truth value is
+        determined at evaluation time by Boolean-casting the ground instance
+        (Section~\ref{sec:eql:atoms_eval}); e.g., \texttt{HasIncompleteTask(r)}.
+
+  \item $t_1 \bowtie t_2$ where
+        ${\bowtie}\in\{=,\,\neq,\,<,\,\leq,\,>,\,\geq,\,\in\}$ is a \emph{comparison atom}
+        over two terms; e.g., \texttt{r.battery > 50}.
+
+  \item $[t]_\mathbb{B}$ is a \emph{Boolean term atom}: any term $t$ that evaluates to a
+        Boolean value may appear as an atom by Boolean-casting its value.  This covers symbolic
+        function calls ($f(t_1,\ldots,t_n)$ where $f$ returns \texttt{bool}), method calls
+        ($t.m(\bar{u})$ returning \texttt{bool}), and Boolean field accesses ($t.m$ of Boolean
+        type); e.g., \texttt{r.name.startswith("R")} or \texttt{is\_valid(r)}.
+\end{itemize}
+
+\begin{remark}[Built-in predicates]
+EQL provides built-in predicate implementations for common TBox queries, including
+\texttt{HasType}, which wraps \texttt{isinstance}, and \texttt{IsSubClass}, which wraps
+\texttt{issubclass}.  These are members of $\mathcal{P}$ like any user-defined predicate and
+receive no special syntactic treatment.
+\end{remark}
+
+\subsection{Formulas (Query Bodies)}
+
+A \emph{body formula} $\phi$ is built from atoms by:
+\[
+  \phi \;::=\;
+    \alpha
+  \;\mid\; \phi_1 \wedge \phi_2
+  \;\mid\; \phi_1 \vee \phi_2
+  \;\mid\; \neg\phi
+  \;\mid\; \exists x.\,\phi
+  \;\mid\; \forall x.\,\phi
+\]
+
+\begin{itemize}
+  \item Conjunctions ($\wedge$) are expressed via multiple arguments to \texttt{.where()} or
+        \texttt{and\_()}.
+  \item Disjunctions ($\vee$) are expressed via \texttt{or\_()}.
+  \item Negation ($\neg$) is interpreted as Negation as Failure
+        (Section~\ref{sec:eql:naf}), expressed via \texttt{not\_()}.
+  \item Existential quantification ($\exists$) arises implicitly: a domain-annotated variable
+        $x$ with domain $D$ acts as $\exists x \in D$ in the body.
+  \item Universal quantification ($\forall$) is explicit and restricted to the body; it is
+        evaluated over the finite closed domain $D$.
+  \item The domain of a quantified variable may depend on outer variables, for example the courses of a student $s$, written \texttt{flat\_variable(s.takes\_course)}.  Such a quantifier is evaluated
+        separately for each binding of the outer variables; the outer variables are free in
+        the quantified formula, not quantified by it.
+\end{itemize}
+
+\subsection{Queries}
+
+A \emph{conjunctive query} (CQ) is:
+\[
+  Q(\bar{x}) \;\leftarrow\; \phi(\bar{x},\,\bar{y})
+\]
+where $\bar{x}$ are the head (output) variables, $\bar{y}$ are body-only existentially
+quantified variables, and $\phi$ is a body formula.
+
+A \emph{union of conjunctive queries} (UCQ) is a finite disjunction of CQs sharing the same
+head variables, expressed in EQL via \texttt{or\_()} in a single \texttt{.where()} call:
+\[
+  Q(\bar{x}) \;\leftarrow\;
+    \phi_1(\bar{x}) \vee \cdots \vee \phi_k(\bar{x})
+\]
+The same-head requirement ensures the result is a well-typed relation: all disjuncts
+contribute tuples of the same arity and type.  In EQL this constraint is enforced
+architecturally: \texttt{or\_()} operates inside the body formula $\phi$ of a single
+\texttt{entity()} or \texttt{set\_of()} call, so the head variables are shared by
+construction across all disjuncts.
+
+\subsection{Result Quantifiers}
+\label{sec:eql:quantifiers}
+
+A \emph{result quantifier} wraps a query and enforces a cardinality constraint on its answer
+set, producing a \emph{quantified query} that is itself a query.  The answer set is computed
+normally; the constraint is then checked against the cardinality of that answer set.  If the
+constraint is violated, a \texttt{QuantificationError} is raised rather than returning results.
+
+A \emph{cardinality constraint} $C : \mathbb{N} \to \{\top, \bot\}$ is one of:
+\[
+  C \;::=\;
+    \texttt{AtLeast}(n)
+  \;\mid\; \texttt{AtMost}(n)
+  \;\mid\; \texttt{Exactly}(n)
+  \;\mid\; \texttt{Range}(m, n)
+\]
+with the obvious interpretations over the cardinality $|\mathrm{ans}(Q, \mathcal{K})|$.
+
+A \emph{quantified query} pairs a query $Q$ with a constraint $C$:
+\[
+  \mathcal{Q}(Q,\, C) \;=\;
+  \begin{cases}
+    \mathrm{ans}(Q,\,\mathcal{K}) & \text{if } C\!\bigl(|\mathrm{ans}(Q,\,\mathcal{K})|\bigr) \\
+    \texttt{QuantificationError} & \text{otherwise}
+  \end{cases}
+\]
+
+EQL provides two quantifier constructors.  \texttt{an} is the general form: without a
+constraint argument it applies the trivially satisfied constraint $C(k) = \top$ for all $k$,
+acting as a declarative annotation that zero or more results are expected.  With a constraint
+argument it enforces the given $C$.  \texttt{the} asserts that exactly one result exists and
+is equivalent to \texttt{an} with $\texttt{Exactly}(1)$; it corresponds to Russell's definite
+description $\iota x.\,\phi(x)$~\cite{whitehead1910principia}, which denotes the unique
+individual satisfying $\phi$ and is undefined if no such individual exists or more than one
+does.
+
+\subsection{Rules}
+\label{sec:eql:rules}
+
+A \emph{rule} pairs a query body with an inference variable that constructs new instances from
+the body's answer set:
+\[
+  x_I \;\leftarrow\; \phi(\bar{x},\,\bar{y})
+  \qquad x_I \in \mathcal{V}_I,\quad \bar{x} \in \mathcal{V}_Q
+\]
+Rules are not stored in $\mathcal{K}$.  On user invocation, the engine evaluates $\phi$ over
+the current $\mathcal{D}$, uses the answer set to populate $D_{x_I}$, and returns the
+resulting instances.  The user may add them to $\mathcal{D}$.  There is no fixpoint iteration;
+each invocation is a single query evaluation.
+
+\section{Illustrative Example}
+\label{sec:eql:example}
+% ============================================================
+
+The following example is given to ground the abstract definitions in Sections~\ref{sec:eql:syntax}
+and~\ref{sec:eql:semantics}.  The domain in this example
+consists of two classes:
+
+\begin{lstlisting}
+@dataclass
+class Robot:
+    name: str
+    battery: int
+    tasks: List[Task]
+
+@dataclass
+class Task:
+    name: str
+    completed: bool
+\end{lstlisting}
+
+\noindent
+The fact base $\mathcal{D}$ contains three \texttt{Robot} instances and two \texttt{Task}
+instances.  The class hierarchy $\mathcal{T}$ contains \texttt{Robot} and \texttt{Task} as
+class symbols.
+
+\paragraph{Example query.}
+Retrieve all robots whose battery exceeds 50 and whose first task is not yet completed:
+
+\begin{lstlisting}
+r = variable(Robot, domain=robots)
+results = an(entity(r).where(r.battery > 50, not_(r.tasks[0].completed))).tolist()
+\end{lstlisting}
+
+\noindent
+In abstract syntax, this is the CQ $Q(r) \leftarrow \phi(r)$ where:
+\[
+  \phi(r) \;=\; (r.\mathtt{battery} > 50)
+            \;\wedge\; \neg\,(r.\mathtt{tasks}[0].\mathtt{completed})
+\]
+Here $r \in \mathcal{V}_Q$, $r.\mathtt{battery}$ is a field access term
+(Section~\ref{sec:eql:syntax}), $r.\mathtt{tasks}[0].\mathtt{completed}$ is an index access
+chained with a field access, $r.\mathtt{battery} > 50$ is a comparison atom, and $\neg$ is
+NAF negation (Section~\ref{sec:eql:naf}).
+
+\paragraph{Example rule.}
+Derive \texttt{HighLoadRobot} instances for robots whose battery is below 30 and that have at
+least one incomplete task:
+
+\begin{lstlisting}
+@dataclass
+class HighLoadRobot:
+    robot: Robot
+
+@dataclass(eq=False)
+class HasIncompleteTask(Predicate):
+    robot: Robot
+    def __call__(self) -> bool:
+        return any(not t.completed for t in self.robot.tasks)
+
+r = variable(Robot, domain=robots)
+high_load = inference(HighLoadRobot)(robot=r)
+rule = an(entity(high_load).where(r.battery < 30, HasIncompleteTask(r)))
+\end{lstlisting}
+
+\noindent
+In abstract syntax this is the rule $x_I \leftarrow \phi(r)$ where:
+\[
+  \phi(r) \;=\; (r.\mathtt{battery} < 30) \;\wedge\; \mathtt{HasIncompleteTask}(r)
+\]
+Here $r \in \mathcal{V}_Q$ is a query variable, $x_I \in \mathcal{V}_I$ is an inference
+variable of class \texttt{HighLoadRobot} with argument mapping $\mathtt{robot} \mapsto r$
+(Section~\ref{sec:eql:vars}), and $\mathtt{HasIncompleteTask}(r)$ is a predicate atom in
+the body (Section~\ref{sec:eql:atoms}).  For each binding of $r$ satisfying $\phi$, a new
+\texttt{HighLoadRobot} instance is constructed and forms the rule's answer set $D_{x_I}$.
+
+% ============================================================
+
+% ============================================================
+\section{Semantics}
+\label{sec:eql:semantics}
+% ============================================================
+
+\subsection{Domain Closure and Unique Names}
+
+\begin{definition}[Domain Closure Assumption]
+\label{def:dca}
+Let $\tau : \mathcal{C} \to \mathcal{S}$ be a \emph{typing function} that assigns each
+constant its most specific class.  The \emph{domain} of class $S \in \mathcal{S}$ is:
+\[
+  \mathrm{dom}(S) \;=\; \{\,c \in \mathcal{C} \mid \tau(c) \sqsubseteq S\,\}
+\]
+where $\sqsubseteq$ is the subsumption ordering of $\mathcal{T}$.  No individuals exist beyond
+those in $\mathcal{D}$.
+\end{definition}
+
+\noindent
+In EQL, $\tau$ is realised by Python's class system and domain membership $\tau(c) \sqsubseteq S$
+can be checked at runtime using \texttt{isinstance}(\texttt{c},~\texttt{S}).
+
+Every query variable $x \in \mathcal{V}_Q$ carries an explicit finite domain, enforcing the
+DCA at query construction time.  Inference variables $x_I \in \mathcal{V}_I$ are domain-free
+at construction; their domain is populated from the rule body's answer set at invocation time.
+Distinct Python object identities denote distinct individuals (\emph{Unique Name Assumption}).
+Together these fix a canonical finite interpretation of
+$\mathcal{D}$~\cite{abiteboul1995foundations} over which evaluation proceeds.
+
+\subsection{Evaluation Semantics}
+\label{sec:eql:eval}
+
+EQL realises \emph{conjunctive query evaluation by left-deep nested-loop
+join}~\cite{chandra1977optimal,abiteboul1995foundations,vardi1982complexity}.  Because all
+domains are finite, evaluation makes finitely many callable invocations
+(Section~\ref{sec:eql:complexity}), so it terminates whenever every invoked callable
+terminates (Section~\ref{sec:eql:vocab}).
+
+Given $Q(\bar{x}) \leftarrow \phi(\bar{x}, \bar{y})$ and $\mathcal{K} = (\mathcal{T},
+\mathcal{D})$, evaluation proceeds left to right through the expression tree of $\phi$:
+
+\begin{enumerate}
+  \item \textbf{Lazy variable binding.}  Variables are not enumerated upfront.  Each variable
+        $x_i \in \mathcal{V}_Q$ is bound when its domain $D_i$ is first encountered in the
+        left-to-right traversal of $\phi$.  The engine iterates over $D_i$ in a nested loop,
+        passing each candidate binding forward to the next subexpression.
+
+  \item \textbf{Short-circuit filtering.}  Under $\wedge$: if a subexpression fails for the
+        current binding $\theta$, the remaining conjuncts are not evaluated for that $\theta$,
+        and the next candidate is tried.  Under $\vee$: if the left disjunct succeeds, the
+        right is skipped.  No enumeration is performed beyond what the expression requires.
+
+  \item \textbf{Head projection.}  After $\phi$ is satisfied, any head variable $x_i \in
+        \bar{x}$ not constrained by $\phi$ is joined with the current bindings via a Cartesian
+        product over $D_i$ to produce complete result tuples.
+
+  \item \textbf{Result collection.}  All bindings $\theta$ for which $\phi$ evaluates to true
+        are collected; projecting onto $\bar{x}$ yields the answer set.
+\end{enumerate}
+
+\subsection{Answer Set}
+
+\begin{definition}[Answer Set]
+\label{def:ans}
+The \emph{answer set} of query $Q(\bar{x}) \leftarrow \phi(\bar{x}, \bar{y})$ with respect to
+$\mathcal{K}$ is:
+\[
+  \mathrm{ans}(Q,\,\mathcal{K})
+  \;=\;
+  \bigl\{\,\bar{a} \in D_{\bar{x}}
+    \;\bigm|\;
+    \mathcal{D} \models_{\mathrm{NAF}} \exists\bar{y}.\,\phi(\bar{a},\,\bar{y})
+  \,\bigr\}
+\]
+where $D_{\bar{x}} = D_{x_1} \times \cdots \times D_{x_k}$ is the product of the
+user-supplied domains of the variables in $\bar{x}$, and $\models_{\mathrm{NAF}}$ denotes
+derivability under the Closed World Assumption with Negation as Failure
+(Section~\ref{sec:eql:naf}).
+\end{definition}
+
+\subsection{Aggregation Semantics}
+\label{sec:eql:aggregation}
+
+An \emph{aggregated query} is a semantic transformation applied to the answer set of a CQ,
+corresponding to the $\gamma$ operator of relational
+algebra~\cite{klug1982equivalence,abiteboul1995foundations} and to SQL's \texttt{GROUP BY}
+pattern.
+
+Let $\mathcal{A}_f = \{\mathrm{count},\, \mathrm{sum},\, \mathrm{avg},\, \mathrm{max},\,
+\mathrm{min},\, \mathrm{mode},\, \mathrm{multimode}\}$ be the set of aggregate functions,
+each mapping a multiset of values to a scalar or set of scalars.  Given a CQ
+$Q(\bar{x}) \leftarrow \phi(\bar{x}, \bar{y})$, a grouping key $\bar{g} \subseteq \bar{x}$,
+and aggregate expressions $f_1(e_1), \ldots, f_k(e_k)$ where each $e_i$ is a term over
+$\bar{x}$, the aggregated query evaluates as:
+\[
+  \gamma_{\bar{g};\; e_1 \to f_1,\,\ldots,\,e_k \to f_k}
+  \!\bigl(\mathrm{ans}(Q,\mathcal{K})\bigr)
+\]
+This partitions $\mathrm{ans}(Q, \mathcal{K})$ by $\bar{g}$ and computes each $f_i$ over the
+multiset of $e_i$ values within each group.  In EQL this is expressed via
+\texttt{set\_of(...).grouped\_by($\bar{g}$)}.  Post-aggregation filtering via
+\texttt{.having()} applies a condition after aggregation, equivalent to SQL's \texttt{HAVING};
+this is distinct from \texttt{.where()}, which filters tuples before grouping as part of
+$\phi$.  When no grouping key is specified, $f$ is computed over the entire answer set.
+
+\subsection{Negation as Failure}
+\label{sec:eql:naf}
+
+EQL supports \emph{Negation as Failure} (NAF)~\cite{clark1978negation}.  The semantics of
+$\models_{\mathrm{NAF}}$ used in Definition~\ref{def:ans} is given by Reiter's \emph{Closed
+World Assumption} (CWA)~\cite{reiter1978closed}: let $\mathrm{CWA}(\mathcal{D})$ be the theory
+obtained from the fact base $\mathcal{D}$ by adding $\neg\alpha$ for each ground atom
+$\alpha$ that is not entailed by $\mathcal{D}$.  Then:
+\[
+  \mathcal{D} \models_{\mathrm{NAF}} \phi
+  \;\iff\;
+  \mathrm{CWA}(\mathcal{D}) \models \phi
+\]
+Because $\mathcal{D}$ contains only ground facts and no rules, $\mathrm{CWA}(\mathcal{D})$
+has a single minimal model, and the CWA coincides with Clark's completion of $\mathcal{D}$.
+Operationally, $\neg\phi$ succeeds in a query body if and only if $\phi$ fails finitely during
+evaluation.  NAF is expressed in EQL via \texttt{not\_()}.
+
+NAF is \textbf{non-monotonic}: adding new facts to $\mathcal{D}$ may invalidate previously
+derived negative conclusions.  EQL does not provide monotonic or paraconsistent negation.
+
+\subsection{Semantics of Terms}
+\label{sec:eql:terms_eval}
+Under a ground substitution $\theta$, terms evaluate as follows.
+
+\paragraph{Field access.}
+\[
+  \llbracket t.m \rrbracket_\theta
+  \;=\;
+  \text{the value of field } m \text{ on object } \llbracket t \rrbracket_\theta
+\]
+Access chains evaluate left-associatively:
+$\llbracket t.m.b \rrbracket_\theta = \llbracket (t.m).b \rrbracket_\theta$.
+
+\paragraph{Index access.}
+\[
+  \llbracket t.m[i] \rrbracket_\theta
+  \;=\;
+  \llbracket t.m \rrbracket_\theta [\,\llbracket i \rrbracket_\theta\,]
+\]
+i.e., element $i$ of the indexable value of field $m$ on
+$\llbracket t \rrbracket_\theta$.
+
+\paragraph{Method call.}
+\[
+  \llbracket t.m(\bar{u}) \rrbracket_\theta
+  \;=\;
+  \llbracket t.m \rrbracket_\theta\!
+  \bigl(\llbracket \bar{u} \rrbracket_\theta\bigr)
+\]
+i.e., method $m$ of $\llbracket t \rrbracket_\theta$ called with ground arguments
+$\llbracket \bar{u} \rrbracket_\theta$.  If $t$ or any element of $\bar{u}$ is unground,
+the call is deferred as a symbolic function application, returning a new EQL variable.
+
+\paragraph{Symbolic function.}
+\[
+  \llbracket f(t_1, \ldots, t_n) \rrbracket_\theta
+  \;=\;
+  f_{\mathrm{impl}}\!\bigl(
+    \llbracket t_1 \rrbracket_\theta,\,\ldots,\,
+    \llbracket t_n \rrbracket_\theta
+  \bigr)
+\]
+where $f_{\mathrm{impl}}$ is the underlying callable.  If any $t_i$ is unground, evaluation is
+deferred.  Determinism and purity ensure the result is unique and $\mathcal{D}$ is unmodified.
+
+% ------------------------------------------------------------
+\subsection{Semantics of Atoms}
+\label{sec:eql:atoms_eval}
+% ------------------------------------------------------------
+
+Atom evaluation determines whether a ground atom holds under substitution $\theta$.  Term
+evaluation (Section~\ref{sec:eql:terms_eval}) is applied first to obtain ground values; truth determination is a separate
+subsequent step.
+
+\paragraph{Predicate atom.}
+Applying $\theta$ to $p(t_1, \ldots, t_n)$ yields the ground predicate instance:
+\[
+  \llbracket p(t_1, \ldots, t_n) \rrbracket_\theta
+  \;=\;
+  p\!\bigl(
+    \llbracket t_1 \rrbracket_\theta,\,\ldots,\,
+    \llbracket t_n \rrbracket_\theta
+  \bigr)
+\]
+The atom \emph{holds} if and only if the Boolean cast of this instance returns \texttt{True}:
+\[
+  \alpha \text{ holds under } \theta
+  \;\iff\;
+  \texttt{bool}\!\bigl(\llbracket p(t_1, \ldots, t_n) \rrbracket_\theta\bigr)
+  = \texttt{True}
+\]
+The Boolean cast invokes the characteristic function \texttt{\_\_call\_\_} of the instance.
+
+\paragraph{Comparison atom.}
+The atom $t_1 \bowtie t_2$ holds under $\theta$ if and only if:
+\[
+  \llbracket t_1 \rrbracket_\theta \;\bowtie\; \llbracket t_2 \rrbracket_\theta
+\]
+
+\paragraph{Boolean term atom.}
+The atom $[t]_\mathbb{B}$ holds under $\theta$ if and only if:
+\[
+  \texttt{bool}\!\bigl(\llbracket t \rrbracket_\theta\bigr) = \texttt{True}
+\]
+This applies to any term evaluating to a Boolean value: symbolic function calls, method calls,
+and Boolean field accesses are all admitted as atoms via this form.
+
+% ============================================================
+\section{Computational Complexity}
+\label{sec:eql:complexity}
+% ============================================================
+
+\emph{Data complexity} fixes the query and measures cost as $|\mathcal{D}|$ grows---the
+relevant measure for a deployed system.  \emph{Combined complexity} lets both the query and
+$\mathcal{D}$ vary~\cite{vardi1982complexity}.  Table~\ref{tab:complexity} summarises the
+results; each row adds one feature to the row above, so the bounds can only grow from one row
+to the next.
+
+\begin{table}[!ht]
+\centering
+\caption{Complexity of EQL query evaluation by feature class.}
+\label{tab:complexity}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{} p{6.2cm} p{3.0cm} p{4.6cm} @{}}
+\toprule
+\textbf{Feature class} & \textbf{Data complexity} & \textbf{Combined complexity} \\
+\midrule
+CQ and UCQ & $\mathrm{AC}^0$ & NP-complete \\
+$+$ NAF and $\forall$ (first-order logic, active domain) & $\mathrm{AC}^0$ & PSPACE-complete \\
+$+$ aggregation & $\mathrm{TC}^0$ & PSPACE-complete$^{a}$ \\
+$+$ predicates and symbolic functions (as oracles) & $\mathrm{FP}^{\mathcal{O}}$ & PSPACE-complete$^{b}$ \\
+\bottomrule
+\noalign{\vspace{4pt}}
+\multicolumn{3}{@{}l@{}}{%
+  \parbox{\dimexpr\linewidth-2\tabcolsep}{%
+    \footnotesize $^a$\,For \texttt{count}, \texttt{sum}, \texttt{min}, \texttt{max} and
+    \texttt{avg} over numbers of polynomial size.\\[2pt]
+    $^b$\,If every callable runs in polynomial time and returns a result of polynomial size.}}
+\end{tabular}
+\end{table}
+
+\noindent The entries follow from established results:
+
+\begin{itemize}
+  \item \textbf{CQ and UCQ.}  CQ evaluation is NP-complete in combined
+        complexity~\cite{chandra1977optimal}; UCQ shares the same bounds, and both are in
+        $\mathrm{AC}^0$ in data complexity~\cite{abiteboul1995foundations}.
+
+  \item \textbf{$+$ NAF and $\forall$.}  With negation and universal quantification over
+        finite domains, query bodies are first-order formulas evaluated under the
+        active-domain semantics.  Their combined complexity is
+        PSPACE-complete~\cite{vardi1982complexity}: nested alternations of $\forall$ and
+        $\exists$ encode quantified Boolean formulas, so unfolding $\forall x\in D$ into a
+        finite conjunction does not lower the bound.  Their data complexity is in
+        $\mathrm{AC}^0$~\cite{immerman1987languages,barrington1990uniformity}.
+
+  \item \textbf{$+$ aggregation.}  Counting aggregates can express majority, which is not in
+        $\mathrm{AC}^0$; first-order logic with aggregates has data complexity in
+        $\mathrm{TC}^0$~\cite{hella2001aggregate}.
+
+  \item \textbf{$+$ predicates and symbolic functions.}  We treat callables as oracles.  A
+        query $\phi$ with $k$ variables, including quantified ones, whose domains have size at
+        most $d$, invokes callables at most $|\phi|\cdot d^{k}$ times.  For a fixed query this
+        is polynomial in $|\mathcal{D}|$, so evaluation is in $\mathrm{FP}^{\mathcal{O}}$, and
+        it runs in polynomial time whenever every callable does and returns a result of
+        polynomial size.  Termination of arbitrary callables cannot be guaranteed
+        (Section~\ref{sec:eql:vocab}).
+\end{itemize}
+
+\noindent In practice, most EQL queries involve at least one predicate or symbolic function,
+so the last row is the operative bound.
+
+\clearpage
+
+% ============================================================
+\begin{thebibliography}{99}
+% ============================================================
+
+\bibitem{baader2003description}
+F.~Baader, D.~Calvanese, D.~McGuinness, D.~Nardi, and P.~Patel-Schneider, editors.
+\newblock \emph{The Description Logic Handbook: Theory, Implementation, and
+  Applications}.
+\newblock Cambridge University Press, 2003.
+
+\bibitem{abiteboul1995foundations}
+S.~Abiteboul, R.~Hull, and V.~Vianu.
+\newblock \emph{Foundations of Databases}.
+\newblock Addison-Wesley, 1995.
+
+\bibitem{apt1988declarative}
+K.~R.~Apt, H.~A.~Blair, and A.~Walker.
+\newblock Towards a theory of declarative knowledge.
+\newblock In J.~Minker, editor, \emph{Foundations of Deductive Databases and
+  Logic Programming}, pages 89--148. Morgan Kaufmann, 1988.
+
+\bibitem{chandra1977optimal}
+A.~K.~Chandra and P.~M.~Merlin.
+\newblock Optimal implementation of conjunctive queries in relational databases.
+\newblock In \emph{Proc.\ 9th Annual ACM Symposium on Theory of Computing
+  (STOC)}, pages 77--90. ACM, 1977.
+
+\bibitem{clark1978negation}
+K.~L.~Clark.
+\newblock Negation as failure.
+\newblock In H.~Gallaire and J.~Minker, editors, \emph{Logic and Data Bases},
+  pages 293--322. Plenum Press, 1978.
+
+\bibitem{kowalski1971linear}
+R.~Kowalski and D.~Kuehner.
+\newblock Linear resolution with selection function.
+\newblock \emph{Artificial Intelligence}, 2(3--4):227--260, 1971.
+
+\bibitem{klug1982equivalence}
+A.~C.~Klug.
+\newblock Equivalence of relational algebra and relational calculus query
+  languages having aggregate functions.
+\newblock \emph{Journal of the ACM}, 29(3):699--717, 1982.
+
+\bibitem{lloyd1987foundations}
+J.~W.~Lloyd.
+\newblock \emph{Foundations of Logic Programming}.
+\newblock Springer-Verlag, 2nd edition, 1987.
+
+\bibitem{reiter1978closed}
+R.~Reiter.
+\newblock On closed world data bases.
+\newblock In H.~Gallaire and J.~Minker, editors, \emph{Logic and Data Bases},
+  pages 55--76. Plenum Press, 1978.
+
+\bibitem{immerman1987languages}
+N.~Immerman.
+\newblock Languages that capture complexity classes.
+\newblock \emph{SIAM Journal on Computing}, 16(4):760--778, 1987.
+
+\bibitem{barrington1990uniformity}
+D.~A.~Mix Barrington, N.~Immerman, and H.~Straubing.
+\newblock On uniformity within {NC}$^1$.
+\newblock \emph{Journal of Computer and System Sciences}, 41(3):274--306, 1990.
+
+\bibitem{hella2001aggregate}
+L.~Hella, L.~Libkin, J.~Nurmonen, and L.~Wong.
+\newblock Logics with aggregate operators.
+\newblock \emph{Journal of the ACM}, 48(4):880--907, 2001.
+
+\bibitem{rice1953classes}
+H.~G.~Rice.
+\newblock Classes of recursively enumerable sets and their decision problems.
+\newblock \emph{Transactions of the American Mathematical Society},
+  74(2):358--366, 1953.
+
+\bibitem{whitehead1910principia}
+A.~N.~Whitehead and B.~Russell.
+\newblock \emph{Principia Mathematica}, volume~1.
+\newblock Cambridge University Press, 1910.
+
+\bibitem{vardi1982complexity}
+M.~Y.~Vardi.
+\newblock The complexity of relational query languages.
+\newblock In \emph{Proc.\ 14th Annual ACM Symposium on Theory of Computing
+  (STOC)}, pages 137--146. ACM, 1982.
+
+\end{thebibliography}
+
+\end{document}
