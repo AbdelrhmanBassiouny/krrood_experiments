@@ -115,6 +115,19 @@ def scan(bundle: Path) -> list:
     return hits
 
 
+def copy_results(source: Path, destination: Path) -> None:
+    """
+    Copy the measured results. Of the answer sets, only GraphDB's (the reference of the answer-set check) are kept:
+    the other systems' sets are equal to them (check/answer_check.json), and all of them would exceed 25 MB.
+    """
+    def ignore(directory: str, names) -> set:
+        directory = Path(directory)
+        if directory.name == "answers":
+            return {name for name in names if not (directory.parent.name == "check" and name == "graphdb")}
+        return {name for name in names if name in ("__pycache__",) or name.startswith(".done-")}
+    shutil.copytree(source, destination, ignore=ignore)
+
+
 def fingerprint(bundle: Path) -> str:
     digest = hashlib.sha256()
     for path in sorted(p for p in (bundle / "code").rglob("*") if p.is_file()):
@@ -147,7 +160,7 @@ def main() -> None:
         shutil.copy(HERE / name, bundle / name)
     shutil.copytree(HERE / "environment", bundle / "environment")
     if arguments.results:
-        shutil.copytree(arguments.results, bundle / "results")
+        copy_results(Path(arguments.results), bundle / "results")
     sanitize(bundle)
     (bundle / "environment" / "BUNDLE").write_text(fingerprint(bundle) + "\n")
     hits = scan(bundle)

@@ -112,18 +112,15 @@ On the PC itself (not in Docker), with nothing else running:
    bash ~/Downloads/pc_run.sh tables
    ```
 
-## 6. Hand back
+## 6. Hand back (one file)
 
-Copy to the laptop, into `~/Projects/krrood_aamas/planning/`:
+Everything the paper needs is in one file: `~/krrood-aamas27-supplement/state/aamas27_results.tgz` (the
+measurements, the checks, the LaTeX tables, Protégé's numbers and the PC's details).
 
-- `~/krrood-aamas27-supplement/state/aamas27_results.tgz`
-- `~/aamas27_run.log` and `~/protege_*_time.txt`
-- the BUNDLE id you wrote down
-
-(The archive already contains `host/host.json` and `host/monitor.csv`.)
-
-Then tell the paper session. It checks the results, puts the tables into the paper, adds the results to the
-supplementary zip and writes the "[TBD]" paragraphs.
+Easiest: upload it to your Google Drive in the browser on the PC, and tell the paper session its name. The session
+fetches it, checks it, and puts the tables into the paper (`planning/import_results.sh`). Or copy it by USB stick
+into `~/Projects/krrood_aamas/planning/` on the laptop. The session then writes the "[TBD]" paragraphs, builds the
+final supplementary zip with the results, and rebuilds the PDF.
 
 ## Appendix: the same steps by hand
 
