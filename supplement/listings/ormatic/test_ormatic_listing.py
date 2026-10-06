@@ -31,12 +31,12 @@ def test_paper_ormatic_listing():
 
     # --- paper listing ---
     s = variable(Student, domain=students)
-    older = an(entity(s).where(s.role_taker.has_age > 25))
-    in_memory = list(older.evaluate())               # working memory
-    stored = eql_to_sql(older, session).evaluate()   # long-term memory
+    over_25 = an(entity(s).where(s.has_age > 25))  # has_age: delegated to the role taker
+    in_memory = list(over_25.evaluate())             # working memory
+    stored = eql_to_sql(over_25, session).evaluate() # long-term memory
     # --- end of paper listing ---
 
-    sql = str(eql_to_sql(older, session).sql_query.compile(compile_kwargs={"literal_binds": True}))
+    sql = str(eql_to_sql(over_25, session).sql_query.compile(compile_kwargs={"literal_binds": True}))
     print("\nGenerated SQL:\n" + sql)
     assert sorted(x.role_taker.uri for x in in_memory) == ["Ann", "Cid"]
     assert sorted(d.role_taker.uri for d in stored) == ["Ann", "Cid"]

@@ -10,7 +10,10 @@ modified the code of KRROOD and of the experiments, ran tests and experiments on
 and revised the text of the paper. The authors reviewed every change, decided what to keep, and ran the measured
 experiments.
 
-TODO-AUTHORS: state whether AI tools were used for the earlier version of the experiments (January 2026), and how.
+In January 2026, for the earlier version of KRROOD and of the experiments, the authors used JetBrains Junie (an AI
+coding agent in PyCharm) to clean up code, to brainstorm algorithmic ideas, and to write the SQLAlchemy queries of
+the experiments (Section 6). The implementation was done jointly by the authors and the AI tool, and the authors
+reviewed and verified all of it. The prompts of that period were not retained, so they are not reproduced here.
 
 ## What the AI tool did
 

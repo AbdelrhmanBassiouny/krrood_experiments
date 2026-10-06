@@ -201,48 +201,91 @@ def test_paper_axiom_rule_listing_without_domain():
     assert [f.role_taker.name for f in fans.evaluate()] == ["Alice"]
 
 
-# ---------------------------------------------------------------- agent loop listing (perceive -> decide)
-from krrood.entity_query_language.predicate import symbolic_function
+# ---------------------------------------------------------------- agent step listing (lst:agent): perceive -> decide
+import heapq
+
+from krrood.entity_query_language.predicate import Predicate
+from krrood.entity_query_language.verbalization.vocabulary.parts_of_speech import clause, Noun, Verb
 
 
 @dataclass(eq=False)
-class TimedCourse(Symbol):
+class Room(Symbol):
     name: str
-    slot: str
 
 
-@symbolic_function
-def clashes(course, courses):
-    return any(course.slot == other.slot for other in courses)
+@dataclass(eq=False)
+class RoomCourse(Symbol):
+    name: str
+    room: Room
 
 
-def test_agent_loop_listing():
-    algebra, robotics, ethics, logic2 = (TimedCourse("Algebra", "Mon9"), TimedCourse("Robotics", "Tue9"),
-                                         TimedCourse("Ethics", "Mon9"), TimedCourse("Logic", "Wed9"))
-    offered = [algebra, robotics, ethics, logic2]
-    alice_courses = set()
-    # perceive: the agent observes an enrolment
-    alice_courses.add(algebra)
-    # decide: suggest courses that fit the timetable
-    c = variable(TimedCourse, domain=offered)
-    suggestions = an(entity(c).where(
-        not_(contains(alice_courses, c)),
-        not_(clashes(c, alice_courses))))
-    assert sorted(x.name for x in suggestions.evaluate()) == ["Logic", "Robotics"]
+LAB, HALL, LIBRARY, ANNEX = Room("Lab"), Room("Hall"), Room("Library"), Room("Annex")
+# The campus map: walking minutes between neighboring rooms.
+CAMPUS = {LAB: {HALL: 4}, HALL: {LAB: 4, LIBRARY: 5, ANNEX: 9}, LIBRARY: {HALL: 5, ANNEX: 6},
+          ANNEX: {HALL: 9, LIBRARY: 6}}
+BREAK = 10
 
 
-def test_agent_loop_listing_exact_paper_form():
-    algebra, robotics, ethics, logic2 = (TimedCourse("Algebra", "Mon9"), TimedCourse("Robotics", "Tue9"),
-                                         TimedCourse("Ethics", "Mon9"), TimedCourse("Logic", "Wed9"))
-    offered = [algebra, robotics, ethics, logic2]
+def walking_minutes(start, goal, campus=CAMPUS):
+    """The length of a shortest path from start to goal on the campus map (Dijkstra's algorithm)."""
+    distances, queue, visited = {start: 0}, [(0, id(start), start)], set()
+    while queue:
+        distance, _, room = heapq.heappop(queue)
+        if room is goal:
+            return distance
+        if room in visited:
+            continue
+        visited.add(room)
+        for neighbor, minutes in campus[room].items():
+            if distance + minutes < distances.get(neighbor, float("inf")):
+                distances[neighbor] = distance + minutes
+                heapq.heappush(queue, (distance + minutes, id(neighbor), neighbor))
+    return float("inf")
+
+
+@dataclass
+class CanReachInTime(Predicate):
+    start: Room
+    goal: Room
+
+    def __call__(self) -> bool:  # shortest path on the campus map
+        return walking_minutes(self.start, self.goal) <= BREAK
+
+    @classmethod
+    def _verbalization_fragment_(cls, fields):
+        return clause(Noun(fields["start"]), Verb("reach"), Noun(fields["goal"]))
+
+
+def _offered_courses():
+    algebra, robotics, ethics, logic2 = (RoomCourse("Algebra", LAB), RoomCourse("Robotics", LIBRARY),
+                                         RoomCourse("Ethics", ANNEX), RoomCourse("Logic", HALL))
+    return algebra, [algebra, robotics, ethics, logic2]
+
+
+def test_walking_minutes_takes_the_shortest_path():
+    assert walking_minutes(LAB, LIBRARY) == 9   # through the hall
+    assert walking_minutes(LAB, ANNEX) == 13    # through the hall, not the library (15)
+
+
+def test_agent_step_listing_exact_paper_form():
+    algebra, offered = _offered_courses()
     alice = Student(role_taker=Person("Alice"))
     # --- paper listing ---
-    alice.takes_course.add(algebra)  # perceive
-    c = variable(TimedCourse, domain=offered)  # decide
+    alice.takes_course.add(algebra)       # perceive
+    c = variable(RoomCourse, domain=offered)  # decide
     suggestions = an(entity(c).where(
         not_(contains(alice.takes_course, c)),
-        not_(clashes(c, alice.takes_course))))
+        CanReachInTime(algebra.room, c.room)))
+    # --- end of paper listing ---
+    # Robotics is two corridors away (9 min), Logic next door; the annex (13 min) is too far.
     assert sorted(x.name for x in suggestions.evaluate()) == ["Logic", "Robotics"]
+
+
+def test_agent_step_listing_predicate_is_called_per_candidate():
+    algebra, offered = _offered_courses()
+    c = variable(RoomCourse, domain=offered)
+    reachable = an(entity(c).where(CanReachInTime(algebra.room, c.room)))
+    assert sorted(x.name for x in reachable.evaluate()) == ["Algebra", "Logic", "Robotics"]
 
 
 # ---------------------------------------------------------------- KR listing (lst:kr): descriptors and sub-properties

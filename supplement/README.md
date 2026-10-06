@@ -131,13 +131,17 @@ tail -f state/reproduce.log                    # Ctrl+C stops watching, not the 
 
 * query time, 18 queries x 10 repetitions, for EQL, SQL (SQLAlchemy over the ORMatic schema in PostgreSQL),
   GraphDB, RDFLib and Owlready2 (`queries/queries.json`, Table 4);
-* loading and reasoning time and peak memory, from the raw and from the pre-reasoned data, for KRROOD,
-  KRROOD + ORMatic, Owlready2 + Pellet, RDFLib + owlrl (3 h limit) and GraphDB (`loading/loading.json`, Table 3).
-  Peak memory is the peak resident set size of the process tree, sampled every 50 ms; for GraphDB, of its server;
-* the ablation that replaces step 5 of Algorithm 1 by eager chaining (2 h limit).
+* loading and reasoning time and peak memory, from the raw and from the pre-reasoned data, for KRROOD (5 runs),
+  KRROOD + ORMatic (5 runs), Owlready2 + Pellet (5 runs), RDFLib + owlrl (1 run, 3 h limit) and GraphDB (1 run)
+  (`loading/loading.json`, Table 3). Peak memory is the peak resident set size of the process tree, sampled every
+  50 ms; for GraphDB, of its server; for KRROOD + ORMatic, without the PostgreSQL server, which runs in its own
+  container;
+* the ablation that replaces step 5 of Algorithm 1 by forward chaining on every assignment (raw data, 1 run, 2 h
+  limit).
 
 The LaTeX tables are written to `state/results/aamas27/run/tables/`, and everything is packed into
-`state/aamas27_results.tgz`. Afterwards run `docker compose down`. Timings depend on the machine; ours are from an
+`state/aamas27_results.tgz`. The paper names two rows of the loading table differently: "KRROOD + ORMatic" is
+"KRROOD (with ORMatic)", and "Eager chaining" is "KRROOD without step 5". Afterwards run `docker compose down`. Timings depend on the machine; ours are from an
 Intel Core i7-11700K with 32 GB RAM under Ubuntu 24.04.
 
 The run succeeded if `state/reproduce.log` ends with `finished mode all` and contains, as for level 2, the
@@ -157,8 +161,9 @@ Protégé 5.6 with Pellet has a graphical interface, so it runs outside Docker. 
    reasoner. The log gives the loading and reasoning time; `Maximum resident set size` in `protege_time.txt` gives
    the peak memory.
 3. On the reasoned file, after Start reasoner, run the 18 SPARQL queries of
-   `code/earlier/experiments/src/krrood_experiments/owl2bench/sparql_queries.py` in Snap SPARQL (60 s limit each).
-4. Fill in `code/earlier/experiments/scripts/aamas27/protege_template.json`, save it as
+   `code/earlier/experiments/src/krrood_experiments/owl2bench/sparql_queries.py` in Snap SPARQL, once each (60 s limit each).
+4. Fill in `code/earlier/experiments/scripts/aamas27/protege_template.json`, with one entry per query and `std_ms`
+   set to 0 (one run; `null` stops the tables), save it as
    `state/results/aamas27/run/protege.json`, and run `bash run_ubuntu.sh tables` (or
    `docker compose run --rm experiments tables`) to add the rows to the tables and to the results archive.
 

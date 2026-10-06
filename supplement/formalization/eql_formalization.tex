@@ -590,12 +590,12 @@ construction; their domain is populated from the rule body's answer set at invoc
 
 \paragraph{Objects and individuals.}  Objects and individuals do not correspond one to one in
 KRROOD, because of the Role pattern: a role object refers to the object playing it, its
-\emph{role taker}.  We write $\iota(o)$ for the individual that object $o$ denotes: a role object
+\emph{role taker}.  We write $\mathit{ind}(o)$ for the individual that object $o$ denotes: a role object
 denotes the individual of its role taker, an object created for an ontology individual denotes the
 individual named by its IRI, and every other object denotes an individual of its own; on data
-values, $\iota$ is the identity.  The \emph{unique name assumption} reads: two objects denote the
-same individual only if they carry the same IRI or one is a role, possibly of a role, of the
-other.  Together with domain closure, this fixes a single finite interpretation
+values, $\mathit{ind}$ is the identity.  The \emph{unique name assumption} reads: two objects denote the
+same individual only if they carry the same IRI or one is a role of the other, directly or through
+further roles (a role can itself have a role).  Together with domain closure, this fixes a single finite interpretation
 $\mathcal{I}_{\mathcal{A}}$ of $\mathcal{K}$~\cite{abiteboul1995foundations}: a class denotes the
 individuals of its instances, an attribute relates the individual of every object to the
 individuals of its values, a predicate denotes the tuples for which its code returns true, and a
