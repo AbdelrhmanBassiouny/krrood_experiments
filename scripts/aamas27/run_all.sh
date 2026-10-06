@@ -82,6 +82,15 @@ check_prerequisites() {
     docker info >/dev/null 2>&1 || fail "docker is not usable by $(whoami) (add the user to the docker group)"
     command -v java >/dev/null || fail "java not found (owlready2 starts Pellet with the java on the PATH)"
     command -v curl >/dev/null || fail "curl not found"
+    if [[ ! -x "$VENV/bin/python" ]]; then
+        "$PYTHON" -c "import ensurepip" 2>/dev/null \
+            || fail "$PYTHON cannot create virtual environments (sudo apt install python3.12-venv)"
+        "$PYTHON" -c "import os, sysconfig; assert os.path.exists(sysconfig.get_paths()['include'] + '/Python.h')" \
+            2>/dev/null || fail "Python headers not found (sudo apt install python3.12-dev), needed to build pygraphviz"
+        command -v gcc >/dev/null || fail "gcc not found (sudo apt install build-essential), needed to build pygraphviz"
+        pkg-config --exists libcgraph 2>/dev/null || fail "Graphviz development files not found \
+(sudo apt install graphviz libgraphviz-dev pkg-config), needed to build pygraphviz"
+    fi
     if ! graphdb_is_up; then
         [[ -d "$GRAPHDB_APP" && -x "$GRAPHDB_JAVA" ]] || fail "GraphDB is not running on port $GRAPHDB_PORT and \
 $GRAPHDB_APP was not found (set GRAPHDB_APP and GRAPHDB_JAVA, or start GraphDB yourself)"
@@ -97,16 +106,18 @@ GraphDB does not answer queries without one"
 GraphDB stops answering below 10%. Free some space first"
 }
 
+# Clones the branch, or updates an existing clone from the given URL, whatever its remote "origin" points to.
 update_repository() {
     local directory="$1" url="$2"
     if [[ ! -d "$directory/.git" && ! -f "$directory/.git" ]]; then
         git clone --branch "$BRANCH" "$url" "$directory"
     else
-        git -C "$directory" diff --quiet || fail "$directory has uncommitted changes"
-        git -C "$directory" fetch origin "$BRANCH"
+        git -C "$directory" diff --quiet HEAD || fail "$directory has uncommitted changes"
+        git -C "$directory" fetch "$url" "+$BRANCH:refs/remotes/aamas27/$BRANCH"
         git -C "$directory" checkout -q "$BRANCH" 2>/dev/null \
-            || git -C "$directory" checkout -q -b "$BRANCH" "origin/$BRANCH"
-        git -C "$directory" merge -q --ff-only "origin/$BRANCH"
+            || git -C "$directory" checkout -q -b "$BRANCH" "refs/remotes/aamas27/$BRANCH"
+        git -C "$directory" merge -q --ff-only "refs/remotes/aamas27/$BRANCH" \
+            || fail "the local branch $BRANCH of $directory has diverged from $url"
     fi
 }
 
@@ -117,17 +128,30 @@ get_code() {
     if [[ ! -d "$RDR_DIR/.git" ]]; then
         git clone https://github.com/AbdelrhmanBassiouny/ripple_down_rules.git "$RDR_DIR"
     fi
-    git -C "$RDR_DIR" checkout -q "$RDR_COMMIT"
+    git -C "$RDR_DIR" cat-file -e "$RDR_COMMIT^{commit}" 2>/dev/null \
+        || git -C "$RDR_DIR" fetch https://github.com/AbdelrhmanBassiouny/ripple_down_rules.git
+    git -C "$RDR_DIR" checkout -q --detach "$RDR_COMMIT"
     log "experiments $(git -C "$EXPERIMENTS_DIR" log -1 --format='%h %s')"
     log "CRAM        $(git -C "$CRAM_DIR" log -1 --format='%h %s')"
+    [[ "$(git -C "$CRAM_DIR" rev-parse HEAD)" == "$(git -C "$CRAM_DIR" rev-parse "$CRAM_COMMIT^{commit}")" ]] \
+        || fail "CRAM is not at $CRAM_COMMIT"
     log "rdr         $(git -C "$RDR_DIR" log -1 --format='%h %s')"
 }
 
 python_environment() {
     [[ -x "$VENV/bin/python" ]] || "$PYTHON" -m venv "$VENV"
     "$VENV/bin/pip" install -q --upgrade pip
-    "$VENV/bin/pip" install -q -e "$CRAM_DIR/krrood" -e "$RDR_DIR" -e "$EXPERIMENTS_DIR"
-    "$VENV/bin/pip" install -q -r "$EXPERIMENTS_DIR/scripts/aamas27/requirements-aamas27.txt"
+    local lock="$EXPERIMENTS_DIR/scripts/aamas27/requirements-aamas27-lock.txt"
+    "$VENV/bin/pip" install -q -c "$lock" -e "$CRAM_DIR/krrood" -e "$RDR_DIR" -e "$EXPERIMENTS_DIR"
+    "$VENV/bin/pip" install -q -c "$lock" -r "$EXPERIMENTS_DIR/scripts/aamas27/requirements-aamas27.txt"
+    mkdir -p "$RUN"
+    "$VENV/bin/pip" freeze --exclude-editable | sort -f > "$RUN/pip_freeze.txt"
+    if grep -v '^#' "$lock" | sort -f | diff - "$RUN/pip_freeze.txt" > "$RUN/pip_freeze_diff.txt"; then
+        log "the virtual environment matches $lock"
+    else
+        log "WARNING: the virtual environment differs from $lock (see $RUN/pip_freeze_diff.txt):"
+        cat "$RUN/pip_freeze_diff.txt"
+    fi
     local location
     location="$("$VENV/bin/python" -c 'import krrood, ripple_down_rules; from ripple_down_rules import RDRDecorator; print(krrood.__file__)')"
     [[ "$location" == "$CRAM_DIR"* ]] || fail "krrood is imported from $location, not from $CRAM_DIR"

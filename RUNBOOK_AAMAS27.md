@@ -220,10 +220,11 @@ export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
 python3.12 -m venv ~/venvs/krrood_aamas27
 source ~/venvs/krrood_aamas27/bin/activate
 pip install --upgrade pip
-pip install -e ~/cram_aamas27/krrood
-pip install -e ~/ripple_down_rules_aamas27          # editable: a non-editable install misses sub-packages
-pip install -e ~/krrood_experiments_aamas27
-pip install -r ~/krrood_experiments_aamas27/scripts/aamas27/requirements-aamas27.txt
+LOCK=~/krrood_experiments_aamas27/scripts/aamas27/requirements-aamas27-lock.txt   # versions of the verified environment
+pip install -c $LOCK -e ~/cram_aamas27/krrood
+pip install -c $LOCK -e ~/ripple_down_rules_aamas27   # editable: a non-editable install misses sub-packages
+pip install -c $LOCK -e ~/krrood_experiments_aamas27
+pip install -c $LOCK -r ~/krrood_experiments_aamas27/scripts/aamas27/requirements-aamas27.txt
 python -c "import krrood, ripple_down_rules; from ripple_down_rules import RDRDecorator; print(krrood.__file__)"
 ```
 

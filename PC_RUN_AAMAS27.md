@@ -16,12 +16,12 @@ to check, and what to hand back.
   these are the timings that go into the paper.
 * Use only the `aamas27_*` GraphDB repositories; never delete the other repositories (e.g. `KRROOD`).
 
-## 0. Prerequisites (5 min)
+## 0. Prerequisites (5-10 min)
 
 Run these checks and fix whatever fails before starting:
 
 ```bash
-python3.12 --version                     # Python 3.12
+python3.12 --version                     # Python 3.12 (the results were verified with 3.12.3)
 docker info > /dev/null && echo docker ok # the user must be in the docker group
 java -version                            # OpenJDK 17 or 21 (owlready2 starts Pellet with it)
 ls /opt/graphdb-desktop/lib/app /opt/graphdb-desktop/lib/runtime/bin/java   # GraphDB Desktop 11.x installed
@@ -30,8 +30,35 @@ df -h ~                                  # at least 12 % free (GraphDB stops ans
 pgrep -fa graphdb-desktop || echo "GraphDB Desktop closed"   # must be closed
 ```
 
-If GraphDB is installed elsewhere, set `GRAPHDB_APP`, `GRAPHDB_JAVA` and `GRAPHDB_LICENSE` (see the top of
-`scripts/aamas27/run_all.sh`). Close all other applications. Plug in the power cable.
+The virtual environment is built from source for one package (`pygraphviz`, needed by ripple_down_rules), so
+these system packages must be installed (the script checks them and stops with the command to run):
+
+```bash
+sudo apt install python3.12-venv python3.12-dev build-essential graphviz libgraphviz-dev pkg-config
+```
+
+If Docker needs `sudo`: `sudo usermod -aG docker $USER`, then log out and in again. If Java is missing:
+`sudo apt install openjdk-17-jre`. If GraphDB is installed elsewhere, set `GRAPHDB_APP`, `GRAPHDB_JAVA` and
+`GRAPHDB_LICENSE` (see the top of `scripts/aamas27/run_all.sh`). Close all other applications. Plug in the
+power cable.
+
+### Code and environment that the run uses
+
+`run_all.sh` sets these up itself; nothing has to be installed by hand. Do not use any other checkout or
+virtual environment (for example an older `~/cram` clone or `~/.virtualenvs/krrood_experiments`).
+
+| What | Where | Version |
+|------|-------|---------|
+| krrood_experiments (scripts, queries, generated model, data) | `~/krrood_experiments_aamas27` | branch `aamas27-experiments` of `https://github.com/AbdelrhmanBassiouny/krrood_experiments.git` |
+| CRAM (contains `krrood`: EQL, Ontomatic, ORMatic) | `~/cram_aamas27` | commit `ec7c922b9ff66ae49f380f044e6e50db883264f1` (branch `aamas27-experiments` of `https://github.com/AbdelrhmanBassiouny/cognitive_robot_abstract_machine.git`), checked out detached |
+| ripple_down_rules | `~/ripple_down_rules_aamas27` | commit `3b994bb` of `https://github.com/AbdelrhmanBassiouny/ripple_down_rules.git` |
+| Python environment | `~/venvs/krrood_aamas27` | `krrood`, `ripple_down_rules` and `krrood_experiments` installed editable from the three directories above; every other package at the version of `scripts/aamas27/requirements-aamas27-lock.txt` |
+
+The script clones the three repositories, or updates existing clones from the URLs above (whatever their
+remote `origin` points to). It stops if a clone has uncommitted changes or if CRAM does not end up at the pinned
+commit. It installs the packages with the lock file as a constraint and writes the installed versions into
+`pip_freeze.txt` of the results directory. If they differ from the lock file, the log shows `WARNING: the virtual
+environment differs` with the differences.
 
 ## 1. Start the automated run (one command, unattended)
 
@@ -51,7 +78,23 @@ changes, the script stops; tell the user rather than discarding them.
 If the run stops (error, reboot), start the same command again: finished steps are skipped (marker files
 `.done-<step>` in the results directory), and the interrupted step starts over.
 
-## 2. Monitor
+## 2. Check the set-up (after about 10 min), then monitor
+
+As soon as the log shows `start data`, check that the run uses the right code and environment:
+
+```bash
+grep -E "experiments |CRAM |rdr |virtual environment" ~/aamas27_run.log
+git -C ~/cram_aamas27 rev-parse HEAD      # ec7c922b9ff66ae49f380f044e6e50db883264f1
+git -C ~/ripple_down_rules_aamas27 rev-parse --short HEAD   # 3b994bb
+~/venvs/krrood_aamas27/bin/python -c "import krrood, ripple_down_rules, krrood_experiments as e; print(krrood.__file__, ripple_down_rules.__file__, e.__file__)"
+```
+
+Expected: the log line `the virtual environment matches .../requirements-aamas27-lock.txt` (no `WARNING`), the
+two commits above, and the three paths inside `~/cram_aamas27`, `~/ripple_down_rules_aamas27` and
+`~/krrood_experiments_aamas27`. If anything differs, stop the run (`pkill -f run_all.sh`; then
+`pkill -f GraphDBWorkbench` if GraphDB is still up) and report it.
+
+Then monitor:
 
 ```bash
 tail -f ~/aamas27_run.log
