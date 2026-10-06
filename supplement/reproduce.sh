@@ -8,6 +8,7 @@
 #   all       check, then query timing, loading and reasoning time and memory, the ablation and the tables
 #             (about 9-13 h; RDFLib and the ablation run into their time limits)
 #   tables    the LaTeX tables and the results archive, e.g. after adding protege.json (see README.md)
+#   fingerprint  the fingerprint of the code in the image; equals environment/BUNDLE of the bundle it was built from
 #
 # Everything is written to /state (./state on the host). A second call resumes after the last finished step.
 set -euo pipefail
@@ -35,6 +36,34 @@ listings() {
         --rootdir=. test_ormatic_listing.py
     cd "$EXPERIMENTS"
 }
+
+# The fingerprint of the code in the image, computed as make_supplement.py computes environment/BUNDLE. It shows
+# whether Docker built the image from files of an earlier version of the bundle (README.md, Troubleshooting).
+code_fingerprint() {
+    /opt/venvs/earlier/bin/python - <<'PY'
+import hashlib
+import os
+from pathlib import Path
+root = Path("/opt/aamas27")
+paths = []
+# The build adds *.egg-info folders and two symbolic links into /state; the bundle has neither.
+for directory, folders, files in os.walk(root / "code"):
+    folders[:] = [f for f in folders if not f.endswith(".egg-info") and f != "__pycache__"]
+    paths += [Path(directory, f) for f in files if not os.path.islink(os.path.join(directory, f))]
+digest = hashlib.sha256()
+for path in sorted(paths):
+    digest.update(str(path.relative_to(root)).encode())
+    digest.update(path.read_bytes())
+print(digest.hexdigest()[:16])
+PY
+}
+
+if [[ "$MODE" == fingerprint ]]; then
+    code_fingerprint
+    exit 0
+fi
+[[ "$(code_fingerprint)" == "$(cat /opt/aamas27/environment/BUNDLE)" ]] \
+    || fail "the code in the image does not match its BUNDLE id; see Troubleshooting in README.md"
 
 if [[ "$MODE" == listings ]]; then
     listings
@@ -200,7 +229,7 @@ case "$MODE" in
         exit 0
         ;;
     check | all) ;;
-    *) fail "unknown mode $MODE (listings, check, all, tables)" ;;
+    *) fail "unknown mode $MODE (listings, check, all, tables, fingerprint)" ;;
 esac
 
 log "bundle $(cat /opt/aamas27/environment/BUNDLE), mode $MODE, results in ./state/results/aamas27/run"

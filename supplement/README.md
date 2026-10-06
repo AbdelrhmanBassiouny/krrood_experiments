@@ -36,7 +36,7 @@ and these results are what you can check.
 In a terminal, in the folder that contains the zip:
 
 ```bash
-unzip krrood-aamas27-supplement.zip && cd krrood-aamas27-supplement
+unzip -DD krrood-aamas27-supplement.zip && cd krrood-aamas27-supplement   # -DD: see Troubleshooting
 mkdir -p state                       # the results folder; create it yourself so that you own its files
 docker compose build                 # 5-15 min the first time (downloads about 1.5 GB)
 docker run --rm krrood-aamas27 listings   # krrood-aamas27 is the image that the build created
@@ -141,6 +141,7 @@ A second call of `check` or `all` resumes after the last finished step. To start
 | `bind source path does not exist` | The path in `GRAPHDB_LICENSE` does not exist; check it with `ls -l "$GRAPHDB_LICENSE"`. |
 | `GraphDB did not start` | See `state/graphdb.log` and `state/graphdb-home/logs/`. A rejected license or less than 10 % free disk are the usual causes. |
 | A step is killed, or `status: memory_limit` / `failed` with return code -9 in `loading.json` | Not enough memory: lower `GRAPHDB_HEAP`, or raise Docker Desktop's memory limit. A baseline that runs out of memory within the limits is itself a result, recorded as such. |
+| `FAILED: the code in the image does not match its BUNDLE id`, or `docker run --rm krrood-aamas27 fingerprint` prints another id than `cat environment/BUNDLE` | Docker built the image partly from files of an earlier version of this bundle: all files in the zip have the same time, so Docker takes a changed file of the same size for unchanged. Unzip with `-DD` (files get the current time), or run `docker builder prune -af`; then `docker compose build` again. |
 | `state/` belongs to root | Create `state/` yourself before the first run (`mkdir -p state`), or `sudo chown -R $USER state`. |
 
 ## Contents

@@ -122,12 +122,22 @@ check_disk() {
 prepare_bundle() {
     command -v unzip >/dev/null || sudo apt-get install -y unzip
     say "Unzipping into $PARENT (the results in $BUNDLE/state are kept)"
-    unzip -q -o "$ZIP" -d "$PARENT"
+    # Files of an earlier bundle that this one no longer has must not end up in the image.
+    if [[ -d "$BUNDLE" ]]; then find "$BUNDLE" -mindepth 1 -maxdepth 1 ! -name state -exec rm -rf {} +; fi
+    # -DD gives the files the current time. With the zip's fixed times, Docker would take a file of an earlier
+    # bundle with the same size for unchanged and build the image with its old content.
+    unzip -q -o -DD "$ZIP" -d "$PARENT"
     mkdir -p "$BUNDLE/state"
-    say "BUNDLE id: $(cat "$BUNDLE/environment/BUNDLE")   (write this down)"
+    local bundle_id built_id
+    bundle_id="$(cat "$BUNDLE/environment/BUNDLE")"
+    say "BUNDLE id: $bundle_id   (write this down)"
     cd "$BUNDLE"
     say "Building the Docker image (about 5-10 min the first time)"
     docker compose build
+    built_id="$(docker run --rm krrood-aamas27 fingerprint)"
+    [[ "$built_id" == "$bundle_id" ]] \
+        || die "the image holds other code ($built_id) than the zip ($bundle_id): run 'docker builder prune -af', then this script again"
+    say "The image holds the code of BUNDLE $built_id"
     say "Listing tests (expected: 24 passed, then 1 passed)"
     docker run --rm krrood-aamas27 listings
     check_license

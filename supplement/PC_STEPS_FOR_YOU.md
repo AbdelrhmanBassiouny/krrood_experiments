@@ -26,9 +26,9 @@ It asks for your password once if it has to install something. It then:
 3. finds the GraphDB license (`~/.graphdb/work/graphdb.license`, `~/graphdb.license`, `~/Downloads/graphdb.license`,
    else any `*.license` file with "graphdb" in its name or folder under `~`, `/opt` and `/etc`) and the zip (`~` or
    `~/Downloads`), and checks for 15 GB of free disk;
-4. unzips the bundle into `~/krrood-aamas27-supplement` (an existing `state/` folder with results is kept) and
-   prints the BUNDLE id: **write it down**;
-5. builds the Docker image (5-10 min), runs the listing tests (expected: `24 passed`, then `1 passed`), and starts
+4. unzips the bundle into `~/krrood-aamas27-supplement`, replacing an earlier bundle there but keeping its `state/`
+   folder with results, and prints the BUNDLE id: **write it down**;
+5. builds the Docker image (5-10 min), checks that the image holds the zip's code (same BUNDLE id), runs the listing tests (expected: `24 passed`, then `1 passed`), and starts
    GraphDB once with the license to check that GraphDB accepts it;
 6. records the PC's details in `state/results/aamas27/run/host/host.json`: CPU, frequency governor, turbo, power
    profile, RAM, disk, board, OS, kernel and Docker version (no hostname or user name, since the results are
@@ -130,10 +130,12 @@ Only if the script can't be used.
 sudo apt update && sudo apt install -y docker.io docker-compose-v2 unzip
 sudo usermod -aG docker $USER          # then log out and back in
 docker compose version && docker run --rm hello-world > /dev/null && echo "docker ok without sudo"
-cd ~ && unzip -q -o ~/Downloads/krrood-aamas27-supplement.zip && cd krrood-aamas27-supplement && mkdir -p state
+cd ~ && unzip -q -o -DD ~/Downloads/krrood-aamas27-supplement.zip && cd krrood-aamas27-supplement && mkdir -p state
+# -DD: files get the current time; without it Docker can build the image from an earlier bundle's files
 cat environment/BUNDLE
 export GRAPHDB_LICENSE=~/.graphdb/work/graphdb.license
 docker compose build
+docker run --rm krrood-aamas27 fingerprint   # must print the same id as environment/BUNDLE
 docker run --rm krrood-aamas27 listings
 nohup systemd-inhibit --what=sleep:idle --why="AAMAS27 experiments" \
     docker compose run --rm -T experiments all > ~/aamas27_run.log 2>&1 &
