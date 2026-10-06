@@ -11,7 +11,7 @@ There are three levels, from a few minutes to a night:
 
 | Level | Command | Needs | Time | Reproduces |
 |-------|---------|-------|------|------------|
-| 1 | `listings` | Docker | 5-15 min (the first build downloads about 1.5 GB) | the paper's listings, as tests |
+| 1 | `listings` | Docker | 5-15 min (the first build downloads about 1.5 GB) | the paper's listings and the formalization's examples, as tests |
 | 2 | `check` | Docker, a free GraphDB license, 16 GB RAM | 1-1.5 h | Section 7.1: answers of all 18 queries, and the knowledge base compared with the OWL 2 RL closure |
 | 3 | `all` | as level 2, 32 GB RAM | 9-13 h | also Sections 7.2-7.3: query time, loading time and memory, the ablation |
 
@@ -42,7 +42,7 @@ docker compose build                 # 5-15 min the first time (downloads about 
 docker run --rm krrood-aamas27 listings   # krrood-aamas27 is the image that the build created
 ```
 
-Expected: `19 passed`, then `1 passed`. All later commands are run in the same folder
+Expected: `24 passed`, then `1 passed`. All later commands are run in the same folder
 (`krrood-aamas27-supplement`).
 
 ## Level 2: the correctness check (Section 7.1)
@@ -156,4 +156,5 @@ A second call of `check` or `all` resumes after the last finished step. To start
 | `results/` | Our measured run: raw measurements (JSON), the answer-set check, the comparison with the closure, the environment record, the LaTeX tables, and in `host/` the machine's details and a 30-second record of its load during the run. Of the answer sets, `check/answers/graphdb/` holds GraphDB's, the reference; the other systems' sets are equal to them (`check/answer_check.json`) and are left out for size. |
 | `Dockerfile`, `compose.yaml`, `reproduce.sh` | The container: GraphDB 11.2 (official image, Ubuntu 24.04, Java 21), Python 3.12.3 with both versions of KRROOD in separate virtual environments, and PostgreSQL 18.1 in a second container. `reproduce.sh` runs inside it. |
 | `environment/` | The exact versions of all Python packages of both environments. |
+| `formalization/` | The formalization of EQL: the full definitions of its syntax and semantics, and its complexity with references, which the paper's Section 4 summarizes (`eql_formalization.pdf`, and its LaTeX source). |
 | `AI_USE.md` | How AI tools were used, as the AAMAS 2027 policy asks. |

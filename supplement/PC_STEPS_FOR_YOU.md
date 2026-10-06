@@ -28,7 +28,7 @@ It asks for your password once if it has to install something. It then:
    `~/Downloads`), and checks for 15 GB of free disk;
 4. unzips the bundle into `~/krrood-aamas27-supplement` (an existing `state/` folder with results is kept) and
    prints the BUNDLE id: **write it down**;
-5. builds the Docker image (5-10 min), runs the listing tests (expected: `19 passed`, then `1 passed`), and starts
+5. builds the Docker image (5-10 min), runs the listing tests (expected: `24 passed`, then `1 passed`), and starts
    GraphDB once with the license to check that GraphDB accepts it;
 6. records the PC's details in `state/results/aamas27/run/host/host.json`: CPU, frequency governor, turbo, power
    profile, RAM, disk, board, OS, kernel and Docker version (no hostname or user name, since the results are
@@ -85,7 +85,7 @@ It shows whether the run is going, the finished steps, the last samples of the m
 `status` shows `No run is going`, and the log ends with `finished mode all`. Check in
 `~/krrood-aamas27-supplement/state/reproduce.log`:
 
-- `24 passed` (tests), and `19 passed` / `1 passed` (listings);
+- `24 passed` (tests), and `24 passed` / `1 passed` (listings);
 - after `start answer_check`: every system `status=ok`, and the step finished (it fails on any difference);
 - after `start soundness_audit`: `individuals 3667 3667`; classes 17558 / 17558 / unsound 0 / missing 0;
   object properties 1385869 / 1385869 / 0 / 0; data properties 20933 / 20933 / 0 / 0;

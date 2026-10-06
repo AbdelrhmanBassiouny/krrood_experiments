@@ -128,7 +128,7 @@ prepare_bundle() {
     cd "$BUNDLE"
     say "Building the Docker image (about 5-10 min the first time)"
     docker compose build
-    say "Listing tests (expected: 19 passed, then 1 passed)"
+    say "Listing tests (expected: 24 passed, then 1 passed)"
     docker run --rm krrood-aamas27 listings
     check_license
 }

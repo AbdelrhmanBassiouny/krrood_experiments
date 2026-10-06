@@ -103,6 +103,9 @@ def scan(bundle: Path) -> list:
         if not path.is_file():
             continue
         text = path.read_bytes().decode("utf-8", errors="ignore")
+        if path.suffix.lower() == ".pdf":  # PDF text is compressed; scan the extracted text and the metadata
+            text += subprocess.run(["pdftotext", str(path), "-"], capture_output=True, text=True).stdout
+            text += subprocess.run(["pdfinfo", str(path)], capture_output=True, text=True).stdout
         for match in IDENTIFYING.finditer(text):
             context = text[max(0, match.start() - 3):match.end() + 3]
             if ALLOWED.search(context) and match.group(0).lower() == "arion":

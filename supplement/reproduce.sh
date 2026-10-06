@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Runs the experiments of the paper inside the container (see README.md).
 #
-#   listings  the tests of the paper's listings, on the current version of KRROOD (seconds, no services)
+#   listings  the tests of the paper's listings and of the formalization's examples, on the current version of
+#             KRROOD (seconds, no services)
 #   check     tests, answer-set check of the 18 queries against GraphDB, and comparison of KRROOD's knowledge base
 #             with GraphDB's OWL 2 RL closure, assertion by assertion (about 1-1.5 h, mostly GraphDB reasoning)
 #   all       check, then query timing, loading and reasoning time and memory, the ablation and the tables
@@ -28,7 +29,7 @@ listings() {
     log "listing tests (current version of KRROOD)"
     cd /opt/aamas27/listings
     PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /opt/venvs/current/bin/python -m pytest -q -o addopts="" -p no:cacheprovider \
-        --rootdir=. test_listings.py
+        --rootdir=. test_listings.py test_formalization_examples.py
     cd ormatic
     PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /opt/venvs/current/bin/python -m pytest -q -o addopts="" -p no:cacheprovider \
         --rootdir=. test_ormatic_listing.py
