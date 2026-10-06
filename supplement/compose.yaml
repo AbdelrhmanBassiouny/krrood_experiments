@@ -3,6 +3,8 @@
 #   docker compose build
 #   docker compose run --rm experiments check     # or: listings, all, tables
 #   docker compose down
+# A fixed project name, whatever the folder is called (run_ubuntu.sh finds the run's container by it).
+name: krrood-aamas27
 services:
   postgres:
     image: postgres:18.1

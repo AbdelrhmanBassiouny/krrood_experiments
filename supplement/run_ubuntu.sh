@@ -1,32 +1,31 @@
 #!/usr/bin/env bash
-# Sets up Docker on this PC (Ubuntu 24.04), builds the supplementary bundle and starts the measured run of the
-# AAMAS 2027 experiments. Safe to call again: it skips what is already done and never starts a second run.
+# Level 3 on Ubuntu (24.04) in one command: installs Docker if needed, builds the image, runs the listing tests,
+# checks the GraphDB license, records the machine's details and starts the full run in the background, with a
+# monitor of the machine's load. Run it from the unpacked bundle. Safe to call again: it never starts a second run,
+# and a stopped run resumes after its last finished step. See README.md.
 #
 # Usage:
-#   bash pc_run.sh             install Docker if needed, unzip and build the bundle, run the listing tests,
-#                              then start the full run in the background (about 9-13 h)
-#   bash pc_run.sh status      is the run going, which steps finished, and the end of its log
-#   bash pc_run.sh tables      after saving protege.json: rebuild the tables and the results archive
-#   bash pc_run.sh --dry-run   everything except starting the run
+#   bash run_ubuntu.sh             set up, then start the full run (about 9-13 h)
+#   bash run_ubuntu.sh status      is the run going, which steps finished, and the end of its log
+#   bash run_ubuntu.sh tables      after saving protege.json: rebuild the tables and the results archive
+#   bash run_ubuntu.sh --dry-run   everything except starting the run
 #
 # Settings (environment variables):
-#   AAMAS27_ZIP       the bundle zip [~/krrood-aamas27-supplement.zip, else the newest in ~/Downloads]
-#   GRAPHDB_LICENSE   GraphDB license file [~/.graphdb/work/graphdb.license, else searched in ~ and /opt]
-#   AAMAS27_PARENT    where the bundle is unzipped [~]
+#   GRAPHDB_LICENSE   GraphDB license file [~/graphdb.license, ~/Downloads/graphdb.license, ~/.graphdb/...,
+#                     else any *.license file under ~ and /opt with "graphdb" in its path]
 set -euo pipefail
 
 MODE="${1:-start}"
-PARENT="${AAMAS27_PARENT:-$HOME}"
-BUNDLE="$PARENT/krrood-aamas27-supplement"
-LOG="$HOME/aamas27_run.log"
+BUNDLE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOG="$BUNDLE/state/run.log"
 RUN_MODE="${AAMAS27_RUN_MODE:-all}"   # only changed to test this script
-PROJECT=krrood-aamas27-supplement
+PROJECT=krrood-aamas27                # the project name in compose.yaml
 
 say() { printf '\n==> %s\n' "$*"; }
 die() { printf '\nERROR: %s\n' "$*" >&2; exit 1; }
 
-# Stops instead of answering "no" when Docker can't be asked: the caller would then replace the bundle of a run
-# that is going and start a second run on top of it.
+# Stops instead of answering "no" when Docker can't be asked: the caller would then start a second run on top of
+# the one that is going.
 run_is_going() {
     command -v docker >/dev/null || return 1   # no Docker, so no run
     local containers
@@ -67,23 +66,23 @@ install_docker() {
     docker compose version
 }
 
-# --- 2. License, zip, disk ------------------------------------------------------------------------------
+# --- 2. License, disk ------------------------------------------------------------------------------
 find_license() {
     LICENSE="${GRAPHDB_LICENSE:-}"
     if [[ -z "$LICENSE" ]]; then
-        for candidate in "$HOME/.graphdb/work/graphdb.license" "$HOME/.graphdb/conf/graphdb.license" \
-                         "$HOME/graphdb.license" "$HOME/Downloads/graphdb.license"; do
+        for candidate in "$HOME/graphdb.license" "$HOME/Downloads/graphdb.license" \
+                         "$HOME/.graphdb/work/graphdb.license" "$HOME/.graphdb/conf/graphdb.license"; do
             [[ -f "$candidate" ]] && { LICENSE="$candidate"; break; }
         done
     fi
     if [[ -z "$LICENSE" ]]; then
         # Any *.license file whose name or folder mentions GraphDB, e.g. a downloaded GRAPHDB_FREE*.license.
-        LICENSE="$(find "$HOME" /opt /etc -type f -iname '*.license' 2>/dev/null | grep -i graphdb | head -1 || true)"
+        LICENSE="$(find "$HOME" /opt -type f -iname '*.license' 2>/dev/null | grep -i graphdb | head -1 || true)"
     fi
     if [[ -z "$LICENSE" || ! -f "$LICENSE" ]]; then
-        die "No GraphDB license file found. GraphDB 11 needs one, even the free edition. Either copy the license
-       file from the laptop (graphdb.license, sent in the Claude conversation) to ~/.graphdb/work/graphdb.license,
-       or request a free license on the GraphDB website and save it there. Then run this script again."
+        die "No GraphDB license file found. GraphDB 11 needs one, even the free edition: request GraphDB Free on
+       https://graphdb.ontotext.com/ (the license arrives by e-mail), save it as ~/graphdb.license and run this
+       script again, or run it with GRAPHDB_LICENSE=/path/to/file.license."
     fi
     say "GraphDB license: $LICENSE"
     export GRAPHDB_LICENSE="$LICENSE"
@@ -105,49 +104,41 @@ for _ in range(90):
     except Exception:
         time.sleep(1)
 PY' 2>/dev/null || true)"
-    echo "  $answer"
-    [[ "$answer" == *'"valid": true'* ]] \
-        || die "GraphDB does not accept the license $GRAPHDB_LICENSE (answer above). Use another license file."
-}
-
-find_zip() {
-    ZIP="${AAMAS27_ZIP:-}"
-    if [[ -z "$ZIP" ]]; then
-        if [[ -f "$HOME/krrood-aamas27-supplement.zip" ]]; then
-            ZIP="$HOME/krrood-aamas27-supplement.zip"
-        else
-            ZIP="$(ls -t "$HOME"/Downloads/krrood-aamas27-supplement*.zip 2>/dev/null | head -1 || true)"
-        fi
+    if [[ "$answer" != *'"valid": true'* ]]; then
+        echo "  $answer"
+        die "GraphDB does not accept the license $GRAPHDB_LICENSE (answer above). Use another license file."
     fi
-    [[ -n "$ZIP" && -f "$ZIP" ]] || die "krrood-aamas27-supplement.zip not found in ~ or ~/Downloads. Set AAMAS27_ZIP=/path/to/zip"
-    say "Bundle zip: $ZIP"
+    # What the license allows matters for GraphDB's times (e.g. the free edition's core limit); not the licensee.
+    mkdir -p "$BUNDLE/$HOST_DIR_RELATIVE"
+    python3 -c 'import json, sys
+answer = json.loads(sys.argv[1])
+record = {key: answer.get(key) for key in ("product", "productType", "version", "maxCpuCores", "expiryDate")}
+json.dump(record, open(sys.argv[2], "w"), indent=2)
+print("  GraphDB accepts the license:", record)' "$answer" "$BUNDLE/$HOST_DIR_RELATIVE/graphdb_license.json"
 }
 
 check_disk() {
     local free_gb
-    free_gb=$(df --output=avail -BG "$PARENT" | tail -1 | tr -dc 0-9)
-    (( free_gb >= 15 )) || die "only ${free_gb} GB free in $PARENT; at least 15 GB are needed"
+    free_gb=$(df --output=avail -BG "$BUNDLE" | tail -1 | tr -dc 0-9)
+    (( free_gb >= 15 )) || die "only ${free_gb} GB free in $BUNDLE; at least 15 GB are needed"
 }
 
-# --- 3. Unzip, build, listing tests ---------------------------------------------------------------------
+# --- 3. Build, listing tests ---------------------------------------------------------------------------
 prepare_bundle() {
-    command -v unzip >/dev/null || sudo apt-get install -y unzip
-    say "Unzipping into $PARENT (the results in $BUNDLE/state are kept)"
-    # Files of an earlier bundle that this one no longer has must not end up in the image.
-    if [[ -d "$BUNDLE" ]]; then find "$BUNDLE" -mindepth 1 -maxdepth 1 ! -name state -exec rm -rf {} +; fi
-    # -DD gives the files the current time. With the zip's fixed times, Docker would take a file of an earlier
-    # bundle with the same size for unchanged and build the image with its old content.
-    unzip -q -o -DD "$ZIP" -d "$PARENT"
-    mkdir -p "$BUNDLE/state"
-    local bundle_id built_id
-    bundle_id="$(cat "$BUNDLE/environment/BUNDLE")"
-    say "BUNDLE id: $bundle_id   (write this down)"
+    [[ -f "$BUNDLE/environment/BUNDLE" && -f "$BUNDLE/compose.yaml" ]] \
+        || die "run this script from the unpacked bundle (the folder with compose.yaml); it is in $BUNDLE"
     cd "$BUNDLE"
-    say "Building the Docker image (about 5-10 min the first time)"
+    mkdir -p state
+    # All files in the zip have the same time, so Docker would take a changed file of an earlier version of the
+    # bundle with the same size for unchanged. Giving them the current time makes Docker read them again.
+    find . -path ./state -prune -o -exec touch -h {} +
+    local bundle_id built_id
+    bundle_id="$(cat environment/BUNDLE)"
+    say "Building the Docker image of BUNDLE $bundle_id (5-15 min the first time)"
     docker compose build
     built_id="$(docker run --rm krrood-aamas27 fingerprint)"
     [[ "$built_id" == "$bundle_id" ]] \
-        || die "the image holds other code ($built_id) than the zip ($bundle_id): run 'docker builder prune -af', then this script again"
+        || die "the image holds other code ($built_id) than this bundle ($bundle_id): run 'docker builder prune -af', then this script again"
     say "The image holds the code of BUNDLE $built_id"
     say "Listing tests (expected: 24 passed, then 1 passed)"
     docker run --rm krrood-aamas27 listings
@@ -306,7 +297,8 @@ start_run() {
         fi
         if tail -n +"$new_lines" "$BUNDLE/state/reproduce.log" 2>/dev/null | grep -q "GraphDB started\|finished mode"; then
             tail -5 "$BUNDLE/state/reproduce.log"
-            say "The run is going. Leave the PC alone until tomorrow (screen lock is fine, don't log out)."
+            say "The run is going (9-13 h). Leave the machine idle until it has finished: screen lock is fine,
+    but don't log out, and don't run anything else, since the run measures time."
             say "Check it any time with: bash $(printf '%q' "$0") status"
             return
         fi
@@ -358,7 +350,6 @@ if run_is_going; then
     exit 0
 fi
 find_license
-find_zip
 check_disk
 prepare_bundle
 if [[ "$MODE" == --dry-run ]]; then

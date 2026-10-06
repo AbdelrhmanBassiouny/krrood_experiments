@@ -159,7 +159,7 @@ def main() -> None:
         (bundle / excluded).unlink(missing_ok=True)
     shutil.copytree(LISTINGS, bundle / "listings",
                     ignore=shutil.ignore_patterns("__pycache__", ".pytest_cache", "probe_*.py"))
-    for name in ("Dockerfile", "compose.yaml", "reproduce.sh", "README.md", "AI_USE.md", ".dockerignore"):
+    for name in ("Dockerfile", "compose.yaml", "reproduce.sh", "run_ubuntu.sh", "README.md", "AI_USE.md", ".dockerignore"):
         shutil.copy(HERE / name, bundle / name)
     shutil.copytree(HERE / "environment", bundle / "environment")
     # The formalization of EQL: LaTeX source and the PDF compiled from it.

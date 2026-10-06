@@ -13,7 +13,7 @@ There are three levels, from a few minutes to a night:
 |-------|---------|-------|------|------------|
 | 1 | `listings` | Docker | 5-15 min (the first build downloads about 1.5 GB) | the paper's listings and the formalization's examples, as tests |
 | 2 | `check` | Docker, a free GraphDB license, 16 GB RAM | 1-1.5 h | Section 7.1: answers of all 18 queries, and the knowledge base compared with the OWL 2 RL closure |
-| 3 | `all` | as level 2, 32 GB RAM | 9-13 h | also Sections 7.2-7.3: query time, loading time and memory, the ablation |
+| 3 | `all` (on Ubuntu: `bash run_ubuntu.sh`) | as level 2, 32 GB RAM | 9-13 h | also Sections 7.2-7.3: query time, loading time and memory, the ablation |
 
 Our own results are in `results/` and can be read without running anything. Without a GraphDB license, level 1
 and these results are what you can check.
@@ -86,13 +86,46 @@ What `check` does:
 
 ## Level 3: everything (Sections 7.1-7.3)
 
-Run it in the background so that it survives closing the terminal, on an otherwise idle machine:
+Run it on an otherwise idle machine: it measures time. Screen lock is fine; logging out stops it.
+
+### On Ubuntu: one command
+
+In the unpacked folder:
+
+```bash
+bash run_ubuntu.sh             # set up, then start the full run in the background
+bash run_ubuntu.sh status      # any time: is the run going, finished steps, the end of the log
+```
+
+The script (tested on Ubuntu 24.04):
+
+1. installs Docker from Ubuntu's packages if needed (it asks for your password), adds you to the `docker` group
+   and continues with the group active, so you don't need to log out;
+2. finds the GraphDB license: `GRAPHDB_LICENSE` if set, else `~/graphdb.license`, `~/Downloads/graphdb.license`,
+   `~/.graphdb/work/graphdb.license`, else a `*.license` file under `~` or `/opt` with "graphdb" in its path. It
+   also checks for 15 GB of free disk;
+3. builds the image, checks that it holds this bundle's code, runs the listing tests, and starts GraphDB once to
+   check that it accepts the license;
+4. records the machine in `state/results/aamas27/run/host/`: `host.json` (CPU, frequency governor, turbo, power
+   profile, memory, disk, board, OS, kernel, Docker version; no hostname or user name) and `graphdb_license.json`
+   (what the license allows, e.g. its CPU core limit; not the licensee);
+5. starts `all` in the background, blocks suspend while it runs, and writes every 30 s to `host/monitor.csv`: load,
+   memory and swap, mean CPU frequency, maximum temperature, and the programs outside Docker that used at least 5 %
+   of a CPU (`busy_outside_docker`, which should stay empty).
+
+If it stops with an error, the message says what is missing (Docker group, license, disk space) or shows the end
+of the log. Fix it and call the script again: it never starts a second run, and a stopped run resumes after its
+last finished step. `bash run_ubuntu.sh --dry-run` does everything except starting the run.
+
+### On any system: by hand
 
 ```bash
 export GRAPHDB_LICENSE=~/graphdb.license
 nohup docker compose run --rm -T experiments all > all.log 2>&1 &
 tail -f state/reproduce.log                    # Ctrl+C stops watching, not the run
 ```
+
+### What it measures
 
 `all` includes `check` (finished steps are skipped). It then measures:
 
@@ -106,6 +139,10 @@ tail -f state/reproduce.log                    # Ctrl+C stops watching, not the 
 The LaTeX tables are written to `state/results/aamas27/run/tables/`, and everything is packed into
 `state/aamas27_results.tgz`. Afterwards run `docker compose down`. Timings depend on the machine; ours are from an
 Intel Core i7-11700K with 32 GB RAM under Ubuntu 24.04.
+
+The run succeeded if `state/reproduce.log` ends with `finished mode all` and contains, as for level 2, the
+answer check finishing without differences and the comparison with the closure showing `unsound 0, missing 0`
+for classes, object properties and data properties, with `passed: True`.
 
 ### Protégé (by hand)
 
@@ -122,8 +159,8 @@ Protégé 5.6 with Pellet has a graphical interface, so it runs outside Docker. 
 3. On the reasoned file, after Start reasoner, run the 18 SPARQL queries of
    `code/earlier/experiments/src/krrood_experiments/owl2bench/sparql_queries.py` in Snap SPARQL (60 s limit each).
 4. Fill in `code/earlier/experiments/scripts/aamas27/protege_template.json`, save it as
-   `state/results/aamas27/run/protege.json`, and run `docker compose run --rm experiments tables` to add the rows to
-   the tables.
+   `state/results/aamas27/run/protege.json`, and run `bash run_ubuntu.sh tables` (or
+   `docker compose run --rm experiments tables`) to add the rows to the tables and to the results archive.
 
 ## Settings
 
@@ -155,6 +192,7 @@ A second call of `check` or `all` resumes after the last finished step. To start
 | `code/current/krrood` | The current version of KRROOD, which the paper's listings use. Its EQL API differs from the earlier version in the names of some constructors, and its translator from EQL to SQL (Section 6) handles collection-valued attributes. |
 | `listings/` | Executable versions of the paper's listings, as tests on the current version. `listings/ormatic/` tests the listing of Section 6 (one query in working memory and translated to SQL). |
 | `results/` | Our measured run: raw measurements (JSON), the answer-set check, the comparison with the closure, the environment record, the LaTeX tables, and in `host/` the machine's details and a 30-second record of its load during the run. Of the answer sets, `check/answers/graphdb/` holds GraphDB's, the reference; the other systems' sets are equal to them (`check/answer_check.json`) and are left out for size. |
+| `run_ubuntu.sh` | Level 3 on Ubuntu in one command (above). |
 | `Dockerfile`, `compose.yaml`, `reproduce.sh` | The container: GraphDB 11.2 (official image, Ubuntu 24.04, Java 21), Python 3.12.3 with both versions of KRROOD in separate virtual environments, and PostgreSQL 18.1 in a second container. `reproduce.sh` runs inside it. |
 | `environment/` | The exact versions of all Python packages of both environments. |
 | `formalization/` | The formalization of EQL: the full definitions of its syntax and semantics, and its complexity with references, which the paper's Section 4 summarizes (`eql_formalization.pdf`, and its LaTeX source). |
