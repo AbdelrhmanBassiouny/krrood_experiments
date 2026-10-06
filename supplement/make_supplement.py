@@ -149,6 +149,9 @@ def main() -> None:
     sanitize(bundle)
     (bundle / "environment" / "BUNDLE").write_text(fingerprint(bundle) + "\n")
     hits = scan(bundle)
+    # A GraphDB license names its licensee; it must never be shipped.
+    hits += [f"{p.relative_to(bundle)}: license file" for p in bundle.rglob("*")
+             if p.is_file() and (p.suffix.lower() == ".license" or "graphdb-home" in p.parts)]
     if not arguments.draft:
         hits += [f"{p.relative_to(bundle)}: unresolved TODO-AUTHORS" for p in bundle.rglob("*.md")
                  if "TODO-AUTHORS" in p.read_text()]
