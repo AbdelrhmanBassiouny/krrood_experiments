@@ -1,0 +1,36 @@
+# Usage (see README.md):
+#   export GRAPHDB_LICENSE=/path/to/graphdb.license
+#   docker compose build
+#   docker compose run --rm experiments check     # or: listings, all, tables
+#   docker compose down
+services:
+  postgres:
+    image: postgres:18.1
+    environment:
+      POSTGRES_USER: krrood_experiments
+      POSTGRES_PASSWORD: krrood_experiments
+      POSTGRES_DB: krrood_experiments
+    shm_size: 256m
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "krrood_experiments", "-d", "krrood_experiments"]
+      interval: 2s
+      retries: 60
+
+  experiments:
+    build: .
+    image: krrood-aamas27
+    hostname: aamas27
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      KRROOD_EXPERIMENTS_DATABASE_URI: postgresql+psycopg2://krrood_experiments:krrood_experiments@postgres:5432/krrood_experiments
+      KRROOD_GRAPHDB_URL: http://localhost:7200
+      GRAPHDB_HEAP: ${GRAPHDB_HEAP:-8g}
+      QUERY_REPETITIONS: ${QUERY_REPETITIONS:-10}
+      LOADING_REPETITIONS: ${LOADING_REPETITIONS:-5}
+      RDFLIB_TIMEOUT_SECONDS: ${RDFLIB_TIMEOUT_SECONDS:-10800}
+    volumes:
+      - ./state:/state
+      # check and all need a GraphDB license file (README.md); without one, reproduce.sh stops and says so.
+      - ${GRAPHDB_LICENSE:-/dev/null}:/license/graphdb.license:ro

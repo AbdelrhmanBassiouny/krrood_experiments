@@ -1,0 +1,172 @@
+"""
+Build the anonymized supplementary material of the AAMAS 2027 KRROOD submission.
+
+The code is exported from pinned commits (no git metadata), identifying metadata is removed, the Docker set-up
+and the README are added, every file is scanned for identifying strings, and the result is zipped. The build
+fails if the scan finds anything or if the zip exceeds 25 MB.
+
+Usage: python make_supplement.py OUTPUT_DIRECTORY [--results RESULTS_DIRECTORY]
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import io
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tarfile
+import zipfile
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+SCRATCH = Path("/tmp/claude-1000/-home-bass-Projects-krrood-aamas/33ba4645-d3a6-450c-b474-694a7d4a326f/scratchpad")
+NAME = "krrood-aamas27-supplement"
+
+# (repository, commit, paths, destination inside the bundle, prefix to strip)
+SOURCES = [
+    (SCRATCH / "exp/cram", "ec7c922b9ff66ae49f380f044e6e50db883264f1",
+     ["krrood/pyproject.toml", "krrood/requirements.txt", "krrood/src"], "code/earlier", ""),
+    (Path("/tmp/claude-1000/-home-bass-Projects-krrood-aamas/6a40da36-2e3b-49ed-8542-7c82a0754f58/scratchpad/pcsim/rdr"),
+     "3b994bb4bd8f5c7852f747df6732f8f8adf081ad",
+     ["pyproject.toml", "requirements.txt", "src", "LICENSE"], "code/earlier/ripple_down_rules", ""),
+    (SCRATCH / "exp/exp", "HEAD",
+     ["pyproject.toml", "requirements.txt", "src", "scripts/aamas27", "tests/aamas27",
+      "resources/owl2bench_statements_unreasoned.rdf"], "code/earlier/experiments", ""),
+    (Path("/home/bass/Projects/cram-eql-sql-fix"), "eeeb2e48db",
+     ["krrood/pyproject.toml", "krrood/src", "krrood/LICENSE"], "code/current", ""),
+]
+# Files of the experiment repository that only serve the authors' own machines.
+EXCLUDE = {
+    "code/earlier/experiments/scripts/aamas27/run_all.sh",
+}
+LISTINGS = SCRATCH / "listings"
+
+IDENTIFYING = re.compile(
+    r"bassiouny|abdelrhman|schierenbeck|tomsch|sorinar|sorin|\barion\b|beetz|bremen|aicor|vasantak|hoanggia"
+    r"|\bnaren\b|\bgiang\b|cram2|github\.com|gitlab\.com|/home/|/tmp/claude|@[a-z0-9.-]+\.(de|com|org|net)\b"
+    r"|\bbass\b|tom_sch|ec7c922b9f|eeeb2e48db|3b994bb|b0b59087a6",
+    re.IGNORECASE,
+)
+# Matches that are not identifying: generated person names of the OWL2Bench data (e.g. "Jamarion").
+ALLOWED = re.compile(r"[a-z]arion\b", re.IGNORECASE)
+# Synthetic e-mail addresses of the OWL2Bench data and the OWL API link in the header of the data file.
+BENIGN = re.compile(r"@bench\.com|github\.com/owlcs/owlapi|>Bremen</hasFirstName>|>Bremen And</hasName>")
+
+
+def export(repository: Path, commit: str, paths, destination: Path) -> None:
+    archive = subprocess.run(["git", "-C", str(repository), "archive", "--format=tar", commit, *paths],
+                             check=True, capture_output=True).stdout
+    destination.mkdir(parents=True, exist_ok=True)
+    with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
+        tar.extractall(destination, filter="data")
+
+
+def strip_pyproject(path: Path) -> None:
+    """Remove the authors, maintainers and URLs of a pyproject.toml."""
+    text = path.read_text()
+    text = re.sub(r"^(authors|maintainers)\s*=\s*\[.*?^\]\s*$\n?", "", text, flags=re.M | re.S)
+    text = re.sub(r"^(authors|maintainers)\s*=\s*\[[^\n]*\]\s*$\n?", "", text, flags=re.M)
+    text = re.sub(r"^\[project\.urls\]\s*\n(?:^(?!\[).*\n?)*", "", text, flags=re.M)
+    path.write_text(text)
+
+
+def sanitize(bundle: Path) -> None:
+    for pyproject in bundle.rglob("pyproject.toml"):
+        strip_pyproject(pyproject)
+    for lock in bundle.rglob("requirements-aamas27-lock.txt"):
+        lock.write_text("".join(line for line in lock.read_text().splitlines(keepends=True)
+                                if not line.startswith("#")))
+    for path in bundle.rglob("*.py"):
+        text = path.read_text()
+        new = re.sub(r"https://github\.com/tomsch420/random-events/\S*", "the random-events library (MIT license)",
+                     text)
+        new = new.replace("cram2 main's test conftest", "the test set-up of KRROOD")
+        new = new.replace("cram2 ``main`` syntax", "the syntax of the current version of KRROOD")
+        new = new.replace("(cram2 main, krrood.ormatic.eql_interface.eql_to_sql)",
+                          "(current version, krrood.ormatic.eql_interface.eql_to_sql)")
+        new = re.sub(r"\(branch fix/eql-to-sql-collections of the CRAM fork, which merges\s+"
+                     r"fix/eql-correlated-quantifiers\)", "(see README.md)", new)
+        if new != text:
+            path.write_text(new)
+
+
+def scan(bundle: Path) -> list:
+    hits = []
+    for path in sorted(bundle.rglob("*")):
+        if not path.is_file():
+            continue
+        text = path.read_bytes().decode("utf-8", errors="ignore")
+        for match in IDENTIFYING.finditer(text):
+            context = text[max(0, match.start() - 3):match.end() + 3]
+            if ALLOWED.search(context) and match.group(0).lower() == "arion":
+                continue
+            if match.group(0).lower() in ("@bench.com", "github.com", "bremen") and BENIGN.search(
+                    text[max(0, match.start() - 20):match.end() + 20]):
+                continue
+            line = text.count("\n", 0, match.start()) + 1
+            hits.append(f"{path.relative_to(bundle)}:{line}: {text[max(0, match.start() - 40):match.end() + 40]!r}")
+    return hits
+
+
+def fingerprint(bundle: Path) -> str:
+    digest = hashlib.sha256()
+    for path in sorted(p for p in (bundle / "code").rglob("*") if p.is_file()):
+        digest.update(str(path.relative_to(bundle)).encode())
+        digest.update(path.read_bytes())
+    return digest.hexdigest()[:16]
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("output")
+    parser.add_argument("--results", help="results directory of the measured run, copied to results/")
+    parser.add_argument("--draft", action="store_true",
+                        help="allow TODO-AUTHORS markers (for the measured run; not for submission)")
+    arguments = parser.parse_args()
+    output = Path(arguments.output).resolve()
+    bundle = output / NAME
+    if bundle.exists():
+        shutil.rmtree(bundle)
+    for repository, commit, paths, destination, _ in SOURCES:
+        export(repository, commit, paths, bundle / destination)
+    # git archive keeps the "krrood/" prefix; the experiments and ripple_down_rules exports have none.
+    for excluded in EXCLUDE:
+        (bundle / excluded).unlink(missing_ok=True)
+    shutil.copytree(LISTINGS, bundle / "listings",
+                    ignore=shutil.ignore_patterns("__pycache__", ".pytest_cache", "probe_*.py"))
+    for name in ("Dockerfile", "compose.yaml", "reproduce.sh", "README.md", "AI_USE.md", ".dockerignore"):
+        shutil.copy(HERE / name, bundle / name)
+    shutil.copytree(HERE / "environment", bundle / "environment")
+    if arguments.results:
+        shutil.copytree(arguments.results, bundle / "results")
+    sanitize(bundle)
+    (bundle / "environment" / "BUNDLE").write_text(fingerprint(bundle) + "\n")
+    hits = scan(bundle)
+    if not arguments.draft:
+        hits += [f"{p.relative_to(bundle)}: unresolved TODO-AUTHORS" for p in bundle.rglob("*.md")
+                 if "TODO-AUTHORS" in p.read_text()]
+    if hits:
+        print("identifying strings found:", *hits, sep="\n  ")
+        sys.exit(1)
+    archive = output / f"{NAME}.zip"
+    archive.unlink(missing_ok=True)
+    with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipped:
+        for path in sorted(bundle.rglob("*")):
+            info = zipfile.ZipInfo.from_file(path, path.relative_to(output))
+            info.date_time = (2026, 10, 8, 0, 0, 0)
+            if path.is_dir():
+                continue
+            with open(path, "rb") as source:
+                zipped.writestr(info, source.read(), zipfile.ZIP_DEFLATED)
+    size = archive.stat().st_size
+    print(f"{archive} {size / 2**20:.1f} MB, bundle {fingerprint(bundle)}")
+    if size > 25 * 10**6:
+        sys.exit("the zip exceeds 25 MB")
+
+
+if __name__ == "__main__":
+    main()
