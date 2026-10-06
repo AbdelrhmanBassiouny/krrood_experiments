@@ -35,7 +35,7 @@ LOADING_ROWS = [
     ("protege", "Prot\\'eg\\'e"),
     ("graphdb", "GraphDB"),
     ("krrood_ormatic", "KRROOD + ORMatic"),
-    ("krrood_eager_symmetric_transitive", "KRROOD, eager chaining (ablation)"),
+    ("krrood_eager_symmetric_transitive", "Eager chaining"),
 ]
 """
 Systems of the loading table in display order (system key, label).
@@ -59,6 +59,8 @@ def mean_std(values: List[float]) -> Tuple[float, float]:
 
 
 def format_seconds(value: float) -> str:
+    if value >= 100:
+        return f"{value:.0f}"
     return f"{value:.1f}" if value >= 10 else f"{value:.2f}"
 
 
@@ -152,11 +154,11 @@ def loading_table(loading: Optional[Dict[str, Any]], protege: Optional[Dict[str,
         csv_rows.append(["loading", label, raw_time, raw_memory, reasoned_time, reasoned_memory])
     latex = "\n".join(
         [
-            "\\begin{tabular}{lllll}",
+            "\\begin{tabular}{@{}lrrrr@{}}",
             "\\toprule",
-            "\\textbf{Framework} & \\multicolumn{2}{l}{\\textbf{Loading + Reasoning Raw}} & "
-            "\\multicolumn{2}{l}{\\textbf{Loading + Reasoning Reasoned}}\\\\",
-            " & \\textbf{Time [s]} & \\textbf{Peak memory} & \\textbf{Time [s]} & \\textbf{Peak memory}\\\\",
+            " & \\multicolumn{2}{c}{\\textbf{Raw input}} & \\multicolumn{2}{c}{\\textbf{Pre-reasoned input}}\\\\",
+            "\\cmidrule(lr){2-3}\\cmidrule(l){4-5}",
+            "\\textbf{System} & \\textbf{Time [s]} & \\textbf{Memory} & \\textbf{Time [s]} & \\textbf{Memory}\\\\",
             "\\midrule",
             *rows,
             "\\bottomrule",
