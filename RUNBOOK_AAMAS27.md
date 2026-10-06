@@ -511,13 +511,18 @@ All 3667 named individuals of the closure are represented in KRROOD.
 | + component facts through the relation path (2f721b0fbc) | 35.94 ± 0.19 | 961 MB |
 | + no class-name typing (a6d22a95aa; separate 5 runs) | 35.69 ± 0.38 | 961 MB |
 | + relation path only for properties that imply others (b21251fb9a; separate 5 runs) | 16.46 ± 0.53 | 338 MB |
-| + facts stored on the declaring object of the individual, relations looked up once per field name (7e0c77ec63, branch head; separate 5 runs) | 16.54 ± 0.47 | 325 MB |
+| + facts stored on the declaring object of the individual, relations looked up once per field name (7e0c77ec63; separate 5 runs) | 16.54 ± 0.47 | 325 MB |
+| 59b48844e9 (asserted facts by range), interleaved with the next row | 17.68 ± 0.27 | 326 MB |
+| + remaining OWL 2 RL rules and the set index of the typing phase (ec7c922b9f, branch head) | 17.41 ± 0.58 | 339 MB |
+
+On the reasoned input (one run each): 59b48844e9 381 s / 1.93 GB, ec7c922b9f 180 s / 1.98 GB (the typing phase
+no longer scans value lists, which is quadratic on the 1.4 million materialised statements).
 
 **Loading + reasoning of the raw data, one fresh process each (peak RSS of the process tree):**
 
 | System | Time [s] | Peak memory |
 |--------|----------|-------------|
-| KRROOD (branch head) | 16.5 (see above) | 325 MB |
+| KRROOD (branch head) | 17.4 (see above) | 339 MB |
 | KRROOD + ORMatic, persisting into PostgreSQL (a6d22a95aa)* | 34.6 loading + 44.1 persisting | 2.16 GB |
 | owlready2 + Pellet (Java heap 2000 MB)* | 61.1 | 2.26 GB |
 | RDFLib + owlrl* | did not finish within the 30 min cap | 860 MB when stopped |
