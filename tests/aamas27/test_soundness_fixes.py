@@ -21,6 +21,7 @@ from krrood.ontomatic.ontology_to_python.owl_instances_loader import (
     OwlLoader,
     TypeInferredThrough,
 )
+from krrood.ontomatic.property_descriptor.property_descriptor import PropertyDescriptor
 from krrood.ontomatic.property_descriptor.property_descriptor_relation import (
     InferredThrough,
     PropertyDescriptorRelation,
@@ -301,3 +302,52 @@ def test_relations_by_descriptor_class_are_yielded_once(registry):
     relations = list(graph.get_outgoing_relations_by_descriptor_class(node, properties.WorksFor))
     assert relations
     assert len(relations) == len({id(relation) for relation in relations})
+
+
+def test_asserted_facts_are_stored_where_the_declared_range_admits_the_value(registry):
+    """
+    U0C1D2SS2 is a BasketBallLover and loves ThrillerMovie. The BasketBallLover role declares loves with the range
+    BasketBall, its role taker Person with the range Interest. The movie must be stored on the person whichever object
+    of the individual the loader sees first; before the fix it was stored on the role in some runs (the order of the
+    roles varies between processes), and persisting with ORMatic failed with a FlushError.
+    """
+    objects = objects_of(registry, "U0C1D2SS2")
+    lover = next(o for o in objects if isinstance(o, model.BasketBallLover))
+    person = PropertyDescriptorRelation.root_role_taker(lover)
+    movie = objects_of(registry, "ThrillerMovie")[0]
+    assert any(value is movie for value in person.loves)
+    assert all(isinstance(value, model.BasketBall) for value in lover.loves)
+    for individual_object in objects:
+        holder, descriptor = PropertyDescriptorRelation.declaring_object(
+            individual_object, properties.Loves, movie
+        )
+        assert holder is person and descriptor.domain is model.Person
+
+
+def test_stored_values_are_in_the_range_declared_by_the_holder(registry):
+    """
+    Every value of an attribute managed by a property descriptor belongs to an individual that has an object of the
+    range the holder's class declares (a value may be stored as the role taker of such an object, e.g. the person
+    behind a Chair role). Values outside the range break the ORMatic schema.
+    """
+    declarations = {}
+    for descriptors in PropertyDescriptor.descriptor_instances_by_domain_type.values():
+        for domain, descriptor in descriptors.items():
+            declarations.setdefault(domain, {})[descriptor.wrapped_field.name] = descriptor
+    unique_objects = {id(o): o for objects in registry._by_uri.values() for o in objects}
+    outside = Counter()
+    for individual_object in unique_objects.values():
+        declared = {}
+        for cls in reversed(type(individual_object).__mro__):
+            declared.update(declarations.get(cls, {}))
+        for field_name, descriptor in declared.items():
+            value = getattr(individual_object, field_name, None)
+            values = value if isinstance(value, (set, list)) else [value]
+            for v in values:
+                if v is None or not hasattr(v, "uri"):
+                    continue
+                if not any(
+                    isinstance(o, descriptor.range) for o in PropertyDescriptorRelation.objects_of_individual(v)
+                ):
+                    outside[(type(individual_object).__name__, field_name, type(v).__name__)] += 1
+    assert not outside, outside.most_common(10)
