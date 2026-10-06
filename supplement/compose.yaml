@@ -33,4 +33,10 @@ services:
     volumes:
       - ./state:/state
       # check and all need a GraphDB license file (README.md); without one, reproduce.sh stops and says so.
-      - ${GRAPHDB_LICENSE:-/dev/null}:/license/graphdb.license:ro
+      # A path that does not exist is an error here, instead of Docker creating an empty folder there.
+      - type: bind
+        source: ${GRAPHDB_LICENSE:-/dev/null}
+        target: /license/graphdb.license
+        read_only: true
+        bind:
+          create_host_path: false

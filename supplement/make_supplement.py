@@ -130,6 +130,8 @@ def main() -> None:
     parser.add_argument("--draft", action="store_true",
                         help="allow TODO-AUTHORS markers (for the measured run; not for submission)")
     arguments = parser.parse_args()
+    if not arguments.draft and not arguments.results:
+        sys.exit("the submission bundle needs the measured results: pass --results (or --draft for a test bundle)")
     output = Path(arguments.output).resolve()
     bundle = output / NAME
     if bundle.exists():

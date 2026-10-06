@@ -73,7 +73,10 @@ graphdb_is_up() {
 }
 
 start_graphdb() {
-    [[ -f /license/graphdb.license ]] || fail "no GraphDB license mounted (set GRAPHDB_LICENSE, see README.md)"
+    if [[ -d /license/graphdb.license ]]; then
+        fail "GRAPHDB_LICENSE names a folder, not a license file (see README.md)"
+    fi
+    [[ -f /license/graphdb.license ]]         || fail "no GraphDB license mounted: set GRAPHDB_LICENSE to the full path of your license file (see README.md)"
     mkdir -p /state/graphdb-home
     GDB_HEAP_SIZE="$GRAPHDB_HEAP" /opt/graphdb/dist/bin/graphdb -d -p /state/graphdb.pid \
         -Dgraphdb.home=/state/graphdb-home -Dgraphdb.license.file=/license/graphdb.license \
