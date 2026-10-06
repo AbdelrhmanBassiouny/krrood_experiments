@@ -25,9 +25,25 @@ PROJECT=krrood-aamas27-supplement
 say() { printf '\n==> %s\n' "$*"; }
 die() { printf '\nERROR: %s\n' "$*" >&2; exit 1; }
 
+# Stops instead of answering "no" when Docker can't be asked: the caller would then replace the bundle of a run
+# that is going and start a second run on top of it.
 run_is_going() {
-    command -v docker >/dev/null && docker ps -q --filter "label=com.docker.compose.project=$PROJECT" \
-        --filter "label=com.docker.compose.service=experiments" 2>/dev/null | grep -q .
+    command -v docker >/dev/null || return 1   # no Docker, so no run
+    local containers
+    containers="$(docker ps -q --filter "label=com.docker.compose.project=$PROJECT" \
+        --filter "label=com.docker.compose.service=experiments")" \
+        || die "can't ask Docker whether a run is going (docker ps failed, see above). If it says permission denied:
+       log out and back in, or run 'newgrp docker' in this terminal, then run this script again."
+    [[ -n "$containers" ]]
+}
+
+# The docker group applies only to new logins: continue in a shell that has it.
+use_docker_group() {
+    if command -v docker >/dev/null && ! docker info >/dev/null 2>&1 && [[ -z "${AAMAS27_IN_SG:-}" ]] \
+        && getent group docker | cut -d: -f4 | tr ',' '\n' | grep -qx "$USER"; then
+        say "Continuing with the docker group active (no need to log out)"
+        exec env AAMAS27_IN_SG=1 sg docker -c "bash $(printf '%q' "$0") $(printf '%q ' "$@")"
+    fi
 }
 
 # --- 1. Docker ---------------------------------------------------------------------------------------------
@@ -45,14 +61,9 @@ install_docker() {
         say "Adding $USER to the docker group"
         sudo usermod -aG docker "$USER"
     fi
-    if ! docker info >/dev/null 2>&1; then
-        # The group change applies only to new logins: continue in a shell that has the group.
-        if [[ -z "${AAMAS27_IN_SG:-}" ]]; then
-            say "Continuing with the docker group active (no need to log out)"
-            exec env AAMAS27_IN_SG=1 sg docker -c "bash $(printf '%q' "$0") $(printf '%q ' "$@")"
-        fi
-        die "Docker still says permission denied. Log out and back in (or reboot), then run this script again."
-    fi
+    use_docker_group "$@"
+    docker info >/dev/null 2>&1 \
+        || die "Docker still says permission denied. Log out and back in (or reboot), then run this script again."
     docker compose version
 }
 
@@ -329,18 +340,23 @@ tables() {
 }
 
 case "$MODE" in
-    status) status; exit 0 ;;
-    tables) install_docker "$@"; tables; exit 0 ;;
+    status) use_docker_group "$@"; status; exit 0 ;;
+    tables)
+        install_docker "$@"
+        if run_is_going; then die "the run is still going; make the tables after it has finished"; fi
+        tables
+        exit 0
+        ;;
     start | --dry-run) ;;
     *) die "unknown mode $MODE (use: no argument, status, tables, --dry-run)" ;;
 esac
 
+install_docker "$@"
 if run_is_going; then
     say "A run is already going; not starting another."
     status
     exit 0
 fi
-install_docker "$@"
 find_license
 find_zip
 check_disk
