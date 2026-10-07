@@ -34,6 +34,12 @@ measurement scripts, the tests, and the Docker set-up of this supplementary mate
 * running every system in its own process, and measuring peak memory as the peak resident set size of the process
   tree sampled every 50 ms (for GraphDB, of its server);
 * the two-hour limit of the ablation.
+* in reply to a review written by an AI tool at the authors' request: the in-memory baselines Nemo (with OWL 2 RL/RDF
+  rules written by the AI tool) and reasonable, the comparison of their closures with GraphDB's, and the agent loop
+  (Section 7.4): its scenario, the variants built with GraphDB and reasonable, the measures (time per phase,
+  statements written, round trips, lines of synchronization and mapping code) and the comparison of decisions in
+  every step; the authors chose which of the proposed experiments to run, the scenario (a delivery robot) and that
+  removals are excluded and the exclusion stated;
 
 **Analysis and text**: the statements and proof sketches of Propositions 5.1 and 5.2 and Algorithm 1 were drafted
 by the AI tool from the code and revised by the authors; the AI tool also drafted and revised other parts of the
@@ -101,5 +107,12 @@ geometric mean and shorter than SQLAlchemy's on five queries. The paper makes no
 
 > Do you think it's better if we make all this run in a docker? so add a docker script with all needed instructions
 > and that's what we ship?
+
+> [Given a review of the paper, written by an AI tool at the authors' request:] I want to address this review as
+> much as we can.
+
+> I want a something that supports oop and agentic AI and robotics from krrood, with computables, functions and
+> predicates. I want to show the seemlessness of that and how it would look like woth other technologies and the
+> synchronization required for it, what do you think?
 
 The complete session logs are kept by the authors.
