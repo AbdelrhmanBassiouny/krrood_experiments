@@ -217,14 +217,16 @@ def main() -> None:
         subprocess.run([sys.executable, str(HERE / "tools" / "report.py"), str(bundle / "results"),
                         str(bundle / "results"), "paper", str(bundle / "results" / "REPORT.md")],
                        check=True, capture_output=True)
+    # The code taken from an earlier bundle must be that bundle's; sanitizing may change it only in its comments.
+    before_sanitizing = fingerprint(bundle)
     sanitize(bundle)
     (bundle / "environment" / "BUNDLE").write_text(fingerprint(bundle) + "\n")
     if arguments.code_from:
         source = Path(arguments.code_from)
         earlier = (zipfile.ZipFile(source).read(f"{NAME}/environment/BUNDLE").decode() if source.suffix == ".zip"
                    else (source / "environment" / "BUNDLE").read_text()).strip()
-        if fingerprint(bundle) != earlier:
-            sys.exit(f"the code differs from that of {source} ({fingerprint(bundle)} instead of {earlier})")
+        if before_sanitizing != earlier:
+            sys.exit(f"the code differs from that of {source} ({before_sanitizing} instead of {earlier})")
     hits = scan(bundle)
     # A GraphDB license names its licensee; it must never be shipped.
     hits += [f"{p.relative_to(bundle)}: license file" for p in bundle.rglob("*")
