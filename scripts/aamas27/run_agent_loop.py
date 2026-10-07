@@ -232,7 +232,8 @@ def main() -> int:
     parser.add_argument("--timeout-seconds", type=float, default=6 * 3600)
     parser.add_argument("--resume", action="store_true",
                         help="keep every variant already in the summary of --results-dir and run only the missing "
-                             "ones of --variants")
+                             "ones of --variants; in a new results directory, keep a GraphDB state file copied "
+                             "into it, so that the GraphDB variants reuse the loaded repository")
     arguments = parser.parse_args()
 
     variants = [v for v in arguments.variants.split(",") if v]
@@ -260,7 +261,10 @@ def main() -> int:
         summary["previous_arguments"] = previous.get("previous_arguments", []) + [previous["arguments"]]
     else:
         scenario.write(scenario_file)
-        (results_directory / "graphdb_repository_state.json").unlink(missing_ok=True)
+        if not arguments.resume:
+            # With --resume, a state file copied into a new results directory lets GraphDB's variants reuse the
+            # repository; they check that its statement counts are those right after loading.
+            (results_directory / "graphdb_repository_state.json").unlink(missing_ok=True)
 
     reference_result: Optional[Dict[str, Any]] = None
     if variants[0] in summary["variants"]:
