@@ -429,6 +429,66 @@ def agent_loop_table() -> Optional[Table]:
     return table.without([10]) if OWN else table
 
 
+def agent_loop_seeds_table() -> Optional[Table]:
+    seeds = load(RUN / "agent_loop" / "agent_loop_seeds.json")
+    if not seeds:
+        return None
+    rows = []
+    for name, label in AGENT_LOOP_VARIANTS:
+        variant = seeds["variants"].get(name)
+        if not variant:
+            continue
+        interval = variant["median_step_ms_95ci"]
+        per_step = variant["median_per_step"]
+        agrees = ("reference" if variant["equal_actions"] is None
+                  else f"{variant['equal_actions']}/{variant['steps_compared']}")
+        rows.append([label, ", ".join(map(str, variant["seeds"])), str(variant["steps"]),
+                     f"{variant['median_step_ms']:.1f}",
+                     f"{interval[0]:.1f}-{interval[1]:.1f}" if interval else "–",
+                     "-".join(f"{x:.1f}" for x in (min(variant["per_seed_median_step_ms"]),
+                                                   max(variant["per_seed_median_step_ms"]))),
+                     f"{variant['median_phase_ms']['update']:.2f}", f"{variant['median_phase_ms']['query']:.1f}",
+                     f"{per_step['round_trips']:.0f}",
+                     (f"0 ({per_step['statements_inserted']:.0f} assigned)" if name.startswith("krrood")
+                      else f"{per_step['statements_inserted'] + per_step['statements_deleted']:.0f}"),
+                     "/".join(str(variant["boundary_lines"]["per_category"][c])
+                              for c in ("synchronization", "mapping", "procedure_integration")), agrees])
+    caption = ("The agent loop over all seeds (scripts/aamas27/aggregate_agent_loop_seeds.py): medians over all steps of "
+               "all seeds, a 95% bootstrap interval of the median step (seeds resampled, then steps), the range of the "
+               "seeds' medians, the median update and query phases, round trips and statements written to another store "
+               "per step, boundary lines (synchronization/mapping/procedure integration), and the steps in which the "
+               "variant took KRROOD's action.")
+    return Table("Agent loop over five seeds (paper, Table 4)", caption,
+                 ["Variant", "Seeds", "Steps", "Step [ms]", "95% interval", "Seed medians", "Update [ms]", "Query [ms]",
+                  "Round trips", "Written", "Boundary lines", "Same action"], rows, right=[2, 3, 4, 5, 6, 7, 8, 9])
+
+
+def runtime_audit_table() -> Optional[Table]:
+    audit = load(RUN / "runtime_audit" / "runtime_audit.json")
+    if not audit:
+        return None
+    rows = []
+    for seed, entry in sorted(audit["seeds"].items(), key=lambda item: int(item[0])):
+        for checkpoint in entry["checkpoints"]:
+            kinds = checkpoint["kinds"]
+            missing = kinds["class"]["missing_by_name"]
+            rows.append([seed, str(checkpoint["steps"]), f"{checkpoint['facts']['reference']:,}",
+                         str(checkpoint["facts"]["extra"]), str(kinds["object"]["missing"]),
+                         str(kinds["data"]["missing"]), str(kinds["class"]["missing"]),
+                         ", ".join(f"{name} {count}" for name, count in sorted(missing.items())) or "–"])
+    caption = ("The knowledge base of KRROOD's agent loop at runtime (scripts/aamas27/run_runtime_audit.py), compared after "
+               "the given number of steps with Nemo's OWL 2 RL closure of the raw data and the facts perceived so far, "
+               "normalised as in the comparison with GraphDB's closure. \"Extra\": facts of KRROOD that the closure "
+               "lacks; \"missing\": facts of the closure that KRROOD lacks. Proposition 3 of the paper covers property "
+               "facts; class memberships are not derived at runtime. Of the missing classes, T20CricketFan is answered "
+               "by its axiom; the axioms of SportsFan, SportsLover and PeopleWithHobby, existential restrictions, are "
+               "written for the proxies of loading (they read candidate.types), so this version evaluates them only "
+               "when loading (runtime_audit.json, on_demand_class_answers).")
+    return Table("Runtime audit: the knowledge base while the robot runs (paper, Section 7.1)", caption,
+                 ["Seed", "Steps", "Facts (closure)", "Extra", "Missing object", "Missing data", "Missing class",
+                  "Missing classes"], rows, right=[1, 2, 3, 4, 5, 6])
+
+
 # --- Query size ----------------------------------------------------------------------------------------------------
 
 def query_size_table() -> Optional[Table]:
@@ -469,7 +529,7 @@ def main() -> None:
     bundle = (RUN / "BUNDLE").read_text().strip() if (RUN / "BUNDLE").exists() else "?"
     graphdb = (RUN / "graphdb_used").exists()
     tables = [t for t in (test_table(), answer_table(), audit_table(), baseline_closure_table(), loading_table(), query_table(),
-                          scaling_table(), agent_loop_table(), query_size_table(), skipped_table()) if t]
+                          scaling_table(), agent_loop_table(), agent_loop_seeds_table(), runtime_audit_table(), query_size_table(), skipped_table()) if t]
     skipped = (RUN / "skipped.txt").read_text() if (RUN / "skipped.txt").exists() else ""
     title = f"KRROOD supplementary material: results of mode {MODE}"
     intro = [f"Bundle {bundle}, {datetime.now().astimezone():%Y-%m-%d %H:%M %Z}. GraphDB: "

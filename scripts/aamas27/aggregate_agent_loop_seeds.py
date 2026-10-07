@@ -68,6 +68,9 @@ def main() -> None:
             "all_agree": None if agreements[0] is None else all(a["all_agree"] for a in agreements),
             "equal_actions": None if agreements[0] is None else sum(a["equal_actions"] for a in agreements),
             "steps_compared": None if agreements[0] is None else sum(a["steps_compared"] for a in agreements),
+            "median_per_step": {counter: statistics.median(r[counter] for d in runs for r in records[d])
+                                for counter in ("round_trips", "statements_inserted", "statements_deleted",
+                                                "reasoner_calls")},
             "boundary_lines": entry["code"]["boundary_lines"],
             "setup_seconds": [summaries[d]["variants"][variant]["setup"].get("total_seconds") for d in runs],
         }
