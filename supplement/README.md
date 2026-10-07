@@ -58,11 +58,12 @@ Quick mode:
    (`25 passed`, then `1 passed` for the ORMatic listing of Section 6);
 2. runs eager chaining, the ablation "KRROOD without step 5", on the OWL2Bench TBox with small synthetic data
    (`9 passed`: it terminates, derives the same facts as step 5, each fact once) and measures how its work grows
-   with the size of a group of persons who share a home town (cubically; Table 6 of the report);
+   with the size of a group of persons who share a home town (cubically; a table of the report);
 3. loads OWL2Bench into KRROOD, runs the 18 queries in EQL (in working memory) and in SQL (over the objects that
    ORMatic persisted in PostgreSQL), and compares each answer set with the one GraphDB returned in our run
    (`results/check/answers/graphdb/`);
-4. measures KRROOD's loading and reasoning from the raw data (5 runs) and its memory increase.
+4. measures the loading and reasoning of KRROOD and of Nemo, an in-memory Datalog engine with the OWL 2 RL/RDF
+   rules, from the raw data (5 runs each), and their memory increase.
 
 The run succeeded if it ends with `finished mode quick`. A failure stops it with a line starting with `FAILED:`,
 which says what went wrong, followed by the report of what was finished.
@@ -127,11 +128,20 @@ With a GraphDB license, `full`:
 * **query time** (Table 4): 18 queries x 10 repetitions, for EQL, SQL (SQLAlchemy over the ORMatic schema in
   PostgreSQL), GraphDB, RDFLib and Owlready2 (`queries/queries.json`);
 * **loading and reasoning** (Table 3), from the raw and the pre-reasoned data: KRROOD (5 runs), KRROOD + ORMatic
-  (5 runs), Owlready2 + Pellet (5 runs), RDFLib + owlrl (1 run, 3 h limit) and GraphDB (1 run)
-  (`loading/loading.json`). Memory is the increase during loading: the peak resident set size of the process tree,
+  (5 runs), Owlready2 + Pellet (5 runs), RDFLib + owlrl (1 run, 3 h limit), GraphDB (1 run), and two in-memory
+  baselines (5 runs, 24 GiB limit, `BASELINE_MEMORY_LIMIT_GIB`): Nemo 0.10.1, a Datalog engine, with the OWL 2 RL/RDF
+  rules written for it (`code/earlier/experiments/src/krrood_experiments/aamas27/owl2rl.rls`), and reasonable 0.4.4,
+  an OWL 2 RL reasoner written in Rust (`loading/loading.json`). Memory is the increase during loading: the peak resident set size of the process tree,
   sampled every 50 ms, minus that of a fresh worker after its imports (`memory/import_memory.json`); for KRROOD +
   ORMatic without the PostgreSQL server, which runs in its own container. GraphDB's server has a fixed heap, so
   for GraphDB it is the increase of its Java heap in use, from its GC log (`memory/graphdb_heap.json`);
+* **the closures of Nemo and reasonable** from the raw data, compared with GraphDB's closure as KRROOD's knowledge
+  base is (`baselines/closure_comparison.json`). Nemo's equals it. reasonable 0.4.4 applies the rule prp-ifp to any
+  two subjects of an inverse-functional property, even with different objects, and so merges the heads of
+  organizations, and it derives no facts from property chains. Nemo's rules follow the specification
+  (Section 4.3 of OWL 2 Profiles) with two rewrites, commented in the file, without which Nemo did not finish:
+  rule bodies use one predicate per RDF vocabulary term instead of a single triple predicate, and transitivity is
+  written as a linear recursion. Neither changes what is derived;
 * **the ablation** that replaces step 5 of Algorithm 1 by forward chaining on every assignment (raw data, 1 run,
   2 h limit), and the same on small data as in quick mode.
 

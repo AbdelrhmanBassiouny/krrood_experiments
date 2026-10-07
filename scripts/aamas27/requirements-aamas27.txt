@@ -3,6 +3,8 @@
 # (~/.virtualenvs/krrood_experiments on the authors' machine) where known.
 rdflib==7.4.0
 owlrl==7.1.4
+# In-memory OWL 2 RL baseline (reasonable_owlrl); the Nemo baseline (nemo_owlrl) needs the nmo binary, see supplement/Dockerfile.
+reasonable==0.4.4
 owlready2==0.49
 SQLAlchemy==2.0.44
 SPARQLWrapper==2.0.0

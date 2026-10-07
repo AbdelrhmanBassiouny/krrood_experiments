@@ -48,6 +48,7 @@ python-dateutil==2.9.0.post0
 pytokens==0.4.1
 PyYAML==6.0.3
 rdflib==7.4.0
+reasonable==0.4.4
 requests==2.34.2
 rustworkx==0.17.1
 six==1.17.0

@@ -13,6 +13,9 @@ IMPORTS = {
     "krrood": "from krrood_experiments.aamas27 import loading_worker as w; w._import_krrood()",
     "owlready2_pellet": "import krrood_experiments.aamas27.loading_worker, owlready2",
     "rdflib_owlrl": "import krrood_experiments.aamas27.loading_worker, owlrl, rdflib",
+    "reasonable_owlrl": "import krrood_experiments.aamas27.loading_worker, rdflib, reasonable",
+    # The Nemo worker imports nothing beyond the worker module; the nmo child process is part of the measured tree.
+    "nemo_owlrl": "import krrood_experiments.aamas27.loading_worker",
 }
 PROBE = "; import resource; print(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)"
 result = {}

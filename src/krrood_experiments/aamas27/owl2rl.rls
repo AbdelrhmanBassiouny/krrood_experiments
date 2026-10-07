@@ -1,0 +1,455 @@
+% OWL 2 RL/RDF rules (W3C OWL 2 Web Ontology Language Profiles, 2nd edition, Section 4.3, Tables 4-9) in the rule
+% language of Nemo (https://github.com/knowsys/nemo, tested with v0.10.1).
+%
+% Usage:  nmo -o -D OUTPUT_DIR --param 'input="DATA.rdf"' owl2rl.rls
+%
+% The input may be RDF/XML, N-Triples or Turtle (Nemo picks the parser from the file extension). Every input triple is
+% imported into input/3, and the materialised closure is the predicate triple/3. Blank nodes of the input become
+% Nemo nulls, so they join like any other term. The closure is exported as N-Triples to OUTPUT_DIR/closure.nt, and the
+% rules whose head is "false" in the specification derive facts of inconsistent/4 (rule name and up to three witness
+% terms, unused positions hold ""), exported to OUTPUT_DIR/inconsistent.csv.
+%
+% Coverage. Every rule of Tables 4, 5, 6, 7 and 9 is implemented; the list-based ones (eq-diff2/3, prp-spo2, prp-adp,
+% prp-key, cls-int1/2, cls-uni, cls-oo, cax-adc, scm-int, scm-uni) use recursive helper predicates over rdf:first and
+% rdf:rest. Of Table 8 (datatypes) only dt-type1 is implemented: dt-type2 (types of literals), dt-eq and dt-diff
+% (equality of literals by value) and dt-not-type (ill-typed literals) are not. Nemo itself normalises numeric
+% literals by value (e.g. "1"^^xsd:nonNegativeInteger is read as the integer 1 and exported as "1"^^xsd:int).
+%
+% Evaluation choices that do not change the set of derived facts:
+% * Rule bodies test the OWL/RDFS vocabulary through binary and unary views of triple/3 (rdf_type/2, sub_class_of/2,
+%   functional_property/1, ...). With triple/3 alone, Nemo 0.10.1 picks join orders for some multi-atom rules that
+%   do not finish on OWL2Bench (scm-hv ran for more than ten minutes, cls-com for more than two before we stopped
+%   them; with the views the whole program takes seconds).
+% * eq-ref is applied to subjects, predicates and non-literal objects. Its reflexive owl:sameAs facts are not used by
+%   eq-rep-* (same_as/2 holds the non-reflexive pairs), since replacing a term by itself derives nothing new. For the
+%   same reason prp-spo1, prp-eqp1/2, cax-sco and cax-eqc1/2 skip reflexive schema facts (scm-cls, scm-op, scm-dp).
+% * prp-trp is evaluated as a linear recursion, see the comment at the rule.
+
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+@parameter $input = "input.nt" .
+@import input :- rdf{resource = $input} .
+@export triple :- ntriples{resource = "closure.nt"} .
+@export inconsistent :- csv{resource = "inconsistent.csv"} .
+
+% The closure. derived/3 holds the input and the conclusions of every rule except prp-symp and prp-trp; triple/3 adds
+% the conclusions of those two (see prp-trp for why they are kept apart).
+derived(?s, ?p, ?o) :- input(?s, ?p, ?o) .
+triple(?s, ?p, ?o) :- derived(?s, ?p, ?o) .
+
+% ---------------------------------------------------------------------------------------------------------------------
+% Views of the vocabulary used in rule bodies.
+% ---------------------------------------------------------------------------------------------------------------------
+
+rdf_type(?x, ?c) :- triple(?x, rdf:type, ?c) .
+first(?l, ?e) :- triple(?l, rdf:first, ?e) .
+rest(?l, ?r) :- triple(?l, rdf:rest, ?r) .
+sub_class_of(?c1, ?c2) :- triple(?c1, rdfs:subClassOf, ?c2) .
+sub_property_of(?p1, ?p2) :- triple(?p1, rdfs:subPropertyOf, ?p2) .
+domain(?p, ?c) :- triple(?p, rdfs:domain, ?c) .
+range(?p, ?c) :- triple(?p, rdfs:range, ?c) .
+equivalent_class(?c1, ?c2) :- triple(?c1, owl:equivalentClass, ?c2) .
+equivalent_property(?p1, ?p2) :- triple(?p1, owl:equivalentProperty, ?p2) .
+disjoint_with(?c1, ?c2) :- triple(?c1, owl:disjointWith, ?c2) .
+property_disjoint_with(?p1, ?p2) :- triple(?p1, owl:propertyDisjointWith, ?p2) .
+inverse_of(?p1, ?p2) :- triple(?p1, owl:inverseOf, ?p2) .
+same_as_any(?x, ?y) :- triple(?x, owl:sameAs, ?y) .
+different_from(?x, ?y) :- triple(?x, owl:differentFrom, ?y) .
+members(?x, ?l) :- triple(?x, owl:members, ?l) .
+distinct_members(?x, ?l) :- triple(?x, owl:distinctMembers, ?l) .
+property_chain_axiom(?p, ?l) :- triple(?p, owl:propertyChainAxiom, ?l) .
+has_key(?c, ?l) :- triple(?c, owl:hasKey, ?l) .
+source_individual(?x, ?i) :- triple(?x, owl:sourceIndividual, ?i) .
+assertion_property(?x, ?p) :- triple(?x, owl:assertionProperty, ?p) .
+target_individual(?x, ?i) :- triple(?x, owl:targetIndividual, ?i) .
+target_value(?x, ?v) :- triple(?x, owl:targetValue, ?v) .
+intersection_of(?c, ?l) :- triple(?c, owl:intersectionOf, ?l) .
+union_of(?c, ?l) :- triple(?c, owl:unionOf, ?l) .
+complement_of(?c1, ?c2) :- triple(?c1, owl:complementOf, ?c2) .
+some_values_from(?x, ?y) :- triple(?x, owl:someValuesFrom, ?y) .
+all_values_from(?x, ?y) :- triple(?x, owl:allValuesFrom, ?y) .
+has_value(?x, ?y) :- triple(?x, owl:hasValue, ?y) .
+on_property(?x, ?p) :- triple(?x, owl:onProperty, ?p) .
+on_class(?x, ?c) :- triple(?x, owl:onClass, ?c) .
+max_cardinality(?x, ?n) :- triple(?x, owl:maxCardinality, ?n) .
+max_qualified_cardinality(?x, ?n) :- triple(?x, owl:maxQualifiedCardinality, ?n) .
+one_of(?c, ?l) :- triple(?c, owl:oneOf, ?l) .
+
+owl_class(?c) :- rdf_type(?c, owl:Class) .
+object_property(?p) :- rdf_type(?p, owl:ObjectProperty) .
+datatype_property(?p) :- rdf_type(?p, owl:DatatypeProperty) .
+functional_property(?p) :- rdf_type(?p, owl:FunctionalProperty) .
+inverse_functional_property(?p) :- rdf_type(?p, owl:InverseFunctionalProperty) .
+irreflexive_property(?p) :- rdf_type(?p, owl:IrreflexiveProperty) .
+symmetric_property(?p) :- rdf_type(?p, owl:SymmetricProperty) .
+asymmetric_property(?p) :- rdf_type(?p, owl:AsymmetricProperty) .
+transitive_property(?p) :- rdf_type(?p, owl:TransitiveProperty) .
+all_different(?x) :- rdf_type(?x, owl:AllDifferent) .
+all_disjoint_properties(?x) :- rdf_type(?x, owl:AllDisjointProperties) .
+all_disjoint_classes(?x) :- rdf_type(?x, owl:AllDisjointClasses) .
+
+% ---------------------------------------------------------------------------------------------------------------------
+% Helper predicates for RDF lists.
+% ---------------------------------------------------------------------------------------------------------------------
+
+% list_member(?list, ?element): ?element is a member of the list that starts at node ?list.
+list_member(?l, ?e) :- first(?l, ?e) .
+list_member(?l, ?e) :- rest(?l, ?r), list_member(?r, ?e) .
+
+% list_node(?list, ?node): ?node is a node of the list that starts at ?list. Positions are identified by nodes, so
+% "i != j" in the specification is ?n1 != ?n2.
+list_node(?l, ?l) :- first(?l, ?e) .
+list_node(?l, ?n) :- rest(?l, ?r), list_node(?r, ?n) .
+
+% list_distinct_pair(?list, ?a, ?b): ?a and ?b are elements of ?list at two different positions.
+list_distinct_pair(?l, ?a, ?b) :- list_node(?l, ?n1), list_node(?l, ?n2), ?n1 != ?n2, first(?n1, ?a), first(?n2, ?b) .
+
+% ---------------------------------------------------------------------------------------------------------------------
+% Table 4. The semantics of equality.
+% ---------------------------------------------------------------------------------------------------------------------
+
+% eq-ref (not for literals in object position, which cannot be RDF subjects)
+derived(?s, owl:sameAs, ?s) :- triple(?s, ?p, ?o) .
+derived(?p, owl:sameAs, ?p) :- triple(?s, ?p, ?o) .
+derived(?o, owl:sameAs, ?o) :- triple(?s, ?p, ?o), ISIRI(?o) .
+derived(?o, owl:sameAs, ?o) :- triple(?s, ?p, ?o), ISNULL(?o) .
+
+% same_as(?x, ?y): the non-reflexive owl:sameAs pairs, used by eq-sym, eq-trans and eq-rep-*.
+same_as(?x, ?y) :- same_as_any(?x, ?y), ?x != ?y .
+
+% eq-sym
+derived(?y, owl:sameAs, ?x) :- same_as(?x, ?y) .
+
+% eq-trans
+derived(?x, owl:sameAs, ?z) :- same_as(?x, ?y), same_as(?y, ?z) .
+
+% eq-rep-s
+derived(?s2, ?p, ?o) :- same_as(?s, ?s2), triple(?s, ?p, ?o) .
+
+% eq-rep-p
+derived(?s, ?p2, ?o) :- same_as(?p, ?p2), triple(?s, ?p, ?o) .
+
+% eq-rep-o
+derived(?s, ?p, ?o2) :- same_as(?o, ?o2), triple(?s, ?p, ?o) .
+
+% eq-diff1
+inconsistent("eq-diff1", ?x, ?y, "") :- same_as_any(?x, ?y), different_from(?x, ?y) .
+
+% eq-diff2
+inconsistent("eq-diff2", ?x, ?a, ?b) :- all_different(?x), members(?x, ?l), list_distinct_pair(?l, ?a, ?b),
+    same_as_any(?a, ?b) .
+
+% eq-diff3
+inconsistent("eq-diff3", ?x, ?a, ?b) :- all_different(?x), distinct_members(?x, ?l), list_distinct_pair(?l, ?a, ?b),
+    same_as_any(?a, ?b) .
+
+% ---------------------------------------------------------------------------------------------------------------------
+% Table 5. The semantics of axioms about properties.
+% ---------------------------------------------------------------------------------------------------------------------
+
+% prp-ap
+derived(rdfs:label, rdf:type, owl:AnnotationProperty) .
+derived(rdfs:comment, rdf:type, owl:AnnotationProperty) .
+derived(rdfs:seeAlso, rdf:type, owl:AnnotationProperty) .
+derived(rdfs:isDefinedBy, rdf:type, owl:AnnotationProperty) .
+derived(owl:deprecated, rdf:type, owl:AnnotationProperty) .
+derived(owl:versionInfo, rdf:type, owl:AnnotationProperty) .
+derived(owl:priorVersion, rdf:type, owl:AnnotationProperty) .
+derived(owl:backwardCompatibleWith, rdf:type, owl:AnnotationProperty) .
+derived(owl:incompatibleWith, rdf:type, owl:AnnotationProperty) .
+
+% prp-dom
+derived(?x, rdf:type, ?c) :- domain(?p, ?c), triple(?x, ?p, ?y) .
+
+% prp-rng
+derived(?y, rdf:type, ?c) :- range(?p, ?c), triple(?x, ?p, ?y) .
+
+% prp-fp
+derived(?y1, owl:sameAs, ?y2) :- functional_property(?p), triple(?x, ?p, ?y1), triple(?x, ?p, ?y2), ?y1 != ?y2 .
+
+% prp-ifp
+derived(?x1, owl:sameAs, ?x2) :- inverse_functional_property(?p), triple(?x1, ?p, ?y), triple(?x2, ?p, ?y),
+    ?x1 != ?x2 .
+
+% prp-irp
+inconsistent("prp-irp", ?p, ?x, "") :- irreflexive_property(?p), triple(?x, ?p, ?x) .
+
+% prp-symp
+triple(?y, ?p, ?x) :- symmetric_property(?p), triple(?x, ?p, ?y) .
+
+% prp-asyp
+inconsistent("prp-asyp", ?p, ?x, ?y) :- asymmetric_property(?p), triple(?x, ?p, ?y), triple(?y, ?p, ?x) .
+
+% prp-trp, evaluated as a linear recursion. The rule as written in the specification,
+%     triple(?x, ?p, ?z) :- transitive_property(?p), triple(?x, ?p, ?y), triple(?y, ?p, ?z) .
+% joins the closure with itself; on a symmetric and transitive property whose assertions connect k individuals it
+% enumerates about k^3 joins (OWL2Bench: hasSameHomeTownWith, one component of 1,145 individuals, about 1.5e9), which
+% Nemo materialises before removing duplicates (above 9 GB within two minutes). Here trp_path/3 is the transitive
+% closure of trp_step/3: the ?p facts of derived/3 (all facts except the conclusions of prp-symp and prp-trp), plus
+% their reversals when ?p is also symmetric. This derives the same facts: every ?p fact of the closure is a
+% derived/3 fact, a conclusion of prp-trp (a path of derived/3 facts and prp-symp reversals) or a conclusion of
+% prp-symp (the reversal of one of the two others), and the closure of trp_step/3 is closed under reversal when ?p is
+% symmetric.
+trp_step(?p, ?x, ?y) :- transitive_property(?p), derived(?x, ?p, ?y) .
+trp_step(?p, ?y, ?x) :- transitive_property(?p), symmetric_property(?p), derived(?x, ?p, ?y) .
+trp_path(?p, ?x, ?y) :- trp_step(?p, ?x, ?y) .
+trp_path(?p, ?x, ?z) :- trp_path(?p, ?x, ?y), trp_step(?p, ?y, ?z) .
+triple(?x, ?p, ?y) :- trp_path(?p, ?x, ?y) .
+
+% prp-spo1 (?p1 != ?p2: the reflexive facts of scm-op/scm-dp derive nothing new, and skipping them keeps the
+% conclusions of prp-trp out of derived/3)
+derived(?x, ?p2, ?y) :- sub_property_of(?p1, ?p2), triple(?x, ?p1, ?y), ?p1 != ?p2 .
+
+% prp-spo2: ?p owl:propertyChainAxiom (?p1 ... ?pn). chain_node(?l) marks the nodes of chain lists, and
+% chain_path(?l, ?x, ?y) holds when ?x reaches ?y through the properties of the list suffix that starts at ?l.
+chain_node(?l) :- property_chain_axiom(?p, ?l) .
+chain_node(?r) :- chain_node(?l), rest(?l, ?r), ?r != rdf:nil .
+chain_path(?l, ?x, ?y) :- chain_node(?l), first(?l, ?q), rest(?l, rdf:nil), triple(?x, ?q, ?y) .
+chain_path(?l, ?x, ?z) :- chain_node(?l), first(?l, ?q), rest(?l, ?r), chain_path(?r, ?y, ?z), triple(?x, ?q, ?y) .
+derived(?x, ?p, ?y) :- property_chain_axiom(?p, ?l), chain_path(?l, ?x, ?y) .
+
+% prp-eqp1
+derived(?x, ?p2, ?y) :- equivalent_property(?p1, ?p2), triple(?x, ?p1, ?y), ?p1 != ?p2 .
+
+% prp-eqp2
+derived(?x, ?p1, ?y) :- equivalent_property(?p1, ?p2), triple(?x, ?p2, ?y), ?p1 != ?p2 .
+
+% prp-pdw
+inconsistent("prp-pdw", ?p1, ?x, ?y) :- property_disjoint_with(?p1, ?p2), triple(?x, ?p1, ?y), triple(?x, ?p2, ?y) .
+
+% prp-adp
+inconsistent("prp-adp", ?pa, ?x, ?y) :- all_disjoint_properties(?d), members(?d, ?l), list_distinct_pair(?l, ?pa, ?pb),
+    triple(?x, ?pa, ?y), triple(?x, ?pb, ?y) .
+
+% prp-inv1
+derived(?y, ?p2, ?x) :- inverse_of(?p1, ?p2), triple(?x, ?p1, ?y) .
+
+% prp-inv2
+derived(?y, ?p1, ?x) :- inverse_of(?p1, ?p2), triple(?x, ?p2, ?y) .
+
+% prp-key: ?c owl:hasKey (?p1 ... ?pn). key_node(?c, ?l) marks the nodes of key lists, and key_match(?c, ?l, ?x, ?y)
+% holds when ?x and ?y are distinct instances of ?c that share a value for every property of the suffix at ?l.
+key_node(?c, ?l) :- has_key(?c, ?l) .
+key_node(?c, ?r) :- key_node(?c, ?l), rest(?l, ?r), ?r != rdf:nil .
+key_match(?c, ?l, ?x, ?y) :- key_node(?c, ?l), first(?l, ?p), rest(?l, rdf:nil), rdf_type(?x, ?c), rdf_type(?y, ?c),
+    triple(?x, ?p, ?z), triple(?y, ?p, ?z), ?x != ?y .
+key_match(?c, ?l, ?x, ?y) :- key_node(?c, ?l), first(?l, ?p), rest(?l, ?r), key_match(?c, ?r, ?x, ?y),
+    triple(?x, ?p, ?z), triple(?y, ?p, ?z) .
+derived(?x, owl:sameAs, ?y) :- has_key(?c, ?l), key_match(?c, ?l, ?x, ?y) .
+
+% prp-npa1
+inconsistent("prp-npa1", ?x, ?i1, ?i2) :- source_individual(?x, ?i1), assertion_property(?x, ?p),
+    target_individual(?x, ?i2), triple(?i1, ?p, ?i2) .
+
+% prp-npa2
+inconsistent("prp-npa2", ?x, ?i, ?lt) :- source_individual(?x, ?i), assertion_property(?x, ?p), target_value(?x, ?lt),
+    triple(?i, ?p, ?lt) .
+
+% ---------------------------------------------------------------------------------------------------------------------
+% Table 6. The semantics of classes.
+% ---------------------------------------------------------------------------------------------------------------------
+
+% cls-thing
+derived(owl:Thing, rdf:type, owl:Class) .
+
+% cls-nothing1
+derived(owl:Nothing, rdf:type, owl:Class) .
+
+% cls-nothing2
+inconsistent("cls-nothing2", ?x, "", "") :- rdf_type(?x, owl:Nothing) .
+
+% cls-int1: intersection_all(?l, ?y) holds when ?y is an instance of every class of the list suffix at ?l.
+intersection_node(?l) :- intersection_of(?c, ?l) .
+intersection_node(?r) :- intersection_node(?l), rest(?l, ?r), ?r != rdf:nil .
+intersection_all(?l, ?y) :- intersection_node(?l), first(?l, ?c), rest(?l, rdf:nil), rdf_type(?y, ?c) .
+intersection_all(?l, ?y) :- intersection_node(?l), first(?l, ?c), rest(?l, ?r), intersection_all(?r, ?y),
+    rdf_type(?y, ?c) .
+derived(?y, rdf:type, ?c) :- intersection_of(?c, ?l), intersection_all(?l, ?y) .
+
+% cls-int2
+derived(?y, rdf:type, ?ci) :- intersection_of(?c, ?l), list_member(?l, ?ci), rdf_type(?y, ?c) .
+
+% cls-uni
+derived(?y, rdf:type, ?c) :- union_of(?c, ?l), list_member(?l, ?ci), rdf_type(?y, ?ci) .
+
+% cls-com
+inconsistent("cls-com", ?c1, ?c2, ?x) :- complement_of(?c1, ?c2), rdf_type(?x, ?c1), rdf_type(?x, ?c2) .
+
+% cls-svf1
+derived(?u, rdf:type, ?x) :- some_values_from(?x, ?y), on_property(?x, ?p), triple(?u, ?p, ?v), rdf_type(?v, ?y) .
+
+% cls-svf2
+derived(?u, rdf:type, ?x) :- some_values_from(?x, owl:Thing), on_property(?x, ?p), triple(?u, ?p, ?v) .
+
+% cls-avf
+derived(?v, rdf:type, ?y) :- all_values_from(?x, ?y), on_property(?x, ?p), rdf_type(?u, ?x), triple(?u, ?p, ?v) .
+
+% cls-hv1
+derived(?u, ?p, ?y) :- has_value(?x, ?y), on_property(?x, ?p), rdf_type(?u, ?x) .
+
+% cls-hv2
+derived(?u, rdf:type, ?x) :- has_value(?x, ?y), on_property(?x, ?p), triple(?u, ?p, ?y) .
+
+% cls-maxc1 (Nemo reads "0"^^xsd:nonNegativeInteger as the integer 0)
+inconsistent("cls-maxc1", ?x, ?u, ?y) :- max_cardinality(?x, 0), on_property(?x, ?p), rdf_type(?u, ?x),
+    triple(?u, ?p, ?y) .
+
+% cls-maxc2
+derived(?y1, owl:sameAs, ?y2) :- max_cardinality(?x, 1), on_property(?x, ?p), rdf_type(?u, ?x), triple(?u, ?p, ?y1),
+    triple(?u, ?p, ?y2), ?y1 != ?y2 .
+
+% cls-maxqc1
+inconsistent("cls-maxqc1", ?x, ?u, ?y) :- max_qualified_cardinality(?x, 0), on_property(?x, ?p), on_class(?x, ?c),
+    rdf_type(?u, ?x), triple(?u, ?p, ?y), rdf_type(?y, ?c) .
+
+% cls-maxqc2
+inconsistent("cls-maxqc2", ?x, ?u, ?y) :- max_qualified_cardinality(?x, 0), on_property(?x, ?p),
+    on_class(?x, owl:Thing), rdf_type(?u, ?x), triple(?u, ?p, ?y) .
+
+% cls-maxqc3
+derived(?y1, owl:sameAs, ?y2) :- max_qualified_cardinality(?x, 1), on_property(?x, ?p), on_class(?x, ?c),
+    rdf_type(?u, ?x), triple(?u, ?p, ?y1), rdf_type(?y1, ?c), triple(?u, ?p, ?y2), rdf_type(?y2, ?c), ?y1 != ?y2 .
+
+% cls-maxqc4
+derived(?y1, owl:sameAs, ?y2) :- max_qualified_cardinality(?x, 1), on_property(?x, ?p), on_class(?x, owl:Thing),
+    rdf_type(?u, ?x), triple(?u, ?p, ?y1), triple(?u, ?p, ?y2), ?y1 != ?y2 .
+
+% cls-oo
+derived(?y, rdf:type, ?c) :- one_of(?c, ?l), list_member(?l, ?y) .
+
+% ---------------------------------------------------------------------------------------------------------------------
+% Table 7. The semantics of class axioms.
+% ---------------------------------------------------------------------------------------------------------------------
+
+% cax-sco
+derived(?x, rdf:type, ?c2) :- sub_class_of(?c1, ?c2), rdf_type(?x, ?c1), ?c1 != ?c2 .
+
+% cax-eqc1
+derived(?x, rdf:type, ?c2) :- equivalent_class(?c1, ?c2), rdf_type(?x, ?c1), ?c1 != ?c2 .
+
+% cax-eqc2
+derived(?x, rdf:type, ?c1) :- equivalent_class(?c1, ?c2), rdf_type(?x, ?c2), ?c1 != ?c2 .
+
+% cax-dw
+inconsistent("cax-dw", ?c1, ?c2, ?x) :- disjoint_with(?c1, ?c2), rdf_type(?x, ?c1), rdf_type(?x, ?c2) .
+
+% cax-adc
+inconsistent("cax-adc", ?ca, ?cb, ?x) :- all_disjoint_classes(?d), members(?d, ?l), list_distinct_pair(?l, ?ca, ?cb),
+    rdf_type(?x, ?ca), rdf_type(?x, ?cb) .
+
+% ---------------------------------------------------------------------------------------------------------------------
+% Table 8. The semantics of datatypes (only dt-type1, see the header).
+% ---------------------------------------------------------------------------------------------------------------------
+
+% dt-type1: the datatypes of the OWL 2 RL datatype map.
+derived(rdf:PlainLiteral, rdf:type, rdfs:Datatype) .
+derived(rdf:XMLLiteral, rdf:type, rdfs:Datatype) .
+derived(rdfs:Literal, rdf:type, rdfs:Datatype) .
+derived(xsd:decimal, rdf:type, rdfs:Datatype) .
+derived(xsd:integer, rdf:type, rdfs:Datatype) .
+derived(xsd:nonNegativeInteger, rdf:type, rdfs:Datatype) .
+derived(xsd:nonPositiveInteger, rdf:type, rdfs:Datatype) .
+derived(xsd:positiveInteger, rdf:type, rdfs:Datatype) .
+derived(xsd:negativeInteger, rdf:type, rdfs:Datatype) .
+derived(xsd:long, rdf:type, rdfs:Datatype) .
+derived(xsd:int, rdf:type, rdfs:Datatype) .
+derived(xsd:short, rdf:type, rdfs:Datatype) .
+derived(xsd:byte, rdf:type, rdfs:Datatype) .
+derived(xsd:unsignedLong, rdf:type, rdfs:Datatype) .
+derived(xsd:unsignedInt, rdf:type, rdfs:Datatype) .
+derived(xsd:unsignedShort, rdf:type, rdfs:Datatype) .
+derived(xsd:unsignedByte, rdf:type, rdfs:Datatype) .
+derived(xsd:float, rdf:type, rdfs:Datatype) .
+derived(xsd:double, rdf:type, rdfs:Datatype) .
+derived(xsd:string, rdf:type, rdfs:Datatype) .
+derived(xsd:normalizedString, rdf:type, rdfs:Datatype) .
+derived(xsd:token, rdf:type, rdfs:Datatype) .
+derived(xsd:language, rdf:type, rdfs:Datatype) .
+derived(xsd:Name, rdf:type, rdfs:Datatype) .
+derived(xsd:NCName, rdf:type, rdfs:Datatype) .
+derived(xsd:NMTOKEN, rdf:type, rdfs:Datatype) .
+derived(xsd:boolean, rdf:type, rdfs:Datatype) .
+derived(xsd:hexBinary, rdf:type, rdfs:Datatype) .
+derived(xsd:base64Binary, rdf:type, rdfs:Datatype) .
+derived(xsd:anyURI, rdf:type, rdfs:Datatype) .
+derived(xsd:dateTime, rdf:type, rdfs:Datatype) .
+derived(xsd:dateTimeStamp, rdf:type, rdfs:Datatype) .
+
+% ---------------------------------------------------------------------------------------------------------------------
+% Table 9. The semantics of schema vocabulary.
+% ---------------------------------------------------------------------------------------------------------------------
+
+% scm-cls
+derived(?c, rdfs:subClassOf, ?c) :- owl_class(?c) .
+derived(?c, owl:equivalentClass, ?c) :- owl_class(?c) .
+derived(?c, rdfs:subClassOf, owl:Thing) :- owl_class(?c) .
+derived(owl:Nothing, rdfs:subClassOf, ?c) :- owl_class(?c) .
+
+% scm-sco
+derived(?c1, rdfs:subClassOf, ?c3) :- sub_class_of(?c1, ?c2), sub_class_of(?c2, ?c3) .
+
+% scm-eqc1
+derived(?c1, rdfs:subClassOf, ?c2) :- equivalent_class(?c1, ?c2) .
+derived(?c2, rdfs:subClassOf, ?c1) :- equivalent_class(?c1, ?c2) .
+
+% scm-eqc2
+derived(?c1, owl:equivalentClass, ?c2) :- sub_class_of(?c1, ?c2), sub_class_of(?c2, ?c1) .
+
+% scm-op
+derived(?p, rdfs:subPropertyOf, ?p) :- object_property(?p) .
+derived(?p, owl:equivalentProperty, ?p) :- object_property(?p) .
+
+% scm-dp
+derived(?p, rdfs:subPropertyOf, ?p) :- datatype_property(?p) .
+derived(?p, owl:equivalentProperty, ?p) :- datatype_property(?p) .
+
+% scm-spo
+derived(?p1, rdfs:subPropertyOf, ?p3) :- sub_property_of(?p1, ?p2), sub_property_of(?p2, ?p3) .
+
+% scm-eqp1
+derived(?p1, rdfs:subPropertyOf, ?p2) :- equivalent_property(?p1, ?p2) .
+derived(?p2, rdfs:subPropertyOf, ?p1) :- equivalent_property(?p1, ?p2) .
+
+% scm-eqp2
+derived(?p1, owl:equivalentProperty, ?p2) :- sub_property_of(?p1, ?p2), sub_property_of(?p2, ?p1) .
+
+% scm-dom1
+derived(?p, rdfs:domain, ?c2) :- domain(?p, ?c1), sub_class_of(?c1, ?c2) .
+
+% scm-dom2
+derived(?p1, rdfs:domain, ?c) :- domain(?p2, ?c), sub_property_of(?p1, ?p2) .
+
+% scm-rng1
+derived(?p, rdfs:range, ?c2) :- range(?p, ?c1), sub_class_of(?c1, ?c2) .
+
+% scm-rng2
+derived(?p1, rdfs:range, ?c) :- range(?p2, ?c), sub_property_of(?p1, ?p2) .
+
+% scm-hv
+derived(?c1, rdfs:subClassOf, ?c2) :- has_value(?c1, ?i), on_property(?c1, ?p1), has_value(?c2, ?i),
+    on_property(?c2, ?p2), sub_property_of(?p1, ?p2) .
+
+% scm-svf1
+derived(?c1, rdfs:subClassOf, ?c2) :- some_values_from(?c1, ?y1), on_property(?c1, ?p), some_values_from(?c2, ?y2),
+    on_property(?c2, ?p), sub_class_of(?y1, ?y2) .
+
+% scm-svf2
+derived(?c1, rdfs:subClassOf, ?c2) :- some_values_from(?c1, ?y), on_property(?c1, ?p1), some_values_from(?c2, ?y),
+    on_property(?c2, ?p2), sub_property_of(?p1, ?p2) .
+
+% scm-avf1
+derived(?c1, rdfs:subClassOf, ?c2) :- all_values_from(?c1, ?y1), on_property(?c1, ?p), all_values_from(?c2, ?y2),
+    on_property(?c2, ?p), sub_class_of(?y1, ?y2) .
+
+% scm-avf2
+derived(?c2, rdfs:subClassOf, ?c1) :- all_values_from(?c1, ?y), on_property(?c1, ?p1), all_values_from(?c2, ?y),
+    on_property(?c2, ?p2), sub_property_of(?p1, ?p2) .
+
+% scm-int
+derived(?c, rdfs:subClassOf, ?ci) :- intersection_of(?c, ?l), list_member(?l, ?ci) .
+
+% scm-uni
+derived(?ci, rdfs:subClassOf, ?c) :- union_of(?c, ?l), list_member(?l, ?ci) .

@@ -13,6 +13,20 @@ RUN apt-get update \
        graphviz libgraphviz-dev pkg-config git \
     && rm -rf /var/lib/apt/lists/*
 
+# Nemo 0.10.1 (in-memory Datalog engine; the nemo_owlrl baseline), the release binary checked against the sha256 that
+# the release publishes (nemo_v0.10.1_x86_64-unknown-linux-gnu.tar.gz.sha256sum). It needs only glibc.
+ARG NEMO_VERSION=0.10.1
+ARG NEMO_SHA256=2f659c3803fa7b9a4ce1c9449803038e04562d74d83e5cd325cca43b4fcdd6f9
+RUN curl -fsSL -o /tmp/nemo.tar.gz \
+       "https://github.com/knowsys/nemo/releases/download/v${NEMO_VERSION}/nemo_v${NEMO_VERSION}_x86_64-unknown-linux-gnu.tar.gz" \
+    && echo "${NEMO_SHA256}  /tmp/nemo.tar.gz" | sha256sum -c - \
+    && mkdir -p /opt/nemo \
+    && tar xzf /tmp/nemo.tar.gz -C /opt/nemo --strip-components=1 \
+    && rm /tmp/nemo.tar.gz \
+    && ln -s /opt/nemo/nmo /usr/local/bin/nmo \
+    && nmo --version
+ENV NEMO_BINARY=/opt/nemo/nmo
+
 # Third-party packages at the versions of the environment in which the results were verified.
 COPY environment/ /opt/aamas27/environment/
 RUN python3.12 -m venv /opt/venvs/earlier \

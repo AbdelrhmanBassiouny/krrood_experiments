@@ -34,6 +34,8 @@ LOADING_ROWS = [
     ("owlready2_pellet", "Owlready2"),
     ("protege", "Prot\\'eg\\'e"),
     ("graphdb", "GraphDB"),
+    ("reasonable_owlrl", "reasonable"),
+    ("nemo_owlrl", "Nemo"),
     ("krrood_ormatic", "KRROOD + ORMatic"),
     ("krrood_eager_symmetric_transitive", "Eager chaining"),
 ]
@@ -121,7 +123,7 @@ def loading_table(loading: Optional[Dict[str, Any]], protege: Optional[Dict[str,
         candidates = [
             (cells[input_name]["time"][0], system)
             for system, cells in table.items()
-            if input_name in cells and "time" in cells[input_name] and system in ("krrood", "rdflib_owlrl", "owlready2_pellet", "protege", "graphdb")
+            if input_name in cells and "time" in cells[input_name] and system in ("krrood", "rdflib_owlrl", "owlready2_pellet", "protege", "graphdb", "reasonable_owlrl", "nemo_owlrl")
         ]
         best[input_name] = min(candidates)[1] if candidates else None
 

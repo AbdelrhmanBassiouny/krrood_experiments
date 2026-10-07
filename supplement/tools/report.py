@@ -29,6 +29,8 @@ LOADING_SYSTEMS = [
     ("rdflib_owlrl", "RDFLib + owlrl"),
     ("graphdb", "GraphDB"),
     ("protege", "Protégé + Pellet (by hand)"),
+    ("nemo_owlrl", "Nemo (OWL 2 RL/RDF rules)"),
+    ("reasonable_owlrl", "reasonable (OWL 2 RL, Rust)"),
     ("krrood_eager_symmetric_transitive", "KRROOD without step 5"),
 ]
 QUERY_FRAMEWORKS = [("sqlalchemy", "SQL"), ("graphdb", "GraphDB"), ("eql", "EQL"), ("rdflib", "RDFLib"),
@@ -206,6 +208,27 @@ def audit_table() -> Optional[Table]:
     return table.without([5]) if OWN else table
 
 
+def baseline_closure_table() -> Optional[Table]:
+    comparison = load(RUN / "baselines" / "closure_comparison.json")
+    if not comparison:
+        return None
+    labels = dict(LOADING_SYSTEMS)
+    rows = []
+    for name, candidate in comparison["candidates"].items():
+        for part, label in (("class", "Class memberships"), ("object", "Object-property assertions"),
+                            ("data", "Data-property assertions")):
+            counts = candidate[part]
+            rows.append([labels.get(name, name), label, f"{counts['candidate']:,}", f"{counts['reference']:,}",
+                         f"{counts['extra']:,}", f"{counts['missing']:,}"])
+    caption = ("The closures that the in-memory baselines compute from the raw data, compared with GraphDB's OWL 2 RL "
+               "closure as KRROOD's knowledge base is (previous table), for the same individuals and properties. "
+               "\"Extra\": only in the baseline's closure; \"missing\": only in GraphDB's. reasonable 0.4.4 applies "
+               "prp-ifp to any two subjects of an inverse-functional property, also with different objects, and so "
+               "merges the 21 heads of organizations (isHeadOf); and it derives no facts from property chains.")
+    return Table("Closures of the in-memory baselines compared with the OWL 2 RL closure", caption,
+                 ["System", "Assertions", "Baseline", "Closure", "Extra", "Missing"], rows, right=[2, 3, 4, 5])
+
+
 # --- Loading -----------------------------------------------------------------------------------------------------
 
 def import_mib(imports: Optional[Dict[str, Any]], system: str) -> Optional[float]:
@@ -267,7 +290,9 @@ def loading_table() -> Optional[Table]:
                "the repetitions), from the raw data (54,901 statements) and from the pre-reasoned data (1,431,635). "
                "Memory is the increase during loading: the peak resident set size of the process tree minus that of "
                "a fresh worker after its imports; for GraphDB, the increase of its Java heap in use (GC log). "
-               "\"> N\" means stopped at the time limit. Times depend on the machine; the paper's are from an Intel "
+               "\"> N\" means stopped at the time limit, \"out of memory\" at the memory limit (24 GiB for Nemo and reasonable). "
+               "Nemo's time is its own data import plus reasoning, without exporting the closure; its memory includes "
+               "the Python worker that starts it. Times depend on the machine; the paper's are from an Intel "
                "Core i7-13700 with 64 GB RAM. ")
     caption += ("Protégé was run by hand, once per input (protege/README.txt)." if OWN else
                 "Protégé was run by hand in the paper and is not run here.")
@@ -390,7 +415,7 @@ def main() -> None:
     width = shutil.get_terminal_size((100, 40)).columns
     bundle = (RUN / "BUNDLE").read_text().strip() if (RUN / "BUNDLE").exists() else "?"
     graphdb = (RUN / "graphdb_used").exists()
-    tables = [t for t in (test_table(), answer_table(), audit_table(), loading_table(), query_table(),
+    tables = [t for t in (test_table(), answer_table(), audit_table(), baseline_closure_table(), loading_table(), query_table(),
                           scaling_table(), query_size_table(), skipped_table()) if t]
     skipped = (RUN / "skipped.txt").read_text() if (RUN / "skipped.txt").exists() else ""
     title = f"KRROOD supplementary material: results of mode {MODE}"

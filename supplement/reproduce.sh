@@ -2,8 +2,8 @@
 # Runs the experiments of the paper inside the container (see README.md).
 #
 #   quick     (the default) the test suites, the paper's listings, the ablation on small data, the answers of EQL
-#             and SQL compared with the answers GraphDB gave in the paper's run, and KRROOD's loading time and
-#             memory (about 10 min; no GraphDB license needed)
+#             and SQL compared with the answers GraphDB gave in the paper's run, and the loading time and
+#             memory of KRROOD and of Nemo from the raw data (about 10 min; no GraphDB license needed)
 #   check     the correctness part of the paper (Section 7.1): with a GraphDB license, the answers of all systems
 #             compared with a live GraphDB, and KRROOD's knowledge base compared with GraphDB's OWL 2 RL closure
 #             (about 1-1.5 h); without one, as quick
@@ -30,6 +30,7 @@ QUERY_REPETITIONS="${QUERY_REPETITIONS:-10}"
 LOADING_REPETITIONS="${LOADING_REPETITIONS:-5}"
 RDFLIB_TIMEOUT_SECONDS="${RDFLIB_TIMEOUT_SECONDS:-10800}"
 ABLATION_TIMEOUT_SECONDS="${ABLATION_TIMEOUT_SECONDS:-7200}"
+BASELINE_MEMORY_LIMIT_GIB="${BASELINE_MEMORY_LIMIT_GIB:-24}"
 RAW_FILE=resources/owl2bench_statements_unreasoned.rdf
 REASONED_FILE=resources/owl2bench_statements_reasoned.rdf
 
@@ -266,6 +267,8 @@ loading_system() {
     forget_loading_runs "$1"
     local extra=()
     [[ "$1" == rdflib_owlrl ]] && extra=(--rdflib-timeout-seconds "$RDFLIB_TIMEOUT_SECONDS")
+    # The in-memory baselines exceed any memory on the pre-reasoned data; they are stopped at the ablation's limit.
+    [[ "$1" == reasonable_owlrl || "$1" == nemo_owlrl ]] && extra=(--memory-limit-gib "$BASELINE_MEMORY_LIMIT_GIB")
     python scripts/aamas27/run_loading.py --systems "$1" --inputs "${2:-raw,reasoned}" \
         --repetitions "$LOADING_REPETITIONS" "${extra[@]}" --results-dir "$RUN/loading"
 }
@@ -286,6 +289,21 @@ loading_graphdb() {
         jcmd "$pid" GC.run > /dev/null
     done
     python "$TOOLS/graphdb_heap.py" "$marks" "$RUN/memory/graphdb_heap.json" "$RUN"/memory/graphdb_gc/gc_*.log
+}
+
+# The closures of the in-memory baselines (Nemo, reasonable) from the raw data, compared with GraphDB's closure as
+# the knowledge base of KRROOD is (audit/audit.json).
+baseline_closures() {
+    local folder="$RUN/baselines" system candidates=()
+    mkdir -p "$folder"
+    for system in nemo_owlrl reasonable_owlrl; do
+        python -m krrood_experiments.aamas27.loading_worker --system "$system" --input-file "$RAW_FILE" \
+            --closure-output "$folder/$system.nt" > /dev/null
+        candidates+=(--candidate "$system=$folder/$system.nt")
+    done
+    python -m krrood_experiments.aamas27.closure_comparison --raw "$RAW_FILE" --reference "$REASONED_FILE" \
+        "${candidates[@]}" --output "$folder/closure_comparison.json"
+    rm -f "$folder"/*.nt
 }
 
 import_memory() {
@@ -349,30 +367,33 @@ if [[ "$MODE" == quick ]]; then
     step reference_check reference_check
     step import_memory import_memory
     step loading_krrood_raw loading_system krrood raw
+    step loading_nemo_owlrl_raw loading_system nemo_owlrl raw
     not_run "everything else in the paper" "quick mode; run 'full' (or 'all') for all experiments, 9-13 h"
 elif have_license; then
     start_graphdb
     step data prepare_data
     step answer_check answer_check
     step soundness_audit soundness_audit
+    step baseline_closures baseline_closures
 else
     step reference_check reference_check
     not_run "answers of RDFLib and Owlready2" "$NO_LICENSE; they query the pre-reasoned data, which GraphDB computes"
     not_run "knowledge base vs. OWL 2 RL closure" "$NO_LICENSE; GraphDB computes the closure"
+    not_run "closures of Nemo and reasonable vs. OWL 2 RL closure" "$NO_LICENSE; GraphDB computes the closure"
 fi
 if [[ "$MODE" == full ]]; then
     step ablation_small ablation_small 8 16 32 64 128 256
     step import_memory import_memory
     if have_license; then
         step query_timing query_timing
-        for system in krrood owlready2_pellet rdflib_owlrl krrood_ormatic; do
+        for system in krrood owlready2_pellet rdflib_owlrl krrood_ormatic nemo_owlrl reasonable_owlrl; do
             step "loading_$system" loading_system "$system"
         done
         step loading_graphdb loading_graphdb
     else
         step query_timing_without_graphdb query_timing_without_graphdb
         not_run "query times of GraphDB, RDFLib and Owlready2" "$NO_LICENSE"
-        for system in krrood owlready2_pellet rdflib_owlrl krrood_ormatic; do
+        for system in krrood owlready2_pellet rdflib_owlrl krrood_ormatic nemo_owlrl reasonable_owlrl; do
             step "loading_${system}_raw" loading_system "$system" raw
         done
         not_run "loading from the pre-reasoned data, all systems" "$NO_LICENSE; GraphDB computes the pre-reasoned data"

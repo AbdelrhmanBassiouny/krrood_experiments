@@ -9,6 +9,8 @@ Usage: python make_supplement.py OUTPUT_DIRECTORY [--results RESULTS_DIRECTORY] 
 
 --code-from takes code/ from an earlier bundle instead of exporting it from the clones below (on a machine without
 them); the build then checks that the code is unchanged (same BUNDLE id), as only the files around it change.
+--experiments-from REPOSITORY, with --code-from, replaces code/earlier/experiments by an export of the committed HEAD
+of that clone of the experiment repository (the one SOURCES names); the BUNDLE id then changes.
 """
 
 from __future__ import annotations
@@ -60,8 +62,10 @@ IDENTIFYING = re.compile(
 )
 # Matches that are not identifying: generated person names of the OWL2Bench data (e.g. "Jamarion").
 ALLOWED = re.compile(r"[a-z]arion\b", re.IGNORECASE)
-# Synthetic e-mail addresses of the OWL2Bench data and the OWL API link in the header of the data file.
-BENIGN = re.compile(r"@bench\.com|github\.com/owlcs/owlapi|>Bremen</hasFirstName>|>Bremen And</hasName>")
+# Synthetic e-mail addresses of the OWL2Bench data, the OWL API link in the header of the data file, and the
+# release download of the Nemo rule engine (Dockerfile, owl2rl.rls).
+BENIGN = re.compile(r"@bench\.com|github\.com/owlcs/owlapi|github\.com/knowsys/nemo|>Bremen</hasFirstName>"
+                    r"|>Bremen And</hasName>")
 
 
 def export(repository: Path, commit: str, paths, destination: Path) -> None:
@@ -178,6 +182,8 @@ def main() -> None:
     parser.add_argument("output")
     parser.add_argument("--results", help="results directory of the measured run, copied to results/")
     parser.add_argument("--code-from", help="take code/ from this earlier bundle (zip or folder)")
+    parser.add_argument("--experiments-from",
+                        help="with --code-from: export code/earlier/experiments from HEAD of this clone instead")
     parser.add_argument("--draft", action="store_true",
                         help="allow TODO-AUTHORS markers (for the measured run; not for submission)")
     arguments = parser.parse_args()
@@ -189,6 +195,12 @@ def main() -> None:
         shutil.rmtree(bundle)
     if arguments.code_from:
         code_from(Path(arguments.code_from).resolve(), bundle)
+        if arguments.experiments_from:
+            repository, commit, paths, destination, _ = next(s for s in SOURCES if s[3] == "code/earlier/experiments")
+            shutil.rmtree(bundle / destination)
+            export(Path(arguments.experiments_from).resolve(), "HEAD", paths, bundle / destination)
+            for excluded in EXCLUDE:
+                (bundle / excluded).unlink(missing_ok=True)
     else:
         for repository, commit, paths, destination, _ in SOURCES:
             export(repository, commit, paths, bundle / destination)
@@ -216,7 +228,7 @@ def main() -> None:
                        check=True, capture_output=True)
     sanitize(bundle)
     (bundle / "environment" / "BUNDLE").write_text(fingerprint(bundle) + "\n")
-    if arguments.code_from:
+    if arguments.code_from and not arguments.experiments_from:
         source = Path(arguments.code_from)
         earlier = (zipfile.ZipFile(source).read(f"{NAME}/environment/BUNDLE").decode() if source.suffix == ".zip"
                    else (source / "environment" / "BUNDLE").read_text()).strip()

@@ -39,7 +39,10 @@ ALL_SYSTEMS = [
 ]
 """
 Systems of the main loading experiment, in execution order. The ablation system
-``krrood_eager_symmetric_transitive`` is run by ``run_symmetric_transitive_ablation.py``.
+``krrood_eager_symmetric_transitive`` is run by ``run_symmetric_transitive_ablation.py``. The in-memory OWL 2 RL
+materialisers ``reasonable_owlrl`` (reasonable, Rust, through its Python bindings) and ``nemo_owlrl`` (the Nemo rule
+engine with ``owl2rl.rls``; the ``nmo`` binary is taken from ``$NEMO_BINARY`` or the PATH) are not part of the default
+order; select them with ``--systems reasonable_owlrl,nemo_owlrl``.
 """
 
 
