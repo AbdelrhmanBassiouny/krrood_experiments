@@ -55,7 +55,7 @@ LISTINGS = HERE / "listings"   # executable versions of the paper's listings, ru
 IDENTIFYING = re.compile(
     r"bassiouny|bassioun|abdelrhman|ms-7d32|schierenbeck|tomsch|sorinar|sorin|\barion\b|beetz|bremen|aicor|vasantak|hoanggia"
     r"|\bnaren\b|\bgiang\b|cram2|github\.com|gitlab\.com|/home/|/tmp/claude|@[a-z0-9.-]+\.(de|com|org|net)\b"
-    r"|\bbass\b|tom_sch|ec7c922b9f|eeeb2e48db|3308cb252f|3b994bb|b0b59087a6|ccf8367709",
+    r"|\bbass\b|\bcram\b|pycram|semantic_digital_twin|giskard|knowrob_|tom_sch|ec7c922b9f|eeeb2e48db|3308cb252f|3b994bb|b0b59087a6|ccf8367709",
     re.IGNORECASE,
 )
 # Matches that are not identifying: generated person names of the OWL2Bench data (e.g. "Jamarion").
@@ -97,6 +97,9 @@ def sanitize(bundle: Path) -> None:
                           "(current version, krrood.ormatic.eql_interface.eql_to_sql)")
         new = re.sub(r"\(branch fix/eql-to-sql-collections of the CRAM fork, which merges\s+"
                      r"fix/eql-correlated-quantifiers\)", "(see README.md)", new)
+        new = new.replace("Code generation utilities for the CRAM krrood package.", "Code generation utilities.")
+        # Cross-references to the world-model package of the authors' architecture: keep only the class name.
+        new = re.sub(r":(?:attr|class):`~semantic_digital_twin\.(?:\w+\.)*(\w+)`", r"``\1``", new)
         if new != text:
             path.write_text(new)
 
