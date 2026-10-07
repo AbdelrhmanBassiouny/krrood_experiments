@@ -142,7 +142,7 @@ tail -f state/reproduce.log                    # Ctrl+C stops watching, not the 
 The LaTeX tables are written to `state/results/aamas27/run/tables/`, and everything is packed into
 `state/aamas27_results.tgz`. The paper names two rows of the loading table differently: "KRROOD + ORMatic" is
 "KRROOD (with ORMatic)", and "Eager chaining" is "KRROOD without step 5". Afterwards run `docker compose down`. Timings depend on the machine; ours are from an
-Intel Core i7-11700K with 32 GB RAM under Ubuntu 24.04.
+Intel Core i7-13700 with 64 GB RAM under Ubuntu 24.04.
 
 The run succeeded if `state/reproduce.log` ends with `finished mode all` and contains, as for level 2, the
 answer check finishing without differences and the comparison with the closure showing `unsound 0, missing 0`
@@ -196,7 +196,7 @@ A second call of `check` or `all` resumes after the last finished step. To start
 | `code/earlier/experiments/resources/owl2bench_statements_unreasoned.rdf` | OWL2Bench, OWL 2 RL profile, one university, with the role markers and the `T20CricketFan` definition (Section 7). |
 | `code/current/krrood` | The current version of KRROOD, which the paper's listings use. Its EQL API differs from the earlier version in the names of some constructors, and its translator from EQL to SQL (Section 6) handles collection-valued attributes. |
 | `listings/` | Executable versions of the paper's listings, as tests on the current version. `listings/ormatic/` tests the listing of Section 6 (one query in working memory and translated to SQL). |
-| `results/` | Our measured run: raw measurements (JSON), the answer-set check, the comparison with the closure, the environment record, the LaTeX tables, and in `host/` the machine's details and a 30-second record of its load during the run. Of the answer sets, `check/answers/graphdb/` holds GraphDB's, the reference; the other systems' sets are equal to them (`check/answer_check.json`) and are left out for size. |
+| `results/` | Our measured run: raw measurements (JSON), the answer-set check, the comparison with the closure, the environment record, the LaTeX tables, and in `host/` the machine's details and a 30-second record of its load during the run. Its `BUNDLE` id, `ae0b139a90267579`, differs from this bundle's because of three files in `code/current/` (the version the listing tests use, which gained idempotent rules); `code/earlier/`, which every measurement uses, is identical. Of the answer sets, `check/answers/graphdb/` holds GraphDB's, the reference; the other systems' sets are equal to them (`check/answer_check.json`) and are left out for size. |
 | `run_ubuntu.sh` | Level 3 on Ubuntu in one command (above). |
 | `Dockerfile`, `compose.yaml`, `reproduce.sh` | The container: GraphDB 11.2 (official image, Ubuntu 24.04, Java 21), Python 3.12.3 with both versions of KRROOD in separate virtual environments, and PostgreSQL 18.1 in a second container. `reproduce.sh` runs inside it. |
 | `environment/` | The exact versions of all Python packages of both environments. |
