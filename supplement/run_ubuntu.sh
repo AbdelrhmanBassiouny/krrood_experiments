@@ -296,7 +296,8 @@ start_run() {
     fi
     say "Starting the full run ($RUN_MODE); log: $BUNDLE/state/reproduce.log"
     local new_lines   # only the lines that this run writes, not those of an earlier run
-    new_lines=$(( $(wc -l < "$BUNDLE/state/reproduce.log" 2>/dev/null || echo 0) + 1 ))
+    new_lines=1
+    [[ -f "$BUNDLE/state/reproduce.log" ]] && new_lines=$(( $(wc -l < "$BUNDLE/state/reproduce.log") + 1 ))
     record_host > /dev/null
     nohup "${inhibit[@]}" docker compose run --rm -T experiments "$RUN_MODE" >> "$LOG" 2>&1 &
     disown || true
