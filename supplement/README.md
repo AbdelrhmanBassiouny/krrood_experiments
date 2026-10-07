@@ -171,7 +171,7 @@ With a GraphDB license, `full`:
 * **the runtime audit** (Section 7.1; about 20 min, no license needed): KRROOD's agent loop runs unchanged for 200
   steps of seeds 0-4, and after 0, 10, 50, 100 and 200 steps the live knowledge base is compared with Nemo's OWL 2 RL
   closure of the raw data and the facts perceived so far, normalised as in the comparison with GraphDB's closure
-  (`runtime_audit/runtime_audit.json`, `scripts/aamas27/run_runtime_audit.py`). It tests Proposition 3 of the paper
+  (`runtime_audit/runtime_audit.json`, `scripts/aamas27/run_runtime_audit.py`). It tests Proposition 5.3 of the paper
   (property rules at runtime), whose proof is in `formalization/` (section "Reasoning on Assignment"). In our run
   nothing is extra and all object- and data-property facts are present at every checkpoint; the missing facts are
   class memberships, which KRROOD does not derive at runtime: T20CricketFan, which its axiom answers, and SportsFan,

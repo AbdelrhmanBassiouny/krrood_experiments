@@ -479,7 +479,7 @@ def runtime_audit_table() -> Optional[Table]:
     caption = ("The knowledge base of KRROOD's agent loop at runtime (scripts/aamas27/run_runtime_audit.py), compared after "
                "the given number of steps with Nemo's OWL 2 RL closure of the raw data and the facts perceived so far, "
                "normalised as in the comparison with GraphDB's closure. \"Extra\": facts of KRROOD that the closure "
-               "lacks; \"missing\": facts of the closure that KRROOD lacks. Proposition 3 of the paper covers property "
+               "lacks; \"missing\": facts of the closure that KRROOD lacks. Proposition 5.3 of the paper covers property "
                "facts; class memberships are not derived at runtime. Of the missing classes, T20CricketFan is answered "
                "by its axiom; the axioms of SportsFan, SportsLover and PeopleWithHobby, existential restrictions, are "
                "written for the proxies of loading (they read candidate.types), so this version evaluates them only "

@@ -796,7 +796,7 @@ and Boolean field accesses are all admitted as atoms via this form.
 % ============================================================
 
 This section formalizes what the property descriptors of KRROOD compute when application code
-assigns a value, and proves the runtime proposition of the paper (Proposition~3). It follows
+assigns a value, and proves the runtime proposition of the paper (Proposition~5.3). It follows
 the implementation of the version used in the experiments
 (\texttt{PropertyDescriptorRelation.infer\_and\_apply\_implications} in
 \texttt{krrood/ontomatic/property\_descriptor/property\_descriptor\_relation.py}).
@@ -872,7 +872,7 @@ with $f_1,\dots,f_m$.
 \end{proposition}
 
 \begin{proof}
-By Proposition~1 of the paper, every fact of $F_0$ is entailed by $\mathcal{O}$. Every fact that
+By Proposition~5.1 of the paper, every fact of $F_0$ is entailed by $\mathcal{O}$. Every fact that
 an assignment adds is either an asserted $f_i$ or the conclusion of an instance of a rule of
 $R$ whose premises were in $F$ when it was added. Each rule of $R$ is an OWL~2~RL/RDF rule, and
 these rules are sound for the direct semantics~\cite{motik2012owl2profiles}. By induction on the
@@ -901,7 +901,7 @@ is chained, and the conclusion is carried over by the equivalence rule.
 \end{proof}
 
 By induction on the asserted facts, the closure under $R$ that loading establishes
-(steps~1--4 of the loading algorithm, Proposition~2 of the paper) is kept after any sequence of
+(steps~1--4 of the loading algorithm, Proposition~5.2 of the paper) is kept after any sequence of
 assignments that satisfies the storage condition. The guarantee concerns object-property facts
 and the rules of $R$. It does not cover:
 \begin{itemize}
