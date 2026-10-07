@@ -103,7 +103,8 @@ EQL eliminates this gap.  Its design rests on the following principles:
 
 \begin{enumerate}
   \item \textbf{No impedance mismatch.}  EQL operates directly on live Python objects.
-        There is no schema to define, no tables to populate, and no ORM to configure.  The
+        Querying working memory needs no schema, no tables and no object-relational mapping; ORMatic
+        generates these from the same classes only when the knowledge is also kept in a database.  The
         object-oriented domain model the developer already writes \emph{is} the knowledge base.
 
   \item \textbf{Executable queries as first-class Python.}  Queries are Python expressions, not

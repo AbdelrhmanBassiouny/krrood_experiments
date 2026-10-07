@@ -139,6 +139,11 @@ Without a license, it runs the test suites, the ablation, EQL and SQL (answers c
 and their query times), and the loading of KRROOD, KRROOD + ORMatic, Owlready2 and RDFLib from the raw data. The
 rest needs GraphDB (the pre-reasoned data are GraphDB's closure); the report lists it.
 
+Every mode also counts the lexical tokens of the 18 queries in EQL, SPARQL and SQLAlchemy as the benchmark writes
+them (`tools/query_size.py`, `query_size.json`, a table of the report). The paper makes no claim about query size:
+the EQL queries are about 2.4 times as long as SPARQL's in geometric mean, mostly because every variable is
+declared with its class, and shorter than SQLAlchemy's on five of the 18 queries.
+
 The run succeeded if `state/reproduce.log` ends with `finished mode full`. The LaTeX tables are written to
 `state/results/aamas27/run/tables/` (the paper names two rows of the loading table differently: "KRROOD + ORMatic"
 is "KRROOD (with ORMatic)", and "Eager chaining" is "KRROOD without step 5"), and everything is packed into
@@ -196,13 +201,13 @@ To start over, delete `state/`.
 |------|------|
 | `code/earlier/krrood` | The earlier version of KRROOD: EQL, Ontomatic (Section 5, Algorithm 1) and ORMatic. All experiments (Section 7) use this version. |
 | `code/earlier/ripple_down_rules` | Rule-base library that Ontomatic's model generator uses (Section 5, TBox compilation). |
-| `code/earlier/experiments` | The experiments: the generated OWL2Bench model, the 18 queries of every system (`src/krrood_experiments/owl2bench/`), the measurement scripts (`scripts/aamas27/`) and their tests. |
+| `code/earlier/experiments` | The experiments: the generated OWL2Bench model, the 18 queries of every system (`src/krrood_experiments/owl2bench/`), the measurement scripts (`scripts/aamas27/`) and their tests. `src/krrood_experiments/lubm/` holds a model generated from LUBM in earlier work; the paper does not evaluate LUBM, whose ontology uses class expressions outside OWL 2 RL (existential restrictions on the right-hand side of its class equivalences, such as `Chair`), and no step of this bundle uses it. |
 | `code/earlier/experiments/resources/owl2bench_statements_unreasoned.rdf` | OWL2Bench, OWL 2 RL profile, one university, with the role markers and the `T20CricketFan` definition (Section 7). |
 | `code/current/krrood` | The current version of KRROOD, which the paper's listings use. Its EQL API differs from the earlier version in the names of some constructors, and its translator from EQL to SQL (Section 6) handles collection-valued attributes. |
 | `listings/` | Executable versions of the paper's listings, as tests on the current version. `listings/ormatic/` tests the listing of Section 6 (one query in working memory and translated to SQL). |
 | `results/` | Our measured run: `REPORT.md` (its report), raw measurements (JSON), the answer-set check, the comparison with the closure, the environment record, the LaTeX tables, in `host/` the machine's details and a 30-second record of its load during the run, in `memory/` the memory after imports and GraphDB's heap from a separate load with a GC log, in `ablation_scaling/` the ablation on small data, in `protege/` the Protégé sessions, and `provenance.txt`, which says which numbers come from which run (KRROOD's loading was measured again in a clean rerun, as a browser had run during the first). Its `BUNDLE` id, `ae0b139a90267579`, differs from this bundle's because of three files in `code/current/` (the version the listing tests use, which gained idempotent rules); `code/earlier/`, which every measurement uses, is identical. Of the answer sets, `check/answers/graphdb/` holds GraphDB's, the reference; the other systems' sets are equal to them (`check/answer_check.json`) and are left out for size. |
 | `run_ubuntu.sh` | The quick check and the full run on Ubuntu, in one command each (above). |
-| `tools/` | Scripts of the container around the measurement scripts: the report (`report.py`), EQL and SQL without a GraphDB server (`queries_without_graphdb.py`), the memory after imports (`import_memory.py`), GraphDB's heap from its GC log (`graphdb_heap.py`), and the ablation on small data with its tests (`ablation/`). |
+| `tools/` | Scripts of the container around the measurement scripts: the report (`report.py`), the size of the queries (`query_size.py`), EQL and SQL without a GraphDB server (`queries_without_graphdb.py`), the memory after imports (`import_memory.py`), GraphDB's heap from its GC log (`graphdb_heap.py`), and the ablation on small data with its tests (`ablation/`). |
 | `Dockerfile`, `compose.yaml`, `reproduce.sh` | The container: GraphDB 11.2 (official image, Ubuntu 24.04, Java 21), Python 3.12.3 with both versions of KRROOD in separate virtual environments, and PostgreSQL 18.1 in a second container. `reproduce.sh` runs inside it. |
 | `environment/` | The exact versions of all Python packages of both environments. |
 | `formalization/` | The formalization of EQL: the full definitions of its syntax and semantics, and its complexity with references, which the paper's Section 4 summarizes (`eql_formalization.pdf`, and its LaTeX source). |

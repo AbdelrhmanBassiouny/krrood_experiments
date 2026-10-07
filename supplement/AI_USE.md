@@ -4,8 +4,8 @@ This statement follows the AAMAS 2027 policy on AI-assisted technologies. No AI 
 
 ## Tool
 
-Claude Code (Anthropic's command-line coding agent) with the model Claude Opus 5.5 (`claude-opus-5-5`), in three
-sessions on 5 and 6 October 2026, during the revision of the paper for this submission. The sessions read and
+Claude Code (Anthropic's command-line coding agent) with the model Claude Opus 5.5 (`claude-opus-5-5`), in sessions
+from 5 to 7 October 2026, during the revision of the paper for this submission. The sessions read and
 modified the code of KRROOD and of the experiments, ran tests and experiments on a development machine, and drafted
 and revised the text of the paper. The authors reviewed every change, decided what to keep, and ran the measured
 experiments.
@@ -94,6 +94,10 @@ prompts of the sessions concerned the text of the paper, file transfers and vers
 
 > Also if space allows, you can do a easiniess and simplicity of queries between eql, sparql and sql. [...]
 > [After the AI tool reported that the measured simplicity did not favor EQL:] Ok then leave it out.
+
+[The comparison counted the lexical tokens of the 18 benchmark queries. It is now in this supplementary material
+(`tools/query_size.py`, and a table of the report): the EQL queries are about 2.4 times as long as SPARQL's in
+geometric mean and shorter than SQLAlchemy's on five queries. The paper makes no claim about query size.]
 
 > Do you think it's better if we make all this run in a docker? so add a docker script with all needed instructions
 > and that's what we ship?

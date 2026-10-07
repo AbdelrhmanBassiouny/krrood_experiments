@@ -351,6 +351,29 @@ def scaling_table() -> Optional[Table]:
     return table.without([5, 6]) if OWN else table
 
 
+# --- Query size ----------------------------------------------------------------------------------------------------
+
+def query_size_table() -> Optional[Table]:
+    sizes = load(RUN / "query_size.json")
+    if not sizes:
+        return None
+    rows = [[f"Q{r['query']}", str(r["sparql"]), str(r["eql"] - r["eql_domain_none"]), str(r["eql"]),
+             str(r["sqlalchemy"])] for r in sizes["queries"]]
+    summary = sizes["summary"]
+    for label, key in (("Total", "total"), ("Geometric mean", "geometric_mean")):
+        rows.append([label, *(f"{summary[name][key]:.1f}" if key == "geometric_mean" else str(summary[name][key])
+                              for name in ("sparql", "eql_without_domain_none", "eql", "sqlalchemy"))])
+    caption = ("Lexical tokens of each benchmark query as the benchmark code writes it (tools/query_size.py): SPARQL "
+               "without its PREFIX declarations; EQL and SQLAlchemy as the Python statements that build the query. "
+               "\"EQL\" counts domain=None, which the version of KRROOD of the experiments needs and the current one "
+               "does not; \"EQL without domain=None\" omits it. The EQL queries are longer than SPARQL's on every "
+               "query, mostly because every variable is declared with its class; they are shorter than SQLAlchemy's "
+               "on Q2, Q4, Q9, Q21 and Q22, where SQLAlchemy names join tables, keys or conditions on columns. Size "
+               "says nothing about how easy a query is to read or to get right; the paper makes no claim about it.")
+    return Table("Query size in EQL, SPARQL and SQLAlchemy (supplement only)", caption,
+                 ["Query", "SPARQL", "EQL without domain=None", "EQL", "SQLAlchemy"], rows, right=[1, 2, 3, 4])
+
+
 # --- Skipped steps -------------------------------------------------------------------------------------------------
 
 def skipped_table() -> Optional[Table]:
@@ -368,7 +391,7 @@ def main() -> None:
     bundle = (RUN / "BUNDLE").read_text().strip() if (RUN / "BUNDLE").exists() else "?"
     graphdb = (RUN / "graphdb_used").exists()
     tables = [t for t in (test_table(), answer_table(), audit_table(), loading_table(), query_table(),
-                          scaling_table(), skipped_table()) if t]
+                          scaling_table(), query_size_table(), skipped_table()) if t]
     skipped = (RUN / "skipped.txt").read_text() if (RUN / "skipped.txt").exists() else ""
     title = f"KRROOD supplementary material: results of mode {MODE}"
     intro = [f"Bundle {bundle}, {datetime.now().astimezone():%Y-%m-%d %H:%M %Z}. GraphDB: "
