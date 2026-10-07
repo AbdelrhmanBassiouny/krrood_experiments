@@ -207,6 +207,9 @@ def main() -> None:
         shutil.copy(HERE / "formalization" / name, bundle / "formalization" / name)
     if arguments.results:
         copy_results(Path(arguments.results), bundle / "results")
+        subprocess.run([sys.executable, str(HERE / "tools" / "query_size.py"),
+                        str(bundle / "code/earlier/experiments/src/krrood_experiments/owl2bench"),
+                        str(bundle / "results" / "query_size.json")], check=True, capture_output=True)
         # The report of the paper's run, as a run of the bundle writes it for its own results.
         subprocess.run([sys.executable, str(HERE / "tools" / "report.py"), str(bundle / "results"),
                         str(bundle / "results"), "paper", str(bundle / "results" / "REPORT.md")],

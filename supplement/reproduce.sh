@@ -205,6 +205,11 @@ prepare_data() {
 
 run_tests() { suite measurement_tests python -m pytest -q -o addopts="" -p no:cacheprovider tests/aamas27; }
 
+# The size of the benchmark's queries in EQL, SPARQL and SQLAlchemy (the supplement's README, "Query size").
+query_size() {
+    python "$TOOLS/query_size.py" "$EXPERIMENTS/src/krrood_experiments/owl2bench" "$RUN/query_size.json"
+}
+
 answer_check() {
     rm -rf "$RUN/check"
     python scripts/aamas27/run_queries.py --check-only --results-dir "$RUN/check" \
@@ -338,6 +343,7 @@ trap 'status=$?; stop_graphdb; [[ $status == 0 ]] || report; fix_ownership' EXIT
 
 step tests run_tests
 step listings listings
+step query_size query_size
 if [[ "$MODE" == quick ]]; then
     step ablation_small ablation_small 8 16 32 64 128
     step reference_check reference_check
