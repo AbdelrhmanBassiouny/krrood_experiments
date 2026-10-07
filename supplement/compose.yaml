@@ -1,7 +1,8 @@
 # Usage (see README.md):
-#   export GRAPHDB_LICENSE=/path/to/graphdb.license
 #   docker compose build
-#   docker compose run --rm experiments check     # or: listings, all, tables
+#   docker compose run --rm experiments           # quick, about 10 min, no license needed
+#   export GRAPHDB_LICENSE=/path/to/graphdb.license
+#   docker compose run --rm experiments full      # everything, 9-13 h (or: check, listings, tables, report)
 #   docker compose down
 # A fixed project name, whatever the folder is called (run_ubuntu.sh finds the run's container by it).
 name: krrood-aamas27
@@ -32,9 +33,12 @@ services:
       QUERY_REPETITIONS: ${QUERY_REPETITIONS:-10}
       LOADING_REPETITIONS: ${LOADING_REPETITIONS:-5}
       RDFLIB_TIMEOUT_SECONDS: ${RDFLIB_TIMEOUT_SECONDS:-10800}
+      ABLATION_TIMEOUT_SECONDS: ${ABLATION_TIMEOUT_SECONDS:-7200}
     volumes:
       - ./state:/state
-      # check and all need a GraphDB license file (README.md); without one, reproduce.sh stops and says so.
+      # The paper's results: the report compares with them, and quick mode uses GraphDB's answer sets.
+      - ./results:/paper_results:ro
+      # GraphDB needs a license file (README.md); without one, reproduce.sh skips the steps that need GraphDB.
       # A path that does not exist is an error here, instead of Docker creating an empty folder there.
       - type: bind
         source: ${GRAPHDB_LICENSE:-/dev/null}

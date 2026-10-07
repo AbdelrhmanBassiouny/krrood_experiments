@@ -5,7 +5,10 @@ The code is exported from pinned commits (no git metadata), identifying metadata
 and the README are added, every file is scanned for identifying strings, and the result is zipped. The build
 fails if the scan finds anything or if the zip exceeds 25 MB.
 
-Usage: python make_supplement.py OUTPUT_DIRECTORY [--results RESULTS_DIRECTORY]
+Usage: python make_supplement.py OUTPUT_DIRECTORY [--results RESULTS_DIRECTORY] [--code-from BUNDLE_ZIP_OR_DIR]
+
+--code-from takes code/ from an earlier bundle instead of exporting it from the clones below (on a machine without
+them); the build then checks that the code is unchanged (same BUNDLE id), as only the files around it change.
 """
 
 from __future__ import annotations
@@ -13,6 +16,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import io
+import json
 import os
 import re
 import shutil
@@ -118,10 +122,15 @@ def scan(bundle: Path) -> list:
     return hits
 
 
+HOME_PATH = re.compile(r"/home/[^/\s\"']+")
+TEXT_SUFFIXES = {".txt", ".log", ".json", ".sh", ".py", ".conf", ".csv", ".md", ".tex"}
+
+
 def copy_results(source: Path, destination: Path) -> None:
     """
     Copy the measured results. Of the answer sets, only GraphDB's (the reference of the answer-set check) are kept:
     the other systems' sets are equal to them (check/answer_check.json), and all of them would exceed 25 MB.
+    Home folders in paths of logs (e.g. of the Protégé sessions) are replaced by "~".
     """
     def ignore(directory: str, names) -> set:
         directory = Path(directory)
@@ -129,6 +138,31 @@ def copy_results(source: Path, destination: Path) -> None:
             return {name for name in names if not (directory.parent.name == "check" and name == "graphdb")}
         return {name for name in names if name in ("__pycache__",) or name.startswith(".done-")}
     shutil.copytree(source, destination, ignore=ignore)
+    for path in destination.rglob("*"):
+        if path.is_file() and path.suffix.lower() in TEXT_SUFFIXES:
+            text = path.read_text(errors="surrogateescape")
+            new = HOME_PATH.sub("~", text)
+            new = re.sub(r"(semanticweb\.org/)[^/]+(/ontologies)", r"\1user\2", new)
+            if path.name == "host.json":   # the board's model is rare enough to identify the machine
+                record = json.loads(new)
+                record.pop("board", None)
+                new = json.dumps(record, indent=2) + "\n"
+            if new != text:
+                path.write_text(new, errors="surrogateescape")
+
+
+def code_from(source: Path, bundle: Path) -> None:
+    """Copy code/ of an earlier bundle (a zip or an unpacked folder)."""
+    if source.suffix == ".zip":
+        with zipfile.ZipFile(source) as zipped:
+            for name in zipped.namelist():
+                parts = Path(name).parts
+                if len(parts) > 2 and parts[1] == "code" and not name.endswith("/"):
+                    target = bundle / Path(*parts[1:])
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_bytes(zipped.read(name))
+    else:
+        shutil.copytree(source / "code", bundle / "code")
 
 
 def fingerprint(bundle: Path) -> str:
@@ -143,6 +177,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("output")
     parser.add_argument("--results", help="results directory of the measured run, copied to results/")
+    parser.add_argument("--code-from", help="take code/ from this earlier bundle (zip or folder)")
     parser.add_argument("--draft", action="store_true",
                         help="allow TODO-AUTHORS markers (for the measured run; not for submission)")
     arguments = parser.parse_args()
@@ -152,24 +187,38 @@ def main() -> None:
     bundle = output / NAME
     if bundle.exists():
         shutil.rmtree(bundle)
-    for repository, commit, paths, destination, _ in SOURCES:
-        export(repository, commit, paths, bundle / destination)
-    # git archive keeps the "krrood/" prefix; the experiments and ripple_down_rules exports have none.
-    for excluded in EXCLUDE:
-        (bundle / excluded).unlink(missing_ok=True)
+    if arguments.code_from:
+        code_from(Path(arguments.code_from).resolve(), bundle)
+    else:
+        for repository, commit, paths, destination, _ in SOURCES:
+            export(repository, commit, paths, bundle / destination)
+        # git archive keeps the "krrood/" prefix; the experiments and ripple_down_rules exports have none.
+        for excluded in EXCLUDE:
+            (bundle / excluded).unlink(missing_ok=True)
     shutil.copytree(LISTINGS, bundle / "listings",
                     ignore=shutil.ignore_patterns("__pycache__", ".pytest_cache", "probe_*.py"))
     for name in ("Dockerfile", "compose.yaml", "reproduce.sh", "run_ubuntu.sh", "README.md", "AI_USE.md", ".dockerignore"):
         shutil.copy(HERE / name, bundle / name)
     shutil.copytree(HERE / "environment", bundle / "environment")
+    shutil.copytree(HERE / "tools", bundle / "tools", ignore=shutil.ignore_patterns("__pycache__", "*.rdf"))
     # The formalization of EQL: LaTeX source and the PDF compiled from it.
     (bundle / "formalization").mkdir()
     for name in ("eql_formalization.tex", "eql_formalization.pdf"):
         shutil.copy(HERE / "formalization" / name, bundle / "formalization" / name)
     if arguments.results:
         copy_results(Path(arguments.results), bundle / "results")
+        # The report of the paper's run, as a run of the bundle writes it for its own results.
+        subprocess.run([sys.executable, str(HERE / "tools" / "report.py"), str(bundle / "results"),
+                        str(bundle / "results"), "paper", str(bundle / "results" / "REPORT.md")],
+                       check=True, capture_output=True)
     sanitize(bundle)
     (bundle / "environment" / "BUNDLE").write_text(fingerprint(bundle) + "\n")
+    if arguments.code_from:
+        source = Path(arguments.code_from)
+        earlier = (zipfile.ZipFile(source).read(f"{NAME}/environment/BUNDLE").decode() if source.suffix == ".zip"
+                   else (source / "environment" / "BUNDLE").read_text()).strip()
+        if fingerprint(bundle) != earlier:
+            sys.exit(f"the code differs from that of {source} ({fingerprint(bundle)} instead of {earlier})")
     hits = scan(bundle)
     # A GraphDB license names its licensee; it must never be shipped.
     hits += [f"{p.relative_to(bundle)}: license file" for p in bundle.rglob("*")

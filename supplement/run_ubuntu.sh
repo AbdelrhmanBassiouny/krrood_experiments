@@ -1,27 +1,34 @@
 #!/usr/bin/env bash
-# Level 3 on Ubuntu (24.04) in one command: installs Docker if needed, builds the image, runs the listing tests,
-# checks the GraphDB license, records the machine's details and starts the full run in the background, with a
-# monitor of the machine's load. Run it from the unpacked bundle. Safe to call again: it never starts a second run,
-# and a stopped run resumes after its last finished step. See README.md.
+# The experiments on Ubuntu (24.04) in one command: installs Docker if needed, builds the image, and runs the quick
+# check (in the foreground) or the full run (in the background, with a monitor of the machine's load). Run it from
+# the unpacked bundle. Both end with a report of the results in tables, also written to state/results/REPORT.md.
+# Safe to call again: it never starts a second run, and a stopped full run resumes after its last finished step.
+# See README.md.
 #
 # Usage:
-#   bash run_ubuntu.sh             set up, then start the full run (about 9-13 h)
-#   bash run_ubuntu.sh status      is the run going, which steps finished, and the end of its log
-#   bash run_ubuntu.sh tables      after saving protege.json: rebuild the tables and the results archive
-#   bash run_ubuntu.sh --dry-run   everything except starting the run
+#   bash run_ubuntu.sh             quick: tests, listings, correctness of EQL and SQL, KRROOD's loading (~10 min)
+#   bash run_ubuntu.sh full        everything in the paper, in the background (9-13 h); "all" is the same
+#   bash run_ubuntu.sh status      is the full run going, which steps finished, and the end of its log
+#   bash run_ubuntu.sh report      the report of the results so far
+#   bash run_ubuntu.sh tables      after saving protege.json: rebuild the tables, the report and the archive
+#   bash run_ubuntu.sh --dry-run   set up everything for the full run, without starting it
+#
+# Without a GraphDB license, the steps that need GraphDB are skipped; the report lists them and says how to get one.
 #
 # Settings (environment variables):
 #   GRAPHDB_LICENSE   GraphDB license file [~/graphdb.license, ~/Downloads/graphdb.license, ~/.graphdb/...,
 #                     else any *.license file under ~ and /opt with "graphdb" in its path]
 set -euo pipefail
 
-MODE="${1:-start}"
+MODE="${1:-quick}"
+[[ "$MODE" == all ]] && MODE=full
 BUNDLE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG="$BUNDLE/state/run.log"
-RUN_MODE="${AAMAS27_RUN_MODE:-all}"   # only changed to test this script
+RUN_MODE="${AAMAS27_RUN_MODE:-full}"   # only changed to test this script
 PROJECT=krrood-aamas27                # the project name in compose.yaml
 
 say() { printf '\n==> %s\n' "$*"; }
+warn() { printf '\nWARNING: %s\n' "$*" >&2; }
 die() { printf '\nERROR: %s\n' "$*" >&2; exit 1; }
 
 # Stops instead of answering "no" when Docker can't be asked: the caller would then start a second run on top of
@@ -80,9 +87,12 @@ find_license() {
         LICENSE="$(find "$HOME" /opt -type f -iname '*.license' 2>/dev/null | grep -i graphdb | head -1 || true)"
     fi
     if [[ -z "$LICENSE" || ! -f "$LICENSE" ]]; then
-        die "No GraphDB license file found. GraphDB 11 needs one, even the free edition: request GraphDB Free on
-       https://graphdb.ontotext.com/ (the license arrives by e-mail), save it as ~/graphdb.license and run this
-       script again, or run it with GRAPHDB_LICENSE=/path/to/file.license."
+        warn "No GraphDB license file found, so the steps that need GraphDB will be skipped (the report lists
+         them). GraphDB 11 needs a license even for its free edition: request GraphDB Free on
+         https://graphdb.ontotext.com/ (the license arrives by e-mail), save it as ~/graphdb.license and run this
+         script again, or run it with GRAPHDB_LICENSE=/path/to/file.license. Finished steps are not repeated."
+        unset GRAPHDB_LICENSE
+        return
     fi
     say "GraphDB license: $LICENSE"
     export GRAPHDB_LICENSE="$LICENSE"
@@ -90,6 +100,7 @@ find_license() {
 
 # Starts GraphDB in the container with the license and asks it whether the license is valid (about 30 s).
 check_license() {
+    [[ -n "${GRAPHDB_LICENSE:-}" ]] || return 0
     say "Checking the GraphDB license with GraphDB itself"
     local answer
     answer="$(docker run --rm -v "$GRAPHDB_LICENSE:/license/graphdb.license:ro" --entrypoint bash krrood-aamas27 -c '
@@ -106,7 +117,10 @@ for _ in range(90):
 PY' 2>/dev/null || true)"
     if [[ "$answer" != *'"valid": true'* ]]; then
         echo "  $answer"
-        die "GraphDB does not accept the license $GRAPHDB_LICENSE (answer above). Use another license file."
+        warn "GraphDB does not accept the license $GRAPHDB_LICENSE (answer above), so the steps that need GraphDB
+         will be skipped. Request a new GraphDB Free license on https://graphdb.ontotext.com/."
+        unset GRAPHDB_LICENSE
+        return
     fi
     # What the license allows matters for GraphDB's times (e.g. the free edition's core limit); not the licensee.
     mkdir -p "$BUNDLE/$HOST_DIR_RELATIVE"
@@ -140,9 +154,6 @@ prepare_bundle() {
     [[ "$built_id" == "$bundle_id" ]] \
         || die "the image holds other code ($built_id) than this bundle ($bundle_id): run 'docker builder prune -af', then this script again"
     say "The image holds the code of BUNDLE $built_id"
-    say "Listing tests (expected: 24 passed, then 1 passed)"
-    docker run --rm krrood-aamas27 listings
-    check_license
 }
 
 # --- Host details and monitoring (no hostname or user name: the results are shipped anonymized) ----------
@@ -184,7 +195,6 @@ record = {
     "power_profile": run("powerprofilesctl", "get"),
     "memory": memory,
     "disk_of_results": disk,
-    "board": {k: read(f"/sys/class/dmi/id/{k}") for k in ("sys_vendor", "board_vendor", "board_name")},
     "os": os_release.get("PRETTY_NAME", "").strip('"'),
     "kernel": platform.release(),
     "virtualization": run("systemd-detect-virt") or "none",
@@ -295,17 +305,18 @@ start_run() {
         if tail -n +"$new_lines" "$BUNDLE/state/reproduce.log" 2>/dev/null | grep -q "FAILED"; then
             tail -n +"$new_lines" "$BUNDLE/state/reproduce.log" | tail -20; die "the run failed, see above"
         fi
-        if tail -n +"$new_lines" "$BUNDLE/state/reproduce.log" 2>/dev/null | grep -q "GraphDB started\|finished mode"; then
+        if tail -n +"$new_lines" "$BUNDLE/state/reproduce.log" 2>/dev/null | grep -q "start tests\|skip tests"; then
             tail -5 "$BUNDLE/state/reproduce.log"
             say "The run is going (9-13 h). Leave the machine idle until it has finished: screen lock is fine,
-    but don't log out, and don't run anything else, since the run measures time."
+    but don't log out, and don't run anything else, since the run measures time. When it has finished, its
+    report is at the end of state/reproduce.log and in state/results/REPORT.md."
             say "Check it any time with: bash $(printf '%q' "$0") status"
             return
         fi
         sleep 2
     done
     tail -20 "$LOG"
-    die "the run did not report that GraphDB started within 3 min; see $LOG"
+    die "the run did not start its first step within 3 min; see $LOG"
 }
 
 status() {
@@ -321,6 +332,20 @@ status() {
     tail -15 "$BUNDLE/state/reproduce.log" 2>/dev/null || echo "  no log yet"
 }
 
+# The quick check in the foreground: it prints its report at the end.
+quick() {
+    cd "$BUNDLE"
+    say "Quick check (about 10 min): test suites, listings, the ablation on small data, the answers of EQL and SQL
+    compared with GraphDB's, and KRROOD's loading. 'bash $(printf '%q' "$0") full' runs everything."
+    docker compose run --rm -T experiments quick
+    docker compose down
+}
+
+report_only() {
+    cd "$BUNDLE"
+    docker compose run --rm -T --no-deps experiments report
+}
+
 tables() {
     find_license
     cd "$BUNDLE"
@@ -333,14 +358,15 @@ tables() {
 
 case "$MODE" in
     status) use_docker_group "$@"; status; exit 0 ;;
+    report) install_docker "$@"; report_only; exit 0 ;;
     tables)
         install_docker "$@"
         if run_is_going; then die "the run is still going; make the tables after it has finished"; fi
         tables
         exit 0
         ;;
-    start | --dry-run) ;;
-    *) die "unknown mode $MODE (use: no argument, status, tables, --dry-run)" ;;
+    quick | full | --dry-run) ;;
+    *) die "unknown mode $MODE (use: no argument for quick, full or all, status, report, tables, --dry-run)" ;;
 esac
 
 install_docker "$@"
@@ -349,9 +375,14 @@ if run_is_going; then
     status
     exit 0
 fi
-find_license
 check_disk
 prepare_bundle
+if [[ "$MODE" == quick ]]; then
+    quick
+    exit 0
+fi
+find_license
+check_license
 if [[ "$MODE" == --dry-run ]]; then
     say "Dry run: everything is ready; the run was not started."
     exit 0

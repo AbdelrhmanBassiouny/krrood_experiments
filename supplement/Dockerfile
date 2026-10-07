@@ -33,8 +33,9 @@ RUN /opt/venvs/earlier/bin/pip install -q --no-deps -e /opt/aamas27/code/earlier
        /opt/aamas27/code/earlier/experiments/resources/owl2bench_statements_reasoned.rdf
 
 COPY listings/ /opt/aamas27/listings/
+COPY tools/ /opt/aamas27/tools/
 COPY reproduce.sh /opt/aamas27/reproduce.sh
 
 WORKDIR /opt/aamas27/code/earlier/experiments
 ENTRYPOINT ["bash", "/opt/aamas27/reproduce.sh"]
-CMD ["check"]
+CMD ["quick"]
