@@ -41,7 +41,7 @@ measurement scripts, the tests, and the Docker set-up of this supplementary mate
   every step; the authors chose which of the proposed experiments to run, the scenario (a delivery robot) and that
   removals are excluded and the exclusion stated;
 * in reply to a second review written by an AI tool at the authors' request: five seeds of the agent loop with
-  bootstrap intervals, and query times as medians without the first run;
+  bootstrap intervals;
 
 **Analysis and text**: the statements and proof sketches of Propositions 5.1 and 5.2 and Algorithm 1 were drafted
 by the AI tool from the code and revised by the authors; the AI tool also drafted and revised other parts of the
