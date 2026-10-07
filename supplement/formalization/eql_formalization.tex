@@ -258,6 +258,7 @@ An EQL \emph{knowledge base} is a pair $\mathcal{K} = (\mathcal{T},\,\mathcal{A}
         $\sqsubseteq$, together with the classes' axioms and the predicates and functions.  The
         property descriptors of KRROOD, which apply property rules when a value is assigned, are
         abstracted away here: their consequences are already part of the attribute values.
+        Section~\ref{sec:descriptors} formalizes how descriptors compute them.
 
   \item $\mathcal{A}$ \emph{(ABox)} is a finite set of ground typed object
         instances.  $\mathcal{A}$ contains no disjunctive
@@ -790,6 +791,133 @@ This applies to any term evaluating to a Boolean value: symbolic function calls,
 and Boolean field accesses are all admitted as atoms via this form.
 
 % ============================================================
+\section{Reasoning on Assignment}
+\label{sec:descriptors}
+% ============================================================
+
+This section formalizes what the property descriptors of KRROOD compute when application code
+assigns a value, and proves the runtime proposition of the paper (Proposition~3). It follows
+the implementation of the version used in the experiments
+(\texttt{PropertyDescriptorRelation.infer\_and\_apply\_implications} in
+\texttt{krrood/ontomatic/property\_descriptor/property\_descriptor\_relation.py}).
+
+\subsection{Property Facts and Rules}
+
+Let $\mathbf{P}$ be the object properties of the TBox. Each $P\in\mathbf{P}$ has
+super-properties $\mathit{sup}(P)$ (the transitive closure of the descriptor hierarchy),
+equivalent properties $\mathit{eq}(P)$, at most one inverse $\mathit{inv}(P)$, and may be
+\emph{symmetric} or \emph{transitive}; a \emph{chain} $Q_1\circ\dots\circ Q_n\sqsubseteq P$ has
+$n\geq 2$. A \emph{fact} is a triple $P(a,b)$ of a property and two individuals; the facts of a
+knowledge base are the pairs of Section~3 of the paper, $P(\mathit{ind}(o),\mathit{ind}(v))$ for
+every object $o$ and value $v$ of the attribute that $P$ manages.
+
+The \emph{assign rules} are the following Horn rules, which are the OWL~2~RL/RDF rules
+\texttt{prp-spo1}, \texttt{prp-eqp1/2}, \texttt{prp-inv1/2}, \texttt{prp-symp},
+\texttt{prp-trp} and \texttt{prp-spo2} instantiated for the declared characteristics:
+\[
+\begin{array}{ll}
+P(a,b)\rightarrow S(a,b) & S\in\mathit{sup}(P)\\
+P(a,b)\rightarrow E(a,b) & E\in\mathit{eq}(P)\\
+P(a,b)\rightarrow \mathit{inv}(P)(b,a) & \\
+P(a,b)\rightarrow P(b,a) & P \text{ symmetric}\\
+P(a,b)\wedge P(b,c)\rightarrow P(a,c) & P \text{ transitive, not symmetric}\\
+Q_1(a_0,a_1)\wedge\dots\wedge Q_n(a_{n-1},a_n)\rightarrow P(a_0,a_n) & Q_1\circ\dots\circ Q_n\sqsubseteq P
+\end{array}
+\]
+We write $R$ for this set of rules. Transitivity of a property that is also symmetric is not in
+$R$: it is completed by step~5 of the loading algorithm, which relates all members of each
+connected component, and not on assignment.
+
+\paragraph{Storage condition.} A fact $P(a,b)$ can be stored only on an object of $a$ whose
+class declares the attribute that $P$ manages. We write $\mathit{decl}(a,P)$ if such an object
+exists. Classes of objects do not change, so $\mathit{decl}$ does not change while facts are
+assigned.
+
+\subsection{The Assignment Procedure}
+
+\begin{definition}[Assignment]
+\label{def:assign}
+Let $F$ be a set of facts and $f$ a fact asserted by application code, with $\mathit{decl}$
+true for its subject and property. $\mathit{Assign}(F,f)$ adds $f$ to $F$ and then
+\emph{propagates} it. Propagating a fact $g$ means: for every rule $r\in R$ and every
+instance of $r$ in which $g$ is one of the premises and every other premise is in the current
+$F$, let $h$ be the conclusion; if $\mathit{decl}$ holds for the subject and property of $h$ and
+$h\notin F$, add $h$ to $F$ and propagate $h$ before continuing.
+\end{definition}
+
+The definition is the depth-first recursion of the implementation: a derived fact is stored
+(\texttt{update\_source}) and its implications are applied at once
+(\texttt{infer\_and\_apply\_implications}); a fact already present is not propagated again;
+and a fact whose subject has no object declaring the property is not stored
+(\texttt{holder\_of\_property} returns \texttt{None}). The implementation skips some rule
+instances whose conclusion is certainly present, such as the symmetric fact of a fact derived by
+symmetry; these skips do not change the result. The procedure terminates because $F$ grows in
+every step and there are finitely many facts over the finitely many individuals and properties.
+
+\begin{remark}
+The implementation does not apply transitivity to a fact that it derived from an equivalent
+property. Proposition~\ref{prop:runtime-closure} therefore assumes that equivalent properties
+have the same characteristics, so that the fact from which the equivalent one was derived is
+chained instead.
+\end{remark}
+
+\subsection{Soundness and Closure at Runtime}
+
+\begin{proposition}[Runtime soundness]
+\label{prop:runtime-soundness}
+Let $\mathcal{O}$ be an OWL~2~RL ontology, $F_0$ the facts of the knowledge base that Ontomatic
+loads from it, and $f_1,\dots,f_m$ facts asserted by application code. Every fact of
+$F_m=\mathit{Assign}(\dots\mathit{Assign}(F_0,f_1)\dots,f_m)$ is entailed by $\mathcal{O}$ together
+with $f_1,\dots,f_m$.
+\end{proposition}
+
+\begin{proof}
+By Proposition~1 of the paper, every fact of $F_0$ is entailed by $\mathcal{O}$. Every fact that
+an assignment adds is either an asserted $f_i$ or the conclusion of an instance of a rule of
+$R$ whose premises were in $F$ when it was added. Each rule of $R$ is an OWL~2~RL/RDF rule, and
+these rules are sound for the direct semantics~\cite{motik2012owl2profiles}. By induction on the
+order in which facts are added, every fact is entailed.
+\end{proof}
+
+\begin{proposition}[Runtime closure]
+\label{prop:runtime-closure}
+Let $F$ be closed under $R$, let equivalent properties have the same characteristics, and let
+$f$ be an asserted fact. If $\mathit{decl}$ holds for the subject and property of every
+conclusion of an instance of a rule of $R$ whose premises are in $\mathit{Assign}(F,f)$, then
+$\mathit{Assign}(F,f)$ is closed under $R$.
+\end{proposition}
+
+\begin{proof}
+Let $F'=\mathit{Assign}(F,f)$ and suppose that an instance of a rule of $R$ has premises
+$p_1,\dots,p_k\in F'$ and a conclusion $h\notin F'$. If all premises are in $F$, then $h\in F$
+because $F$ is closed, a contradiction. Otherwise, let $p_j$ be the premise that the procedure
+added last. Every other premise was in $F$ or was added before $p_j$, so it was present when
+$p_j$ was propagated, which happens right after $p_j$ is added. Propagating $p_j$ considers
+every instance of every rule in which $p_j$ is a premise and the others are present, including
+this one; $\mathit{decl}$ holds for $h$ by assumption, so $h$ was added, a contradiction.
+For a transitive property that is equivalent to another, a premise derived through the
+equivalence is not chained, but by the remark its source fact has the same characteristic and
+is chained, and the conclusion is carried over by the equivalence rule.
+\end{proof}
+
+By induction on the asserted facts, the closure under $R$ that loading establishes
+(steps~1--4 of the loading algorithm, Proposition~2 of the paper) is kept after any sequence of
+assignments that satisfies the storage condition. The guarantee concerns object-property facts
+and the rules of $R$. It does not cover:
+\begin{itemize}
+  \item transitivity of properties that are both symmetric and transitive, which step~5
+        completes only when loading;
+  \item class memberships that the OWL~2~RL/RDF rules derive from the new facts
+        (\texttt{prp-dom}, \texttt{prp-rng}, \texttt{cls-*}, \texttt{cax-*}): the class of
+        an object does not change after it is created. A class defined by an axiom is instead
+        queried through its axiom, which evaluates the same condition on the current facts;
+  \item facts whose subject has no object declaring the property, which are not stored;
+  \item sub- and equivalent data properties, whose values Ontomatic copies when loading.
+\end{itemize}
+The runtime audit of the supplementary material measures how many facts each of these leaves
+out after the agent loop of the paper.
+
+% ============================================================
 \section{Computational Complexity}
 \label{sec:eql:complexity}
 % ============================================================
@@ -937,6 +1065,11 @@ M.~Y.~Vardi.
 \newblock The complexity of relational query languages.
 \newblock In \emph{Proc.\ 14th Annual ACM Symposium on Theory of Computing
   (STOC)}, pages 137--146. ACM, 1982.
+
+\bibitem{motik2012owl2profiles}
+B.~Motik, B.~Cuenca~Grau, I.~Horrocks, Z.~Wu, A.~Fokoue, and C.~Lutz.
+\newblock {OWL}~2 Web Ontology Language Profiles (Second Edition).
+\newblock W3C Recommendation, 2012.
 
 \end{thebibliography}
 

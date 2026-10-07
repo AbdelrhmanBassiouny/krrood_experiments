@@ -296,7 +296,7 @@ def loading_table() -> Optional[Table]:
                "Core i7-13700 with 64 GB RAM. ")
     caption += ("Protégé was run by hand, once per input (protege/README.txt)." if OWN else
                 "Protégé was run by hand in the paper and is not run here.")
-    table = Table("Loading and reasoning (paper, Table 3)", caption,
+    table = Table("Loading and reasoning (paper, Table 2)", caption,
                   ["System", "Input", "Time [s]", "Paper", "Memory", "Paper"], rows, right=[2, 3, 4, 5])
     return table.without([3, 5]) if OWN else table
 
@@ -304,11 +304,16 @@ def loading_table() -> Optional[Table]:
 # --- Queries -----------------------------------------------------------------------------------------------------
 
 def query_means(summary: Optional[Dict[str, Any]]) -> Dict[str, Dict[str, float]]:
+    """
+    :return: Per system and query, the median of the repetitions without the first, which includes warm-up (the
+     paper's statistic), or the time of the only repetition.
+    """
     means: Dict[str, Dict[str, float]] = {}
     for framework, run in (summary or {}).get("frameworks", {}).items():
         for number, entry in ((run.get("result") or {}).get("queries") or {}).items():
-            if entry.get("status") == "ok" and entry.get("mean_ms") is not None:
-                means.setdefault(framework, {})[number] = entry["mean_ms"]
+            times = entry.get("times_ms") or []
+            if entry.get("status") == "ok" and times:
+                means.setdefault(framework, {})[number] = statistics.median(times[1:] if len(times) > 1 else times)
     return means
 
 
@@ -318,7 +323,7 @@ def query_table() -> Optional[Table]:
     if summary is None:
         summary = load(RUN / "reference_check" / "queries.json")
         repetitions_note = (" In quick mode, each query runs once, so the times include the first run's warm-up "
-                            "and are not comparable with the paper's means over 10 runs.")
+                            "and are not comparable with the paper's medians over 9 runs.")
     if summary is None:
         return None
     this, paper = query_means(summary), query_means(load(PAPER / "queries" / "queries.json"))
@@ -336,12 +341,13 @@ def query_table() -> Optional[Table]:
     for label, source in (("Geom. mean", this),) + ((("Geom. mean, paper", paper),) if not OWN else ()):
         values = [geometric([source[key][n] for n in common]) if key in source else None for key, _ in present]
         rows.append([label, "", *[milliseconds(v) if v is not None else "–" for v in values]])
-    caption = (f"Query times in milliseconds on the loaded data (mean over the repetitions of this run): EQL over "
+    caption = (f"Query times in milliseconds on the loaded data (median over the repetitions of this run without the first, "
+               f"which includes warm-up): EQL over "
                f"the objects in working memory, SQL (SQLAlchemy) over the objects that ORMatic persisted in "
                f"PostgreSQL, the others over their own stores. \"Answers\" is the number of GraphDB's answers. The "
                f"geometric means are over the {len(common)} queries that every listed system completed, in this "
                f"run{'' if OWN else ' and in the paper' + chr(39) + 's run'}.{repetitions_note}")
-    return Table("Query times (paper, Table 4)", caption, ["Query", "Answers", *[l for _, l in present]], rows,
+    return Table("Query times (paper, Table 3, which summarizes them)", caption, ["Query", "Answers", *[l for _, l in present]], rows,
                  right=list(range(1, 2 + len(present))))
 
 
@@ -369,7 +375,7 @@ def scaling_table() -> Optional[Table]:
                "a home town, linked in a chain: load time, attempts to add a fact, facts (n², everyone with everyone) "
                "and whether the closure is complete. The attempts grow about 8-fold per doubling of n, i.e. cubically; "
                "OWL2Bench's largest such group has 1,145 persons, which explains why the ablation does not finish "
-               "within two hours on the benchmark (Table 3).")
+               "within two hours on the benchmark (Table 2).")
     table = Table("Why the ablation does not finish: eager chaining on small data", caption,
                   ["n", "Time [s]", "Attempts", "Facts", "Complete", "Time, paper", "Attempts, paper"], rows,
                   right=[0, 1, 2, 3, 5, 6])
