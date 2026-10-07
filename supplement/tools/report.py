@@ -376,6 +376,53 @@ def scaling_table() -> Optional[Table]:
     return table.without([5, 6]) if OWN else table
 
 
+# --- Agent loop --------------------------------------------------------------------------------------------------
+
+AGENT_LOOP_VARIANTS = [("krrood", "KRROOD (scan)"), ("krrood_navigation", "KRROOD (navigation)"),
+                       ("graphdb", "GraphDB (mirror)"), ("graphdb_push", "GraphDB (push)"),
+                       ("reasonable", "reasonable (recompute)")]
+
+
+def agent_loop_table() -> Optional[Table]:
+    loop = load(RUN / "agent_loop" / "agent_loop.json")
+    if not loop:
+        return None
+    paper = load(PAPER / "agent_loop" / "agent_loop.json") or {}
+    rows = []
+    ms = lambda summary: f"{summary['median'] * 1000:.1f} / {summary['p95'] * 1000:.0f}"
+    for name, label in AGENT_LOOP_VARIANTS:
+        variant = loop["variants"].get(name)
+        if not variant:
+            continue
+        steps, phases = variant["steps"], variant["steps"]["phases"]
+        # At most one of the two is not zero: reasonable reasons after the update, GraphDB (push) pushes after it.
+        after = phases["push"] if phases["push"]["total"] else phases["reasoning"]
+        agreement = variant.get("agreement")
+        agrees = ("reference" if not agreement else
+                  f"{agreement['equal_actions']}/{agreement['steps_compared']} actions, "
+                  f"{agreement['equal_candidate_sets']}/{agreement['steps_compared']} candidate sets")
+        paper_variant = paper.get("variants", {}).get(name)
+        rows.append([label, seconds(variant["setup"]["total_seconds"]), ms(steps["total_seconds"]), ms(phases["update"]),
+                     ms(after) if after["total"] else "–", ms(phases["query"]), f"{steps['statements_inserted']['mean'] + steps['statements_deleted']['mean']:.1f}",
+                     f"{steps['round_trips']['mean']:.0f}", str(variant["code"]["boundary_lines"]["total"]), agrees,
+                     ms(paper_variant["steps"]["total_seconds"]) if paper_variant else "–"])
+    caption = (f"The delivery robot on the OWL2Bench campus, {loop['arguments']['steps']} steps (seed "
+               f"{loop['arguments']['seed']}). Each step perceives 3 additions (an enrolment, a course taken, a new "
+               "T20 cricket fan), decides with two queries that need inferred facts and call the robot's path planner "
+               "(handouts to students of a college, tickets to T20 cricket fans), and acts. Times in ms, median / 95th "
+               "percentile. \"Update\": asserting the perceived facts, with KRROOD's and GraphDB's inference; "
+               "\"reasoning / push\": reasonable's materialization, or GraphDB (push) writing the planner's results "
+               "into the store. \"Written\": statements inserted plus deleted per step; \"boundary code\": lines of code "
+               "that only synchronize, map identifiers to objects or connect the planner to the queries. The other "
+               "variants carry out KRROOD's actions; \"agrees\" compares their own decisions and candidates with "
+               "KRROOD's. reasonable 0.4.4 derives no property chains, so it finds no member of a college and no "
+               "handout candidate. Removals are not perceived, as KRROOD does not retract inferred facts.")
+    table = Table("Agent loop: a delivery robot that perceives, reasons with its own procedures and acts", caption,
+                  ["Variant", "Setup [s]", "Step [ms]", "Update [ms]", "Reasoning / push [ms]", "Query [ms]", "Written", "Round trips",
+                   "Boundary code", "Agrees with KRROOD", "Step, paper"], rows, right=[1, 2, 3, 4, 5, 6, 7, 8])
+    return table.without([10]) if OWN else table
+
+
 # --- Query size ----------------------------------------------------------------------------------------------------
 
 def query_size_table() -> Optional[Table]:
@@ -416,7 +463,7 @@ def main() -> None:
     bundle = (RUN / "BUNDLE").read_text().strip() if (RUN / "BUNDLE").exists() else "?"
     graphdb = (RUN / "graphdb_used").exists()
     tables = [t for t in (test_table(), answer_table(), audit_table(), baseline_closure_table(), loading_table(), query_table(),
-                          scaling_table(), query_size_table(), skipped_table()) if t]
+                          scaling_table(), agent_loop_table(), query_size_table(), skipped_table()) if t]
     skipped = (RUN / "skipped.txt").read_text() if (RUN / "skipped.txt").exists() else ""
     title = f"KRROOD supplementary material: results of mode {MODE}"
     intro = [f"Bundle {bundle}, {datetime.now().astimezone():%Y-%m-%d %H:%M %Z}. GraphDB: "

@@ -64,6 +64,7 @@ Quick mode:
    (`results/check/answers/graphdb/`);
 4. measures the loading and reasoning of KRROOD and of Nemo, an in-memory Datalog engine with the OWL 2 RL/RDF
    rules, from the raw data (5 runs each), and their memory increase.
+5. runs KRROOD's two variants of the agent loop (the delivery robot of Section 7.4) for 20 steps.
 
 The run succeeded if it ends with `finished mode quick`. A failure stops it with a line starting with `FAILED:`,
 which says what went wrong, followed by the report of what was finished.
@@ -142,6 +143,22 @@ With a GraphDB license, `full`:
   (Section 4.3 of OWL 2 Profiles) with two rewrites, commented in the file, without which Nemo did not finish:
   rule bodies use one predicate per RDF vocabulary term instead of a single triple predicate, and transitivity is
   written as a linear recursion. Neither changes what is derived;
+* **the agent loop** (Section 7.4), about 1 h: a delivery robot on the OWL2Bench campus, 200 steps
+  (`agent_loop/agent_loop.json`; the code is in `src/krrood_experiments/aamas27/agent_loop/`). OWL2Bench has no
+  rooms, so a seeded campus map is generated (a building per college, a floor per department, classrooms, offices,
+  two charging docks). The robot has a path planner (Dijkstra), a predicate `can_reach` (it can drive to a room and
+  on to a dock with its remaining battery) and a function `travel_seconds`; its pose and battery are read live. Each
+  step perceives three additions (a person enrolls in a department, a student takes a course, a person becomes crazy
+  about T20 cricket), decides with two queries that need inferred facts (membership of a college through the chain
+  `enrollIn` o `isPartOf`, and the class `T20CricketFan`) and call the planner, and acts (drives, delivers or
+  charges). The same robot is built five ways: KRROOD, with the handout query scanning the students or navigating
+  from the college; Python objects mirrored into GraphDB, with SPARQL for the logical part and the planner on the
+  candidates; the same, but writing the planner's results into GraphDB so that SPARQL decides alone; and Python
+  objects with reasonable, which recomputes the closure. The others carry out KRROOD's actions, so all see the same
+  states, and their own decisions and candidates are compared with KRROOD's in every step: both GraphDB variants
+  agree in all 200 steps; reasonable finds no handout candidates, as it derives no property chains. Facts are never
+  removed, as KRROOD does not retract inferred facts. reasonable needs about 17 GB. Quick mode runs KRROOD's two
+  variants for 20 steps; without a license, the GraphDB variants are skipped;
 * **the ablation** that replaces step 5 of Algorithm 1 by forward chaining on every assignment (raw data, 1 run,
   2 h limit), and the same on small data as in quick mode.
 

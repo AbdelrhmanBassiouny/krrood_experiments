@@ -306,6 +306,14 @@ baseline_closures() {
     rm -f "$folder"/*.nt
 }
 
+# The delivery robot (README.md, "Agent loop"): VARIANTS STEPS. KRROOD's variants are the reference; the others carry
+# out its actions, and their decisions and candidates are compared with KRROOD's in every step.
+agent_loop() {
+    [[ "$MODE" == quick ]] && rm -rf "$RUN/agent_loop"
+    python scripts/aamas27/run_agent_loop.py --variants "$1" --steps "$2" --seed 0 --results-dir "$RUN/agent_loop" \
+        --resume
+}
+
 import_memory() {
     mkdir -p "$RUN/memory"
     python "$TOOLS/import_memory.py" "$RUN/memory/import_memory.json"
@@ -368,6 +376,7 @@ if [[ "$MODE" == quick ]]; then
     step import_memory import_memory
     step loading_krrood_raw loading_system krrood raw
     step loading_nemo_owlrl_raw loading_system nemo_owlrl raw
+    step agent_loop agent_loop krrood,krrood_navigation 20
     not_run "everything else in the paper" "quick mode; run 'full' (or 'all') for all experiments, 9-13 h"
 elif have_license; then
     start_graphdb
@@ -390,6 +399,7 @@ if [[ "$MODE" == full ]]; then
             step "loading_$system" loading_system "$system"
         done
         step loading_graphdb loading_graphdb
+        step agent_loop agent_loop krrood,krrood_navigation,graphdb,graphdb_push,reasonable 200
     else
         step query_timing_without_graphdb query_timing_without_graphdb
         not_run "query times of GraphDB, RDFLib and Owlready2" "$NO_LICENSE"
@@ -398,6 +408,8 @@ if [[ "$MODE" == full ]]; then
         done
         not_run "loading from the pre-reasoned data, all systems" "$NO_LICENSE; GraphDB computes the pre-reasoned data"
         not_run "loading of GraphDB" "$NO_LICENSE"
+        step agent_loop agent_loop krrood,krrood_navigation,reasonable 200
+        not_run "agent loop with GraphDB (two variants)" "$NO_LICENSE"
     fi
     step ablation ablation
 fi
