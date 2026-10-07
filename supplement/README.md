@@ -54,7 +54,7 @@ docker compose down
 
 Quick mode:
 
-1. runs the tests of the measurement scripts (`38 passed, 2 skipped`: the two skipped tests of the agent loop need
+1. runs the tests of the measurement scripts (`41 passed, 2 skipped`: the two skipped tests of the agent loop need
    GraphDB or 17 GB and are switched on by AGENT_LOOP_GRAPHDB_TESTS=1 and AGENT_LOOP_REASONABLE_TESTS=1), the paper's listings and the formalization's examples
    (`25 passed`, then `1 passed` for the ORMatic listing of Section 6);
 2. runs eager chaining, the ablation "KRROOD without step 5", on the OWL2Bench TBox with small synthetic data
@@ -66,6 +66,7 @@ Quick mode:
 4. measures the loading and reasoning of KRROOD and of Nemo, an in-memory Datalog engine with the OWL 2 RL/RDF
    rules, from the raw data (5 runs each), and their memory increase.
 5. runs KRROOD's two variants of the agent loop (the delivery robot of Section 7.4) for 20 steps.
+6. audits KRROOD's knowledge base during 10 steps of the agent loop against Nemo's OWL 2 RL closure (seed 0).
 
 The run succeeded if it ends with `finished mode quick`. A failure stops it with a line starting with `FAILED:`,
 which says what went wrong, followed by the report of what was finished.
@@ -160,6 +161,25 @@ With a GraphDB license, `full`:
   agree in all 200 steps; reasonable finds no handout candidates, as it derives no property chains. Facts are never
   removed, as KRROOD does not retract inferred facts. reasonable needs about 17 GB. Quick mode runs KRROOD's two
   variants for 20 steps; without a license, the GraphDB variants are skipped;
+* **further seeds of the agent loop** (seeds 1-4, the same variants but reasonable; about 30 min), combined with
+  seed 0 into `agent_loop/agent_loop_seeds.json` (`scripts/aamas27/aggregate_agent_loop_seeds.py`): medians over all
+  steps of all seeds, a 95% bootstrap interval, the seeds' medians, round trips and statements written per step,
+  boundary lines per category, and agreement with KRROOD. The paper's Table 4 adds, from the code, the languages the
+  developer writes (KRROOD: Python; GraphDB: Python and SPARQL), the processes that hold the robot's knowledge
+  (GraphDB is a Java server reached over HTTP), the world models (the objects, and for GraphDB its store) and where
+  the planner runs (inside the query, on the answers, or before the query with its results written into the store);
+* **the runtime audit** (Section 7.1; about 20 min, no license needed): KRROOD's agent loop runs unchanged for 200
+  steps of seeds 0-4, and after 0, 10, 50, 100 and 200 steps the live knowledge base is compared with Nemo's OWL 2 RL
+  closure of the raw data and the facts perceived so far, normalised as in the comparison with GraphDB's closure
+  (`runtime_audit/runtime_audit.json`, `scripts/aamas27/run_runtime_audit.py`). It tests Proposition 3 of the paper
+  (property rules at runtime), whose proof is in `formalization/` (section "Reasoning on Assignment"). In our run
+  nothing is extra and all object- and data-property facts are present at every checkpoint; the missing facts are
+  class memberships, which KRROOD does not derive at runtime: T20CricketFan, which its axiom answers, and SportsFan,
+  SportsLover and PeopleWithHobby, whose axioms (existential restrictions) read the `types` of the loader's proxies,
+  so this version evaluates them only when loading;
+* **the cost of GraphDB's updates in the agent loop** (`scripts/aamas27/graphdb_update_cost.py`, run by hand on the
+  loaded repository): an empty update, an update that triggers no inference, a step's update, and all steps in one
+  update, to separate the cost of a request and its commit from that of inference;
 * **the ablation** that replaces step 5 of Algorithm 1 by forward chaining on every assignment (raw data, 1 run,
   2 h limit), and the same on small data as in quick mode.
 

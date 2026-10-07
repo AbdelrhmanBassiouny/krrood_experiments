@@ -5,7 +5,7 @@ This statement follows the AAMAS 2027 policy on AI-assisted technologies. No AI 
 ## Tool
 
 Claude Code (Anthropic's command-line coding agent) with the model Claude Opus 5.5 (`claude-opus-5-5`), in sessions
-from 5 to 7 October 2026, during the revision of the paper for this submission. The sessions read and
+from 5 to 8 October 2026, during the revision of the paper for this submission. The sessions read and
 modified the code of KRROOD and of the experiments, ran tests and experiments on a development machine, and drafted
 and revised the text of the paper. The authors reviewed every change, decided what to keep, and ran the measured
 experiments.
@@ -40,8 +40,15 @@ measurement scripts, the tests, and the Docker set-up of this supplementary mate
   statements written, round trips, lines of synchronization and mapping code) and the comparison of decisions in
   every step; the authors chose which of the proposed experiments to run, the scenario (a delivery robot) and that
   removals are excluded and the exclusion stated;
+* in reply to a second review written by an AI tool at the authors' request: the runtime audit (the knowledge base of
+  the agent loop compared with Nemo's closure at checkpoints), five seeds of the agent loop with bootstrap intervals,
+  the integration measures of Table 4 (languages, processes, world models, where the planner runs, round trips and
+  statements written per step), the measurement of GraphDB's update cost, and query times as medians without the
+  first run; the authors set the paper's focus on the unification rather than on speed, and asked for the
+  integration measures;
 
-**Analysis and text**: the statements and proof sketches of Propositions 5.1 and 5.2 and Algorithm 1 were drafted
+**Analysis and text**: the statements and proof sketches of Propositions 5.1 and 5.2 and Algorithm 1, and the
+statement of Proposition 5.3 with its proofs in the formalization (section "Reasoning on Assignment"), were drafted
 by the AI tool from the code and revised by the authors; the AI tool also drafted and revised other parts of the
 text.
 
@@ -114,5 +121,23 @@ geometric mean and shorter than SQLAlchemy's on five queries. The paper makes no
 > I want a something that supports oop and agentic AI and robotics from krrood, with computables, functions and
 > predicates. I want to show the seemlessness of that and how it would look like woth other technologies and the
 > synchronization required for it, what do you think?
+
+> [Given a second review, written by an AI tool at the authors' request:] I would like to handle the weaknesses in
+> this review as much as possible, discuss with me the cleanest and most rigourous and sincere way we can do that
+> [...]
+
+> Pre reasoned input is like remembering an episode in agents. It's not important that we are the best, this is not
+> about optimizing reasoning, loading or querying, it's about the unification of the knowledge representation of
+> agent programs [...] our experiments and the space we have in the paper should make that the main focus not
+> timing, and memory optimization, those are just to prove that they are useable and can benefitf rom future
+> optimization work.
+
+> For the agent loop is there a better modification to it that makes the difference bigger than a 7 lines of code
+> and not only about lines of code and be more encompassing of the features and the unification and integration
+> [...] measure number languages used, number of tools, combilers, requires syncronization, mapping and
+> communication [...]
+
+[The multi-agent benchmark that the last prompt also asked about is left to future work; the integration measures
+were added for the existing agent loop.]
 
 The complete session logs are kept by the authors.
