@@ -36,7 +36,7 @@ LOADING_SYSTEMS = [
 QUERY_FRAMEWORKS = [("sqlalchemy", "SQL"), ("graphdb", "GraphDB"), ("eql", "EQL"), ("rdflib", "RDFLib"),
                     ("owlready2", "Owlready2")]
 SUITES = [
-    ("measurement_tests", "Tests of the measurement scripts", "24 passed"),
+    ("measurement_tests", "Tests of the measurement scripts", "38 passed, 2 skipped"),
     ("listings", "The paper's listings and the formalization's examples", "25 passed"),
     ("ormatic_listing", "The ORMatic listing (Section 6)", "1 passed"),
     ("ablation_tests", "Eager chaining on small data (the ablation)", "9 passed"),

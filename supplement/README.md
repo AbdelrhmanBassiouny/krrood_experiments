@@ -54,7 +54,8 @@ docker compose down
 
 Quick mode:
 
-1. runs the tests of the measurement scripts (`24 passed`), the paper's listings and the formalization's examples
+1. runs the tests of the measurement scripts (`38 passed, 2 skipped`: the two skipped tests of the agent loop need
+   GraphDB or 17 GB and are switched on by AGENT_LOOP_GRAPHDB_TESTS=1 and AGENT_LOOP_REASONABLE_TESTS=1), the paper's listings and the formalization's examples
    (`25 passed`, then `1 passed` for the ORMatic listing of Section 6);
 2. runs eager chaining, the ablation "KRROOD without step 5", on the OWL2Bench TBox with small synthetic data
    (`9 passed`: it terminates, derives the same facts as step 5, each fact once) and measures how its work grows
