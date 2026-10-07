@@ -5,7 +5,7 @@ This statement follows the AAMAS 2027 policy on AI-assisted technologies. No AI 
 ## Tool
 
 Claude Code (Anthropic's command-line coding agent) with the model Claude Opus 5.5 (`claude-opus-5-5`), in sessions
-from 5 to 7 October 2026, during the revision of the paper for this submission. The sessions read and
+from 5 to 8 October 2026, during the revision of the paper for this submission. The sessions read and
 modified the code of KRROOD and of the experiments, ran tests and experiments on a development machine, and drafted
 and revised the text of the paper. The authors reviewed every change, decided what to keep, and ran the measured
 experiments.
@@ -40,6 +40,8 @@ measurement scripts, the tests, and the Docker set-up of this supplementary mate
   statements written, round trips, lines of synchronization and mapping code) and the comparison of decisions in
   every step; the authors chose which of the proposed experiments to run, the scenario (a delivery robot) and that
   removals are excluded and the exclusion stated;
+* in reply to a second review written by an AI tool at the authors' request: five seeds of the agent loop with
+  bootstrap intervals, and query times as medians without the first run;
 
 **Analysis and text**: the statements and proof sketches of Propositions 5.1 and 5.2 and Algorithm 1 were drafted
 by the AI tool from the code and revised by the authors; the AI tool also drafted and revised other parts of the

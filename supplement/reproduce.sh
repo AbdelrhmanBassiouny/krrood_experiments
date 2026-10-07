@@ -314,6 +314,22 @@ agent_loop() {
         --resume
 }
 
+# More seeds of the agent loop (seed 0 is agent_loop above): VARIANTS. GraphDB's repository, loaded by the seed-0
+# run, is reused through its state file. The seeds are combined into agent_loop/agent_loop_seeds.json.
+agent_loop_seeds() {
+    local seeds=("$RUN/agent_loop")
+    for seed in 1 2 3 4; do
+        local folder="$RUN/agent_loop/seeds/seed$seed"
+        mkdir -p "$folder"
+        [[ -f "$RUN/agent_loop/graphdb_repository_state.json" ]] \
+            && cp "$RUN/agent_loop/graphdb_repository_state.json" "$folder/"
+        python scripts/aamas27/run_agent_loop.py --variants "$1" --steps 200 --seed "$seed" --results-dir "$folder" \
+            --resume
+        seeds+=("$folder")
+    done
+    python scripts/aamas27/aggregate_agent_loop_seeds.py "$RUN/agent_loop/agent_loop_seeds.json" "${seeds[@]}"
+}
+
 import_memory() {
     mkdir -p "$RUN/memory"
     python "$TOOLS/import_memory.py" "$RUN/memory/import_memory.json"
@@ -400,6 +416,7 @@ if [[ "$MODE" == full ]]; then
         done
         step loading_graphdb loading_graphdb
         step agent_loop agent_loop krrood,krrood_navigation,graphdb,graphdb_push,reasonable 200
+        step agent_loop_seeds agent_loop_seeds krrood,krrood_navigation,graphdb,graphdb_push
     else
         step query_timing_without_graphdb query_timing_without_graphdb
         not_run "query times of GraphDB, RDFLib and Owlready2" "$NO_LICENSE"
@@ -409,6 +426,7 @@ if [[ "$MODE" == full ]]; then
         not_run "loading from the pre-reasoned data, all systems" "$NO_LICENSE; GraphDB computes the pre-reasoned data"
         not_run "loading of GraphDB" "$NO_LICENSE"
         step agent_loop agent_loop krrood,krrood_navigation,reasonable 200
+        step agent_loop_seeds agent_loop_seeds krrood,krrood_navigation
         not_run "agent loop with GraphDB (two variants)" "$NO_LICENSE"
     fi
     step ablation ablation

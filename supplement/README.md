@@ -160,6 +160,10 @@ With a GraphDB license, `full`:
   agree in all 200 steps; reasonable finds no handout candidates, as it derives no property chains. Facts are never
   removed, as KRROOD does not retract inferred facts. reasonable needs about 17 GB. Quick mode runs KRROOD's two
   variants for 20 steps; without a license, the GraphDB variants are skipped;
+* **further seeds of the agent loop** (seeds 1-4, the same variants but reasonable; about 30 min), combined with
+  seed 0 into `agent_loop/agent_loop_seeds.json` (`scripts/aamas27/aggregate_agent_loop_seeds.py`): medians over all
+  steps of all seeds, a 95% bootstrap interval, the seeds' medians, round trips and statements written per step,
+  boundary lines per category, and agreement with KRROOD;
 * **the ablation** that replaces step 5 of Algorithm 1 by forward chaining on every assignment (raw data, 1 run,
   2 h limit), and the same on small data as in quick mode.
 
