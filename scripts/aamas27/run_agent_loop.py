@@ -12,6 +12,8 @@ its knowledge kept and queried by each variant in turn:
 * ``reasonable``: Python objects + reasonable 0.4.4 (in-memory OWL 2 RL), ``reason()`` after every step's additions.
 * ``nemo``: Python objects + the rule engine Nemo 0.10.1 (OWL 2 RL rules), re-run on the raw data and the facts
   perceived so far every step, with two decision rules; the procedures run in Python on the candidates.
+* ``owlready2``: Owlready2 0.49 + Pellet; facts asserted on Owlready2's objects, the previous inferences deleted and
+  Pellet run again every step, candidates by ``world.search``; the procedures run in Python on the candidates.
 
 The scenario (campus map, course rooms, mail boxes, robot, perceptions) is generated once from ``--seed`` and is
 identical for every variant. Every variant runs in its own process (peak memory recorded). The first variant is the
