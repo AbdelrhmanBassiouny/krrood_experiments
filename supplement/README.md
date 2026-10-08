@@ -166,7 +166,7 @@ With a GraphDB license, `full`:
   objects with reasonable, which adds the facts and returns its whole closure every step; and Python objects with Nemo, which has no incremental
   mode and is re-run every step on the raw data and the facts perceived so far, with two decision rules
   (`nemo_variant.py` in the same folder); and Owlready2, which asserts the facts on its Python objects, deletes its
-  inferences and runs Pellet again every step, about 32 s (`owlready2_variant.py`). The others carry out KRROOD's actions, so all see the same
+  inferences and runs Pellet again every step, about 33 s (`owlready2_variant.py`). The others carry out KRROOD's actions, so all see the same
   states, and their own decisions and candidates are compared with KRROOD's in every step: both GraphDB variants
   and Nemo agree in every step of every seed, and Owlready2 in every step of seed 0; reasonable finds no handout candidates, as it derives no property chains. Facts are never
   removed, as KRROOD does not retract inferred facts. reasonable needs about 17 GB. Quick mode runs KRROOD's two

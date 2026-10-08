@@ -5,7 +5,7 @@ This statement follows the AAMAS 2027 policy on AI-assisted technologies. No AI 
 ## Tool
 
 Claude Code (Anthropic's command-line coding agent) with the model Claude Opus 5.5 (`claude-opus-5-5`), in sessions
-from 5 to 8 October 2026, during the revision of the paper for this submission. The sessions read and
+from 5 to 9 October 2026, during the revision of the paper for this submission. The sessions read and
 modified the code of KRROOD and of the experiments, ran tests and experiments on a development machine, and drafted
 and revised the text of the paper. The authors reviewed every change, decided what to keep, and ran the measured
 experiments.
@@ -50,6 +50,12 @@ supplementary material.
 * also in reply to the second review: the scaling experiment (1, 2, 4 and 8 universities, with the knowledge base
   compared with Nemo's closure at every size), ORMatic's translation of the 18 queries on the benchmark's closure, and
   Owlready2 with a 22 GB Java heap; the authors asked for these three;
+* in reply to a third review written by an AI tool at the authors' request (Claude, model `claude-opus-5-5`, 8–9
+  October 2026): the Owlready2 build of the agent loop (Section 7.4, Table 4, Figure 2) and its integration measures;
+  the corrected statements on the unique-name assumption and on completeness for positive queries (Section 5); the
+  narrowed claims on runtime guarantees and long-term memory; the attribution of the loading advantage to step 5; and
+  revisions of the text for readability. The authors chose which suggestions to adopt; Claude Code implemented the
+  Owlready2 build, the authors reviewed it, and Claude Code ran it on the authors' machine at their request.
 
 **Analysis and text**: the statements and proof sketches of Propositions 5.1 and 5.2 and Algorithm 1, and the
 statement of Proposition 5.3 with its proofs in the formalization (section "Reasoning on Assignment"), were drafted
@@ -151,5 +157,27 @@ anew; the paper's sentence now reports its result.]
 
 [The multi-agent benchmark that the last prompt also asked about is left to future work; the integration measures
 were added for the existing agent loop.]
+
+> [To Claude Code, after the third review:] Can we do thw owlready things that were suggested?
+
+[Prompts given to the AI tool that wrote the third review, verbatim:]
+
+> Review and rate this submission as an aamas 2027 reviewer
+
+> But owlready2 were considered and not done because of the slowness
+
+> Give me a copyable summary of the things to modify in the paper that will greatly increase
+> review score with small effort
+
+> But isn't querying a database is same as recalling?
+
+> How about grammar z readability, organization smoothness, naturalness
+
+> Also check Punctuations, long sentences, unprofessional statements, and simplicity, implied
+> meanings.
+
+> Ok give me the final rexommendations with simplifications and easy to read
+
+> Ok give me copyable instructions for these
 
 The complete session logs are kept by the authors.
