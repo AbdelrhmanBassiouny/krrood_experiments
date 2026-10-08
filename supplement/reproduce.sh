@@ -7,7 +7,7 @@
 #   check     the correctness part of the paper (Section 7.1): with a GraphDB license, the answers of all systems
 #             compared with a live GraphDB, and KRROOD's knowledge base compared with GraphDB's OWL 2 RL closure
 #             (about 1-1.5 h); without one, as quick
-#   full      everything in the paper (Sections 7.1-7.4 and the scaling experiment, about 20-24 h); "all" is the same. Without a GraphDB
+#   full      everything in the paper (Sections 7.1-7.4 and the scaling experiment, 16-20 h); "all" is the same. Without a GraphDB
 #             license, the steps that need GraphDB are skipped and listed in the report
 #   listings  only the tests of the paper's listings and of the formalization's examples
 #   tables    the LaTeX tables, the report and the results archive, e.g. after adding protege.json (README.md)
@@ -389,14 +389,21 @@ SUMS
     rm -f "$gen"/OWL2RL-*.owl
 }
 
-# Loading time and memory of KRROOD, Nemo and reasonable from the raw data of every size, 3 repetitions.
+# Loading time and memory of KRROOD and Nemo from the raw data of every size, 3 repetitions; reasonable, which needs
+# 17 GB for one university, only for one and two universities (it exceeds the limit at two).
 scaling_inmemory() {
     local n
     for n in "${SCALING_UNIVERSITIES[@]}"; do
         rm -rf "$RUN/scaling/loading_inmemory_u$n"
-        python scripts/aamas27/run_loading.py --systems krrood,nemo_owlrl,reasonable_owlrl --inputs raw \
+        python scripts/aamas27/run_loading.py --systems krrood,nemo_owlrl --inputs raw \
             --repetitions 3 --memory-limit-gib "$BASELINE_MEMORY_LIMIT_GIB" --timeout-seconds 7200 \
             --raw-file "$RUN/scaling/raw_u$n.rdf" --results-dir "$RUN/scaling/loading_inmemory_u$n"
+        if (( n <= 2 )); then
+            python scripts/aamas27/run_loading.py --systems reasonable_owlrl --inputs raw \
+                --repetitions "$(( n == 1 ? 3 : 1 ))" --memory-limit-gib "$BASELINE_MEMORY_LIMIT_GIB" \
+                --timeout-seconds 7200 --raw-file "$RUN/scaling/raw_u$n.rdf" \
+                --results-dir "$RUN/scaling/loading_inmemory_u$n"
+        fi
     done
 }
 
@@ -411,10 +418,11 @@ scaling_audit() {
     rm -rf "$RUN/scaling/audit/work"
 }
 
-# GraphDB's loading of the larger sizes (one university is loading_graphdb's), one repetition each.
+# GraphDB's loading of two universities (one university is loading_graphdb's), one repetition, 12 h limit. Its time
+# grows much faster than the data; in our run, four and eight universities did not finish (README.md, "Scaling").
 scaling_graphdb() {
     local n
-    for n in 2 4 8; do
+    for n in 2; do
         rm -rf "$RUN/scaling/loading_graphdb_u$n"
         python scripts/aamas27/run_loading.py --systems graphdb --inputs raw --repetitions 1 \
             --timeout-seconds 43200 --raw-file "$RUN/scaling/raw_u$n.rdf" \
@@ -491,7 +499,7 @@ if [[ "$MODE" == quick ]]; then
     step loading_nemo_owlrl_raw loading_system nemo_owlrl raw
     step agent_loop agent_loop krrood,krrood_navigation 20
     step runtime_audit runtime_audit 0 10 0,10
-    not_run "everything else in the paper" "quick mode; run 'full' (or 'all') for all experiments, 9-13 h"
+    not_run "everything else in the paper" "quick mode; run 'full' (or 'all') for all experiments, 16-20 h"
 elif have_license; then
     start_graphdb
     step data prepare_data
@@ -514,8 +522,8 @@ if [[ "$MODE" == full ]]; then
         done
         step loading_graphdb loading_graphdb
         step owlready2_heap owlready2_heap
-        step agent_loop agent_loop krrood,krrood_navigation,graphdb,graphdb_push,reasonable 200
-        step agent_loop_seeds agent_loop_seeds krrood,krrood_navigation,graphdb,graphdb_push
+        step agent_loop agent_loop krrood,krrood_navigation,graphdb,graphdb_push,reasonable,nemo 200
+        step agent_loop_seeds agent_loop_seeds krrood,krrood_navigation,graphdb,graphdb_push,nemo
     else
         step query_timing_without_graphdb query_timing_without_graphdb
         not_run "query times of GraphDB, RDFLib and Owlready2" "$NO_LICENSE"
@@ -524,8 +532,8 @@ if [[ "$MODE" == full ]]; then
         done
         not_run "loading from the pre-reasoned data, all systems" "$NO_LICENSE; GraphDB computes the pre-reasoned data"
         not_run "loading of GraphDB" "$NO_LICENSE"
-        step agent_loop agent_loop krrood,krrood_navigation,reasonable 200
-        step agent_loop_seeds agent_loop_seeds krrood,krrood_navigation
+        step agent_loop agent_loop krrood,krrood_navigation,reasonable,nemo 200
+        step agent_loop_seeds agent_loop_seeds krrood,krrood_navigation,nemo
         not_run "agent loop with GraphDB (two variants)" "$NO_LICENSE"
     fi
     step runtime_audit runtime_audit 0,1,2,3,4 200 0,10,50,100,200

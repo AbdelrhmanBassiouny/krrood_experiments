@@ -386,7 +386,7 @@ def scaling_table() -> Optional[Table]:
 
 AGENT_LOOP_VARIANTS = [("krrood", "KRROOD (scan)"), ("krrood_navigation", "KRROOD (navigation)"),
                        ("graphdb", "GraphDB (mirror)"), ("graphdb_push", "GraphDB (push)"),
-                       ("reasonable", "reasonable (recompute)")]
+                       ("reasonable", "reasonable (recompute)"), ("nemo", "Nemo (recompute)")]
 
 
 def agent_loop_table() -> Optional[Table]:
@@ -417,12 +417,12 @@ def agent_loop_table() -> Optional[Table]:
                "T20 cricket fan), decides with two queries that need inferred facts and call the robot's path planner "
                "(handouts to students of a college, tickets to T20 cricket fans), and acts. Times in ms, median / 95th "
                "percentile. \"Update\": asserting the perceived facts, with KRROOD's and GraphDB's inference; "
-               "\"reasoning / push\": reasonable's materialization, or GraphDB (push) writing the planner's results "
+               "\"reasoning / push\": reasonable's materialization, Nemo's run from the raw data, or GraphDB (push) writing the planner's results "
                "into the store. \"Written\": statements inserted plus deleted per step; \"boundary code\": lines of code "
                "that only synchronize, map identifiers to objects or connect the planner to the queries. The other "
                "variants carry out KRROOD's actions; \"agrees\" compares their own decisions and candidates with "
                "KRROOD's. reasonable 0.4.4 derives no property chains, so it finds no member of a college and no "
-               "handout candidate. Removals are not perceived, as KRROOD does not retract inferred facts.")
+               "handout candidate. Nemo has no incremental mode and is re-run every step. Removals are not perceived, as KRROOD does not retract inferred facts.")
     table = Table("Agent loop: a delivery robot that perceives, reasons with its own procedures and acts", caption,
                   ["Variant", "Setup [s]", "Step [ms]", "Update [ms]", "Reasoning / push [ms]", "Query [ms]", "Written", "Round trips",
                    "Boundary code", "Agrees with KRROOD", "Step, paper"], rows, right=[1, 2, 3, 4, 5, 6, 7, 8])
@@ -433,9 +433,11 @@ def agent_loop_seeds_table() -> Optional[Table]:
     seeds = load(RUN / "agent_loop" / "agent_loop_seeds.json")
     if not seeds:
         return None
+    # Our results hold Nemo's runs in their own folder (they were run after the others, with KRROOD as reference).
+    nemo_seeds = load(RUN / "agent_loop_nemo" / "agent_loop_seeds.json") or {"variants": {}}
     rows = []
     for name, label in AGENT_LOOP_VARIANTS:
-        variant = seeds["variants"].get(name)
+        variant = seeds["variants"].get(name) or (nemo_seeds["variants"].get(name) if name == "nemo" else None)
         if not variant:
             continue
         interval = variant["median_step_ms_95ci"]
@@ -621,7 +623,7 @@ def main() -> None:
                  "next to them. See provenance.txt for which numbers come from which run."]
     if MODE == "quick":
         intro.append("Quick mode checks correctness without GraphDB and measures KRROOD's loading. "
-                     "'full' (or 'all') runs everything in the paper, 9-13 h.")
+                     "'full' (or 'all') runs everything in the paper, 16-20 h.")
     terminal = ["", "=" * min(width, 100), title, "=" * min(width, 100)]
     terminal += [line for paragraph in intro for line in textwrap.wrap(paragraph, min(width, 100))]
     markdown = [f"# {title}", "", *intro, ""]

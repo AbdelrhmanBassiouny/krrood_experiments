@@ -7,7 +7,7 @@
 #
 # Usage:
 #   bash run_ubuntu.sh             quick: tests, listings, correctness of EQL and SQL, KRROOD's loading (~10 min)
-#   bash run_ubuntu.sh full        everything in the paper, in the background (9-13 h); "all" is the same
+#   bash run_ubuntu.sh full        everything in the paper, in the background (16-20 h); "all" is the same
 #   bash run_ubuntu.sh status      is the full run going, which steps finished, and the end of its log
 #   bash run_ubuntu.sh report      the report of the results so far
 #   bash run_ubuntu.sh tables      after saving protege.json: rebuild the tables, the report and the archive
@@ -308,7 +308,7 @@ start_run() {
         fi
         if tail -n +"$new_lines" "$BUNDLE/state/reproduce.log" 2>/dev/null | grep -q "start tests\|skip tests"; then
             tail -5 "$BUNDLE/state/reproduce.log"
-            say "The run is going (9-13 h). Leave the machine idle until it has finished: screen lock is fine,
+            say "The run is going (16-20 h). Leave the machine idle until it has finished: screen lock is fine,
     but don't log out, and don't run anything else, since the run measures time. When it has finished, its
     report is at the end of state/reproduce.log and in state/results/REPORT.md."
             say "Check it any time with: bash $(printf '%q' "$0") status"

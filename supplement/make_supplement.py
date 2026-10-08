@@ -63,8 +63,9 @@ IDENTIFYING = re.compile(
 # Matches that are not identifying: generated person names of the OWL2Bench data (e.g. "Jamarion").
 ALLOWED = re.compile(r"[a-z]arion\b", re.IGNORECASE)
 # Synthetic e-mail addresses of the OWL2Bench data, the OWL API link in the header of the data file, and the
-# release download of the Nemo rule engine (Dockerfile, owl2rl.rls).
-BENIGN = re.compile(r"@bench\.com|github\.com/owlcs/owlapi|github\.com/knowsys/nemo|>Bremen</hasFirstName>"
+# release download of the Nemo rule engine (Dockerfile, owl2rl.rls), and OWL2Bench's generator (reproduce.sh).
+BENIGN = re.compile(r"@bench\.com|github\.com/owlcs/owlapi|github\.com/knowsys/nemo|github\.com/kracr/owl2bench"
+                    r"|>Bremen</hasFirstName>"
                     r"|>Bremen And</hasName>")
 
 

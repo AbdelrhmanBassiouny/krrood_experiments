@@ -9,7 +9,7 @@ Phases of a step (wall time in seconds):
   IRIs, query results to application records).
 * ``update``: writing the perceived facts into the knowledge, including the inference that happens on insertion
   (descriptor forward chaining in KRROOD, GraphDB's incremental materialisation inside the update request).
-* ``reasoning``: a separate materialisation call (only the ``reasonable`` variant has one).
+* ``reasoning``: a separate materialisation call (the ``reasonable`` and ``nemo`` variants).
 * ``push``: writing procedure results into the store (only the GraphDB push variant).
 * ``query``: evaluating the queries, without the time spent inside the robot's procedures.
 * ``procedures``: time inside :func:`~krrood_experiments.aamas27.agent_loop.robot.can_reach` and
@@ -307,10 +307,10 @@ def sparql_tokens(query: str) -> List[str]:
 def query_size(text: str, language: str) -> Dict[str, Any]:
     """
     :param text: A query text.
-    :param language: ``eql`` or ``python`` (Python tokens) or ``sparql``.
+    :param language: ``eql`` or ``python`` (Python tokens), ``sparql`` or ``nemo`` (Nemo rules, tokenised as SPARQL).
     :return: The text and its size in tokens, lines and characters.
     """
-    tokens = sparql_tokens(text) if language == "sparql" else python_tokens(text)
+    tokens = sparql_tokens(text) if language in ("sparql", "nemo") else python_tokens(text)
     lines = [line for line in textwrap.dedent(text).splitlines() if line.strip()]
     return {
         "language": language,

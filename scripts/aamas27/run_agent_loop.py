@@ -10,6 +10,8 @@ its knowledge kept and queried by each variant in turn:
 * ``graphdb_push``: GraphDB, with the procedure results written into the store every step so that one SPARQL query
   decides.
 * ``reasonable``: Python objects + reasonable 0.4.4 (in-memory OWL 2 RL), ``reason()`` after every step's additions.
+* ``nemo``: Python objects + the rule engine Nemo 0.10.1 (OWL 2 RL rules), re-run on the raw data and the facts
+  perceived so far every step, with two decision rules; the procedures run in Python on the candidates.
 
 The scenario (campus map, course rooms, mail boxes, robot, perceptions) is generated once from ``--seed`` and is
 identical for every variant. Every variant runs in its own process (peak memory recorded). The first variant is the
@@ -43,7 +45,7 @@ from krrood_experiments.aamas27.environment import UNREASONED_FILE, resolve_resu
 from krrood_experiments.aamas27.graphdb import GraphDBClient
 from krrood_experiments.aamas27.memory import run_measured
 
-DEFAULT_VARIANTS = ("krrood", "krrood_navigation", "graphdb", "graphdb_push", "reasonable")
+DEFAULT_VARIANTS = ("krrood", "krrood_navigation", "graphdb", "graphdb_push", "reasonable", "nemo")
 """
 The variants in run order; the first is the reference.
 """

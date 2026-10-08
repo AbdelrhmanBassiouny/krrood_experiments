@@ -26,6 +26,7 @@ VARIANTS: Dict[str, str] = {
     "graphdb": "krrood_experiments.aamas27.agent_loop.graphdb_variant:GraphDBVariant",
     "graphdb_push": "krrood_experiments.aamas27.agent_loop.graphdb_push_variant:GraphDBPushVariant",
     "reasonable": "krrood_experiments.aamas27.agent_loop.reasonable_variant:ReasonableVariant",
+    "nemo": "krrood_experiments.aamas27.agent_loop.nemo_variant:NemoVariant",
 }
 """
 Variant name to ``module:class``. Modules are imported only in the worker that runs the variant.

@@ -5,7 +5,7 @@ agreement of the decisions of the variants on a few steps.
 The KRROOD test loads the OWL2Bench data in its own process (about 15 s). The GraphDB tests need a GraphDB server
 (``KRROOD_GRAPHDB_URL``) and load the raw data into it, which takes about 20 minutes with the owl2-rl-optimized ruleset;
 they run only when ``AGENT_LOOP_GRAPHDB_TESTS=1``. The reasonable test needs ``reasonable`` and about 5 minutes; it runs
-only when ``AGENT_LOOP_REASONABLE_TESTS=1``.
+only when ``AGENT_LOOP_REASONABLE_TESTS=1``. The Nemo test needs Nemo's ``nmo`` (``NEMO_BINARY``) and about a minute.
 
 Run with::
 
@@ -18,6 +18,7 @@ import json
 import math
 import os
 import random
+import shutil
 import subprocess
 import sys
 import textwrap
@@ -29,6 +30,7 @@ import requests
 from krrood_experiments.aamas27.agent_loop.campus import CampusMap, PathPlanner, Place, PlaceKind
 from krrood_experiments.aamas27.agent_loop.events import CourseTaking, CricketEnthusiasm, Enrollment
 from krrood_experiments.aamas27.agent_loop.measurement import code_lines, distribution, sparql_tokens
+from krrood_experiments.aamas27.agent_loop.nemo_variant import step_program
 from krrood_experiments.aamas27.agent_loop.robot import (
     Action,
     ActionKind,
@@ -45,6 +47,7 @@ from krrood_experiments.aamas27.agent_loop.scenario import (
 )
 from krrood_experiments.aamas27.environment import EXPERIMENTS_ROOT, UNREASONED_FILE
 from krrood_experiments.aamas27.graphdb import DEFAULT_GRAPHDB_URL
+from krrood_experiments.aamas27.loading_worker import NEMO_RULES
 
 DRIVER = EXPERIMENTS_ROOT / "scripts" / "aamas27" / "run_agent_loop.py"
 
@@ -313,3 +316,20 @@ def test_reasonable_agrees_on_tickets_but_misses_property_chains(tmp_path):
         assert difference["tickets"]["only_in_reference"] == difference["tickets"]["only_in_variant"] == 0
         assert difference["handouts"]["only_in_variant"] == 0
         assert difference["handouts"]["only_in_reference"] > 0
+
+
+def test_nemo_step_program_reads_the_perceived_facts_and_exports_only_the_answers():
+    program = step_program(NEMO_RULES.read_text())
+    assert program.count("@import ") == 2 and "perceived" in program
+    assert [line for line in program.splitlines() if line.startswith("@export")] == [
+        '@export handout :- csv{resource = "handout.csv"} .', '@export fan :- csv{resource = "fan.csv"} .']
+    assert "prp-spo2" in program
+
+
+@pytest.mark.skipif(
+    shutil.which(os.environ.get("NEMO_BINARY", "nmo")) is None, reason="needs Nemo's nmo (NEMO_BINARY)"
+)
+def test_nemo_decides_like_krrood(tmp_path):
+    summary = run_driver(tmp_path, "krrood,nemo", steps=3)
+    agreement = summary["variants"]["nemo"]["agreement"]
+    assert agreement["all_agree"], agreement["first_disagreements"]
