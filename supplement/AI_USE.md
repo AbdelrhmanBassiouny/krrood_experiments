@@ -46,6 +46,9 @@ measurement scripts, the tests, and the Docker set-up of this supplementary mate
   statements written per step), the measurement of GraphDB's update cost, and query times as medians without the
   first run; the authors set the paper's focus on the unification rather than on speed, and asked for the
   integration measures;
+* also in reply to the second review: the scaling experiment (1, 2, 4 and 8 universities, with the knowledge base
+  compared with Nemo's closure at every size), ORMatic's translation of the 18 queries on the benchmark's closure, and
+  Owlready2 with a 22 GB Java heap; the authors asked for these three;
 
 **Analysis and text**: the statements and proof sketches of Propositions 5.1 and 5.2 and Algorithm 1, and the
 statement of Proposition 5.3 with its proofs in the formalization (section "Reasoning on Assignment"), were drafted
@@ -136,6 +139,14 @@ geometric mean and shorter than SQLAlchemy's on five queries. The paper makes no
 > and not only about lines of code and be more encompassing of the features and the unification and integration
 > [...] measure number languages used, number of tools, combilers, requires syncronization, mapping and
 > communication [...]
+
+> Do the first three of the Not Done items. Ormatic translator covers the 18 queries right?
+
+[The three items were the scaling experiment, the check of ORMatic's translation on the 18 queries, and Owlready2
+with a larger Java heap. The AI assistant wrote and ran them (scripts/aamas27/derive_scaled_owl2bench.py,
+aggregate_scaling.py, krrood_experiments/aamas27/scaling_audit.py, scripts/aamas27/ormatic_translation/), found that
+the 18-query check behind the paper's sentence on the translator had not been kept in a repository, and wrote it
+anew; the paper's sentence now reports its result.]
 
 [The multi-agent benchmark that the last prompt also asked about is left to future work; the integration measures
 were added for the existing agent loop.]
