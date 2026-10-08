@@ -244,8 +244,8 @@ the EQL queries are about 2.4 times as long as SPARQL's in geometric mean, mostl
 declared with its class, and shorter than SQLAlchemy's on five of the 18 queries.
 
 The run succeeded if `state/reproduce.log` ends with `finished mode full`. The LaTeX tables are written to
-`state/results/aamas27/run/tables/` (the paper names two rows of the loading table differently: "KRROOD + ORMatic"
-is "KRROOD (with ORMatic)", and "Eager chaining" is "KRROOD without step 5"), and everything is packed into
+`state/results/aamas27/run/tables/` (the paper names one row of the loading table differently: "KRROOD + ORMatic"
+is "KRROOD (with ORMatic)"; it leaves out "KRROOD without step 5" and states in the text that it loads for over two hours), and everything is packed into
 `state/aamas27_results.tgz`. Afterwards run `docker compose down`. Timings depend on the machine; ours are from an
 Intel Core i7-13700 with 64 GB RAM under Ubuntu 24.04.
 
