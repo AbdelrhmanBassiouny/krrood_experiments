@@ -23,15 +23,14 @@ import time
 from pathlib import Path
 
 from krrood_experiments.aamas27.agent_loop.graphdb_variant import REPOSITORY
-from krrood_experiments.aamas27.agent_loop.rdf_mirror import delete_data, event_triples, insert_data
+from krrood_experiments.aamas27.agent_loop.rdf_mirror import GraphDBSession, delete_data, event_triples, insert_data
 from krrood_experiments.aamas27.agent_loop.scenario import Scenario
-from krrood_experiments.aamas27.graphdb import GraphDBClient
 
 UNRELATED = "https://example.org/agent-loop#updateCostProbe"
 """A predicate that occurs in no rule, so a statement of it triggers no inference."""
 
 
-def timed_update(client: GraphDBClient, update: str) -> float:
+def timed_update(client: GraphDBSession, update: str) -> float:
     """
     :return: The wall time of the update in milliseconds.
     """
@@ -52,7 +51,7 @@ def main() -> None:
     parser.add_argument("output")
     parser.add_argument("--steps", type=int, default=30)
     arguments = parser.parse_args()
-    client = GraphDBClient()
+    client = GraphDBSession()
     baseline = json.loads(Path(arguments.state).read_text())["statements"]
     if client.count_statements(REPOSITORY) != baseline:
         raise SystemExit("the repository is not in its state right after loading")
