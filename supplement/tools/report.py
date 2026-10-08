@@ -458,7 +458,8 @@ def scaling_table() -> Optional[Table]:
 
 AGENT_LOOP_VARIANTS = [("krrood", "KRROOD (scan)"), ("krrood_navigation", "KRROOD (navigation)"),
                        ("graphdb", "GraphDB (mirror)"), ("graphdb_push", "GraphDB (push)"),
-                       ("reasonable", "reasonable (recompute)"), ("nemo", "Nemo (recompute)")]
+                       ("reasonable", "reasonable (recompute)"), ("nemo", "Nemo (recompute)"),
+                       ("owlready2", "Owlready2 (Pellet every step)")]
 
 
 def agent_loop_table() -> Optional[Table]:
@@ -489,13 +490,14 @@ def agent_loop_table() -> Optional[Table]:
                "a new T20 cricket fan, decides with two queries that need inferred facts and call the robot's path planner "
                "(handouts to students of a college, tickets to T20 cricket fans), and acts. Times in ms, median / 95th "
                "percentile. \"Update\": asserting the perceived facts, with KRROOD's and GraphDB's inference; "
-               "\"reasoning / push\": reasonable's materialization, Nemo's run from the raw data, or GraphDB (push) writing the planner's results "
+               "\"reasoning / push\": reasonable's materialization, Nemo's run from the raw data, Owlready2's Pellet run, or GraphDB (push) writing the planner's results "
                "into the store. \"Written\": statements inserted plus deleted per step; \"boundary code\": lines of code "
                "that only synchronize, map identifiers to objects or connect the planner to the queries (the paper's "
-               "Table 4 reports only the synchronization lines; next table). The other "
+               "Table 4 reports the synchronization lines and the total; next table). The other "
                "variants carry out KRROOD's actions; \"agrees\" compares their own decisions and candidates with "
                "KRROOD's. reasonable 0.4.4 derives no property chains, so it finds no member of a college and no "
-               "handout candidate. Nemo has no incremental mode and is re-run every step. Removals are not perceived, as KRROOD does not retract inferred facts.")
+               "handout candidate. Nemo has no incremental mode and is re-run every step; "
+               "Owlready2 deletes its inferences and runs Pellet again every step. Removals are not perceived, as KRROOD does not retract inferred facts.")
     table = Table("Agent loop: a delivery robot that perceives, reasons with its own procedures and acts", caption,
                   ["Variant", "Setup [s]", "Step [ms]", "Update [ms]", "Reasoning / push [ms]", "Query [ms]", "Written", "Round trips",
                    "Boundary code", "Agrees with KRROOD", "Step, paper"], rows, right=[1, 2, 3, 4, 5, 6, 7, 8])
@@ -508,9 +510,12 @@ def agent_loop_seeds_table() -> Optional[Table]:
         return None
     # Our results hold Nemo's runs in their own folder (they were run after the others, with KRROOD as reference).
     nemo_seeds = load(RUN / "agent_loop_nemo" / "agent_loop_seeds.json") or {"variants": {}}
+    # Owlready2's run (seed 0) is in its own folder too, with KRROOD as reference.
+    owlready2_seeds = load(RUN / "agent_loop_owlready2" / "agent_loop_seeds.json") or {"variants": {}}
     rows = []
     for name, label in AGENT_LOOP_VARIANTS:
-        variant = seeds["variants"].get(name) or (nemo_seeds["variants"].get(name) if name == "nemo" else None)
+        variant = (seeds["variants"].get(name) or (nemo_seeds["variants"].get(name) if name == "nemo" else None)
+                   or (owlready2_seeds["variants"].get(name) if name == "owlready2" else None))
         if not variant:
             continue
         interval = variant["median_step_ms_95ci"]
@@ -534,9 +539,11 @@ def agent_loop_seeds_table() -> Optional[Table]:
                "per step, boundary lines (synchronization/mapping/procedure integration), and the steps in which the "
                "variant took KRROOD's action. Statements written and synchronization lines follow from EQL's "
                "semantics (one world model), round trips from the implementation (one process); the paper's Table 4 "
-               "groups its rows this way. Of the boundary lines, the paper's Table 4 reports only the synchronization "
-               "lines: the mapping lines follow from the simulated perceptions, which arrive as IRIs in every build, "
-               "and the procedure lines from wrapping the planner, not from the number of world models.")
+               "groups its rows this way. Of the boundary lines, the paper's Table 4 reports the synchronization lines and "
+               "their total; the mapping lines follow from the simulated perceptions, which arrive as IRIs in every "
+               "build, and the procedure lines from wrapping the planner, not from the number of world models. "
+               "Owlready2 ran one seed; its statements written are the inferences that Pellet's run deletes and "
+               "writes back.")
     return Table("Agent loop over five seeds (paper, Table 4)", caption,
                  ["Variant", "Seeds", "Steps", "Step [ms]", "95% interval", "Seed medians", "Update [ms]", "Query [ms]",
                   "Round trips", "Written", "Boundary lines", "Same action"], rows, right=[2, 3, 4, 5, 6, 7, 8, 9])

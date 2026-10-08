@@ -154,8 +154,8 @@ application data), \code{perceive} (bring the knowledge up to date with the step
 \code{handout\_candidates} and \code{ticket\_candidates} (answer the two decisions). Each build runs in a fresh Python
 interpreter (\file{worker.py}), so builds share no memory, caches or symbol graph.
 
-The paper's Table~4 compares four builds: KRROOD, GraphDB, GraphDB with pushed planner results, and Nemo. The paper's
-text also reports reasonable. A sixth build, \code{krrood\_navigation}, is KRROOD with a different handout query
+The paper's Table~4 compares five builds: KRROOD, GraphDB, GraphDB with pushed planner results, Nemo and Owlready2.
+The paper's text also reports reasonable. A sixth build, \code{krrood\_navigation}, is KRROOD with a different handout query
 (Section~\ref{sec:krrood}).
 
 % =====================================================================
@@ -262,7 +262,7 @@ KRROOD that the supplement contains; names such as \code{variable\_from} are tho
 
 \paragraph{How to read the diagrams.}
 Each diagram shows one step from left to right. The top lane is the Python process of the agent. The bottom lane is the
-second process (the GraphDB server, the Nemo process) or, for reasonable, the native library inside the same process;
+second process (the GraphDB server, the Nemo process, Pellet) or, for reasonable, the native library inside the same process;
 for KRROOD it is empty. A node sits in the lane where its work runs. Red arrows cross a process boundary.
 \tikz[baseline=-0.6ex]\node[rt]{R}; marks a request to a server (a round trip),
 \tikz[baseline=-0.6ex]\node[wr]{W}; statements written to the second world model.
@@ -685,6 +685,83 @@ per step.}
 \end{figure}
 
 % ---------------------------------------------------------------------
+\subsection{Owlready2: Pellet re-run every step}
+\label{sec:owlready2}
+
+Owlready2~0.49 keeps OWL individuals in a quadstore (SQLite) inside the Python process and exposes them as Python
+objects; inference is Pellet's, which Owlready2 runs as a Java process (\file{owlready2\_variant.py}).
+
+\paragraph{(a) Representation.} The knowledge is Owlready2's quadstore, read and written through its Python objects,
+which are proxies of the stored individuals. The application keeps its rooms and mail boxes in dictionaries by IRI, as
+in GraphDB, because Owlready2 may discard a proxy and re-create it from the store, losing attributes set on it.
+
+\paragraph{(b) Perception.} A perceived fact is an assignment on Owlready2's objects, which writes the asserted
+statement into the quadstore and infers nothing. Events name individuals by IRI, which the build resolves with
+\code{world[iri]} (mapping, as KRROOD resolves IRIs to its objects):
+\begin{lstlisting}[style=py]
+department = self._individual(event.department)              # world[iri]
+person = self._new_individual(event.person, OWL2BENCH + "Person")
+self.world[OWL2BENCH + "enrollIn"][person].append(department)
+\end{lstlisting}
+
+\paragraph{(c) Inference.} After the step's facts, the build deletes the previous step's inferences and runs Pellet
+again with \code{infer\_property\_values=True}. Owlready2 exports the whole world to Pellet and writes Pellet's
+inferences back, about 1.36 million statements, into an ontology of their own:
+\begin{lstlisting}[style=py]
+@boundary(SYNCHRONIZATION)
+def _delete_inferences(self) -> None:
+    if self.inferred is not None:
+        self.inferred.destroy()
+
+@boundary(SYNCHRONIZATION)
+def _run_pellet(self) -> None:
+    self.inferred = self.world.get_ontology(INFERRED_ONTOLOGY.format(self.pellet_runs))
+    self.pellet_runs += 1
+    with self.inferred:
+        owlready2.sync_reasoner_pellet(self.world, infer_property_values=True, debug=0)
+\end{lstlisting}
+Keeping the previous inferences instead would make Pellet read the whole closure every step, which takes about
+19 minutes and a 22\,GB heap (the loading benchmark's pre-reasoned input). Pellet's model exists only during its run,
+like Nemo's closure; it is the second world model.
+
+\paragraph{(d) Computables.} Pellet cannot call the robot's procedures. The answers' IRIs are mapped to places and the
+planner runs in Python on them, once per distinct room, with the same two lines as GraphDB and Nemo.
+
+\paragraph{(e) Decision queries.} The decisions use Owlready2's Python API, so the developer writes Python only:
+\begin{lstlisting}[style=py]
+students = self.world.search(type=self.world[OWL2BENCH + "Student"], isMemberOf=college)
+pairs = [(student, course) for student in students
+         for course in self.world[OWL2BENCH + "takesCourse"][student]]
+fans = list(self.world.search(type=self.world[OWL2BENCH + "T20CricketFan"]))
+\end{lstlisting}
+A step makes no server request; it starts one Java process.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+  \headers{perceive}{update}{infer}{query}{computable}{decide}
+  \pylane{Python process (the agent; Owlready2's quadstore and its objects)}
+  \exlane{Pellet (Java process started every step; the second world model)}
+  \node[phasenode] (a) at (\cA,\yP) {IRI $\to$ object\\\code{world[iri]}};
+  \node[phasenode] (b) at (\cB,\yP) {assignment;\\no inference};
+  \node[phasenode] (c) at (\cC,\yX) {whole store in;\\Pellet reasons};
+  \node[phasenode] (d) at (\cD,\yP) {\code{world.search}};
+  \node[phasenode] (e) at (\cE,\yP) {IRIs $\to$ rooms;\\planner once\\per room};
+  \node[phasenode] (f) at (\cF,\yP) {policy\\(shared)};
+  \tagS{b} \tagMP{e}
+  \draw[flow] (a) -- (b);
+  \draw[cross] (b.south) to[out=-90,in=180] node[pos=0.2, crosslabel, right=2pt] {delete old,\\export} (c.west);
+  \draw[cross] (c.east) to[out=0,in=-90] node[pos=0.8, crosslabel, right=3pt] {1.36 M\\written back} (d.south);
+  \node[wr] at ($(d.north east)+(-2pt,-10pt)$) {W};
+  \draw[flow] (d) -- (e); \draw[flow] (e) -- (f);
+\end{tikzpicture}
+\caption{Owlready2, one step. Perception asserts on Owlready2's objects; the previous inferences are deleted, Pellet
+reasons on the exported store, and its inferences are written back; the planner runs in Python on the answers of a
+search. No server request; one process start per step.}
+\label{fig:owlready2}
+\end{figure}
+
+% ---------------------------------------------------------------------
 \subsection{reasonable (briefly)}
 \label{sec:reasonable}
 
@@ -728,47 +805,53 @@ every step and is scanned in Python.}
 Table~4 groups its rows by what they follow from. The upper rows follow from evaluating EQL queries over the program's
 objects: a build of this kind has one world model, calls the planner in the query and writes nothing to another store.
 The lower rows follow from the implementation: one language and one process could also come from a wrapper that
-generates SPARQL or from an embedded store, which would still keep two world models.
+generates SPARQL or from an embedded store, which would still keep two world models. Owlready2 shows the first: its
+build is written only in Python and still keeps a second world model, Pellet's.
 
 \subsection{Rows from the semantics}
 
 \paragraph{World models.} The number of representations of the robot's world knowledge that the build keeps up to date:
-the objects (always), plus the GraphDB repository (both GraphDB builds), the input files and Nemo's closure (Nemo), or
-reasonable's closure. Read from the code.
+the objects (always), plus the GraphDB repository (both GraphDB builds), the input files and Nemo's closure (Nemo),
+reasonable's closure, or Pellet's model, rebuilt every step from Owlready2's quadstore (Owlready2). For Owlready2 the
+objects and the quadstore count as one, as the objects are proxies of the stored individuals. Read from the code.
 
-\paragraph{Planner runs.} Where \code{can\_reach} and \code{travel\_seconds} are evaluated relative to the logical query.
-\emph{In query}: as an EQL predicate and symbolic function, per binding, on the live robot. \emph{On answers}: in Python,
-after the query, once per distinct room among the answers (GraphDB, Nemo, reasonable). \emph{Before query}: for every
+\paragraph{Planner vs.\ query.} Where \code{can\_reach} and \code{travel\_seconds} are evaluated relative to the logical
+query. \emph{Inside}: as an EQL predicate and symbolic function, per binding, on the live robot. \emph{After}: in Python,
+after the query, once per distinct room among the answers (GraphDB, Nemo, Owlready2, reasonable). \emph{Before}: for every
 room a decision could need, with the results written into the store (GraphDB push). The \code{ProcedureMeter} counts the
 calls. For seed~0, the mean number of \code{can\_reach} calls per step is 1,310.7 for KRROOD (per binding), 59.5 for
 GraphDB (per distinct room among the answers) and 201 for GraphDB push (every target room)
 (\file{agent\_loop.json}).
 
-\paragraph{Writes per step.} Statements written to the second world model in a step, inserted plus deleted, as counted
+\paragraph{Writes.} Statements written in a step because of the second world model, inserted plus deleted, as counted
 by the build in \code{StepMeter.statements\_inserted} and \code{statements\_deleted}: the statements of the
-\code{INSERT DATA} updates (GraphDB), plus the deleted and inserted \code{travelSeconds} values (push), or the lines
-appended to \file{perceived.nt} (Nemo). The median over the 1,000 steps of the five seeds is reported. KRROOD has no second
+\code{INSERT DATA} updates (GraphDB), plus the deleted and inserted \code{travelSeconds} values (push), the lines
+appended to \file{perceived.nt} (Nemo), or the previous step's inferences deleted and Pellet's inferences written back,
+with the step's asserted facts (Owlready2; medians 1,358,555 deleted and 1,358,558 inserted, 2.7 million in all). The
+median over the 1,000 steps of the five seeds is reported, for Owlready2 over its 200 steps of seed~0. KRROOD has no second
 world model, so the table reports 0. Its meter does count its descriptor assignments in \code{statements\_inserted}
 (median 5 per step: three per enrollment, counting the new person and the mail box, and one per other event), but these
 are the update itself, not a copy of it.
 
-\paragraph{Synchronization lines.} Lines of code that exist only to write the application's facts into the second
-representation, counted as in Section~\ref{sec:lines}.
+\paragraph{Sync.\ lines.} Lines of code that exist only to keep the second representation in agreement with the
+application's facts, counted as in Section~\ref{sec:lines}. For Owlready2 these are the two functions that delete the
+previous inferences and run Pellet.
 
 \subsection{Rows from the implementation}
 
 \paragraph{Languages.} The languages in which the developer writes the decision: Python (KRROOD); Python and SPARQL
-(both GraphDB builds); Python and Nemo's rule language (Nemo).
+(both GraphDB builds); Python and Nemo's rule language (Nemo); Python (Owlready2, through its search API).
 
 \paragraph{Processes.} The operating-system processes that hold or compute the robot's knowledge: the Python worker
 (KRROOD, reasonable); the worker and the GraphDB server, a Java process reached over HTTP (GraphDB builds); the worker
-and one \code{nmo} process started per step (Nemo).
+and one \code{nmo} process started per step (Nemo); the worker and one Java process for Pellet started per step
+(Owlready2).
 
 \paragraph{Round trips per step.} Requests to a server in a step. \code{GraphDBMirror.\_send} (updates) and
 \code{\_select} (queries) increment \code{StepMeter.round\_trips} once per HTTP request. The count is constant: 3 for
-GraphDB (one update, two queries) and 4 for push (two updates, two queries). KRROOD, Nemo and reasonable make no server
-requests; Nemo's process start and reasonable's two library calls per step are counted separately as
-\code{reasoner\_calls} (1 and 2).
+GraphDB (one update, two queries) and 4 for push (two updates, two queries). KRROOD, Nemo, Owlready2 and reasonable make no server
+requests; Nemo's and Pellet's process start and reasonable's two library calls per step are counted separately as
+\code{reasoner\_calls} (1, 1 and 2); Table~4 shows a process start as ``1 run''.
 
 \paragraph{Step [ms].} The wall time of a step, from \code{StepMeter} (\file{measurement.py}). The loop
 (\file{loop.py}, \code{run\_agent\_loop}) times every part of a step as a phase with \code{time.perf\_counter}:
@@ -776,7 +859,8 @@ requests; Nemo's process start and reasonable's two library calls per step are c
   \item \code{mapping}: translating between the objects and another representation;
   \item \code{update}: writing the perceived facts, including the inference that happens on insertion (descriptor
         chaining in KRROOD, GraphDB's incremental materialization inside the update request);
-  \item \code{reasoning}: a separate materialization call (Nemo's run, reasonable's \code{reason()});
+  \item \code{reasoning}: a separate materialization call (Nemo's run, reasonable's \code{reason()}, Owlready2's deletion
+        of the previous inferences and Pellet's run);
   \item \code{push}: writing the planner's results into the store (push only);
   \item \code{query}: evaluating the decision queries, without the time inside the procedures;
   \item \code{procedures}: the time inside \code{can\_reach} and \code{travel\_seconds}, wherever they are called
@@ -784,8 +868,8 @@ requests; Nemo's process start and reasonable's two library calls per step are c
   \item \code{decide} and \code{act}: the shared policy and the robot's motion.
 \end{itemize}
 The step time is the sum of the phases. It excludes setup (loading and materializing the closure) and the bookkeeping of
-the experiment (the digest of the candidates). The table reports the median over the 1,000 steps of the five seeds and,
-in parentheses, the range of the five seeds' medians; the results file also holds a 95\% bootstrap interval of the
+the experiment (the digest of the candidates). The table reports the median over the 1,000 steps of the five seeds (for Owlready2, over its 200 steps of seed~0);
+every seed's median lies within 7.4\% of it; the results file also holds a 95\% bootstrap interval of the
 median and the 95th percentile (\file{agent\_loop\_seeds.json}).
 
 \paragraph{Agreement.} Not a row, but the precondition for comparing the rows. For every step, the build's own action
@@ -839,15 +923,21 @@ which every build has.
 \code{\_application\_data} & M & 4 & \code{\_handout\_rows}, \code{\_ticket\_rows} & M & 2, 3\\
 \code{\_handout\_records}, \code{\_ticket\_records} & M & 5, 2 & \code{\_reachable\_driving\_times} & P & 2\\
 \code{place\_iri}, \code{place\_identifier} & M & 2, 2 & & & \\
+\midrule
+\multicolumn{3}{@{}l}{\textbf{Owlready2} (8 / 15 / 2)} & & & \\
+\midrule
+\code{\_delete\_inferences} & S & 3 & \code{\_application\_data} & M & 4\\
+\code{\_run\_pellet} & S & 5 & \code{\_individual}, \code{\_new\_individual} & M & 2, 4\\
+\code{\_reachable\_driving\_times} & P & 2 & \code{\_handout\_rows}, \code{\_ticket\_rows} & M & 2, 3\\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{Mapping and procedure lines: counted, not in Table~4.} The line count also attributes lines of code that
+\paragraph{Mapping and procedure lines: in the total only.} The line count also attributes lines of code that
 translate between the application's objects and another representation (mapping) and lines that make the robot's
 procedures usable in a decision (procedure integration). The results files hold them (\code{boundary\_lines}, per
-category; Table~\ref{tab:lines}), and the supplement's report lists them, but the paper's Table~4 does not report
-them, as they do not measure a second world model. The mapping lines follow from the simulated perceptions, which
+category; Table~\ref{tab:lines}), and the supplement's report lists them. The paper's Table~4 shows them only within
+the total, ``Boundary lines'', as they do not measure a second world model. The mapping lines follow from the simulated perceptions, which
 arrive as IRIs in every build: KRROOD, with one world model, also resolves them to objects (12 lines). The procedure
 lines follow from wrapping the planner, as a predicate and a function in KRROOD (7 lines) or as a filter of the
 answers in GraphDB and Nemo (2 lines), not from the number of world models.
@@ -860,28 +950,32 @@ answers in GraphDB and Nemo (2 lines), not from the number of world models.
 (\file{results/agent\_loop/}): seeds 0--4, 200 steps each, three perceived facts per step, one run per build and
 seed, on an Intel Core i7-13700 with 64\,GB RAM under Ubuntu 24.04, in a Docker container pinned to six cores, with
 GraphDB~11.2 Free (one core, 6\,GB heap) in the same container (\file{provenance.txt}). Nemo was run separately, five seeds
-of 200 steps on other cores, with KRROOD alongside as the reference of the agreement check.
+of 200 steps on other cores, with KRROOD alongside as the reference of the agreement check. Owlready2 was run last,
+seed~0 with 200 steps, in the same image pinned to the same six cores, with KRROOD alongside as the reference and
+nothing else running (\file{results/agent\_loop\_owlready2/provenance.txt}).
 
-\paragraph{The table.} The paper's Table~4 reads:
+\paragraph{The table.} The paper's Table~4 reads (push: GraphDB with the planner's results written into the store):
 \begin{center}
 \footnotesize
-\begin{tabular}{@{}lrrrr@{}}
+\begin{tabular}{@{}lrrrrr@{}}
 \toprule
- & \textbf{KRROOD} & \textbf{GraphDB} & \textbf{GraphDB, push} & \textbf{Nemo}\\
+ & \textbf{KRROOD} & \textbf{GraphDB} & \textbf{push} & \textbf{Nemo} & \textbf{Owlready2}\\
 \midrule
-\multicolumn{5}{@{}l}{\emph{From the semantics}}\\
-World models & 1 & 2 & 2 & 2\\
-Planner runs & in query & on answers & before query & on answers\\
-Writes / step & 0 & 4 & 405 & 4\\
-Synchronization lines & 0 & 16 & 44 & 22\\
-\multicolumn{5}{@{}l}{\emph{From the implementation}}\\
-Languages & 1 & 2 & 2 & 2\\
-Processes & 1 & 2 & 2 & 2\\
-Round trips / step & 0 & 3 & 4 & 1 run\\
-Step [ms] & 90 (88--90) & 96 (93--100) & 162 (150--166) & 5{,}683 (5{,}653--5{,}690)\\
+\multicolumn{6}{@{}l}{\emph{From the semantics}}\\
+World models & 1 & 2 & 2 & 2 & 2\\
+Planner vs.\ query & inside & after & before & after & after\\
+Writes & 0 & 4 & 405 & 4 & 2.7\,M\\
+Sync.\ lines & 0 & 16 & 44 & 22 & 8\\
+\multicolumn{6}{@{}l}{\emph{From the implementation}}\\
+Languages & 1 & 2 & 2 & 2 & 1\\
+Processes & 1 & 2 & 2 & 2 & 2\\
+Round trips & 0 & 3 & 4 & 1 run & 1 run\\
+Boundary lines & 19 & 27 & 59 & 33 & 25\\
+Step [ms] & 90 & 96 & 162 & 5{,}683 & 32{,}986\\
 \bottomrule
 \end{tabular}
 \end{center}
+The seeds' median steps range over 88--90 (KRROOD), 93--100 (GraphDB), 150--166 (push) and 5,653--5,690\,ms (Nemo).
 GraphDB push writes 405 statements per step: 204 inserted and 201 deleted (medians).
 
 \paragraph{What the rows show.}
@@ -908,10 +1002,17 @@ GraphDB push writes 405 statements per step: 204 inserted and 201 deleted (media
         request but starts one process per step (``1 run''); outside the table, it has 9 mapping and 2 procedure
         lines. reasonable takes 4.6\,s per step
         (seed~0) and finds no handout candidate.
+  \item \emph{One language does not remove the second world model.} Owlready2's build is written only in Python and
+        makes the same decisions, but every step it deletes the previous step's 1.36 million inferences, Owlready2
+        exports the quadstore to Pellet, and Pellet's 1.36 million inferences are written back: a median step of
+        33.0\,s (95th percentile 34.0\,s), about 2\,s deleting and 31\,s in Pellet's run, with 8 synchronization
+        lines. Keeping the inferences instead would make Pellet read the whole closure every step, about 19 minutes on
+        the loading benchmark's pre-reasoned input.
 \end{itemize}
 
 \paragraph{Agreement.} Both GraphDB builds and Nemo make KRROOD's decision and return KRROOD's candidate sets in all
-1,000 steps. For Nemo the candidate files of both are identical in every seed. reasonable agrees on the action in 104
+1,000 steps. For Nemo the candidate files of both are identical in every seed. Owlready2 makes KRROOD's decision and returns its candidate sets in all 200 steps of seed~0;
+its candidate file is identical to KRROOD's. reasonable agrees on the action in 104
 of 200 steps and on the candidate sets in 2, because it derives no property chains.
 
 \end{document}

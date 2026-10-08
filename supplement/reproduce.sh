@@ -523,7 +523,7 @@ if [[ "$MODE" == full ]]; then
         done
         step loading_graphdb loading_graphdb
         step owlready2_heap owlready2_heap
-        step agent_loop agent_loop krrood,krrood_navigation,graphdb,graphdb_push,reasonable,nemo 200
+        step agent_loop agent_loop krrood,krrood_navigation,graphdb,graphdb_push,reasonable,nemo,owlready2 200
         step agent_loop_seeds agent_loop_seeds krrood,krrood_navigation,graphdb,graphdb_push,nemo
     else
         step query_timing_without_graphdb query_timing_without_graphdb
@@ -533,7 +533,7 @@ if [[ "$MODE" == full ]]; then
         done
         not_run "loading from the pre-reasoned data, all systems" "$NO_LICENSE; GraphDB computes the pre-reasoned data"
         not_run "loading of GraphDB" "$NO_LICENSE"
-        step agent_loop agent_loop krrood,krrood_navigation,reasonable,nemo 200
+        step agent_loop agent_loop krrood,krrood_navigation,reasonable,nemo,owlready2 200
         step agent_loop_seeds agent_loop_seeds krrood,krrood_navigation,nemo
         not_run "agent loop with GraphDB (two variants)" "$NO_LICENSE"
     fi
