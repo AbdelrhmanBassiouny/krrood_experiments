@@ -296,7 +296,7 @@ def loading_table() -> Optional[Table]:
                "Core i7-13700 with 64 GB RAM. ")
     caption += ("Protégé was run by hand, once per input (protege/README.txt)." if OWN else
                 "Protégé was run by hand in the paper and is not run here.")
-    table = Table("Loading and reasoning (paper, Table 3)", caption,
+    table = Table("Loading and reasoning (paper, Table 2)", caption,
                   ["System", "Input", "Time [s]", "Paper", "Memory", "Paper"], rows, right=[2, 3, 4, 5])
     return table.without([3, 5]) if OWN else table
 
@@ -341,7 +341,7 @@ def query_table() -> Optional[Table]:
                f"PostgreSQL, the others over their own stores. \"Answers\" is the number of GraphDB's answers. The "
                f"geometric means are over the {len(common)} queries that every listed system completed, in this "
                f"run{'' if OWN else ' and in the paper' + chr(39) + 's run'}.{repetitions_note}")
-    return Table("Query times (paper, Table 4)", caption, ["Query", "Answers", *[l for _, l in present]], rows,
+    return Table("Query times (paper, Table 3)", caption, ["Query", "Answers", *[l for _, l in present]], rows,
                  right=list(range(1, 2 + len(present))))
 
 
@@ -369,7 +369,7 @@ def scaling_table() -> Optional[Table]:
                "a home town, linked in a chain: load time, attempts to add a fact, facts (n², everyone with everyone) "
                "and whether the closure is complete. The attempts grow about 8-fold per doubling of n, i.e. cubically; "
                "OWL2Bench's largest such group has 1,145 persons, which explains why the ablation does not finish "
-               "within two hours on the benchmark (Table 3).")
+               "within two hours on the benchmark (Table 2).")
     table = Table("Why the ablation does not finish: eager chaining on small data", caption,
                   ["n", "Time [s]", "Attempts", "Facts", "Complete", "Time, paper", "Attempts, paper"], rows,
                   right=[0, 1, 2, 3, 5, 6])

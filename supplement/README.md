@@ -127,9 +127,9 @@ With a GraphDB license, `full`:
 * **knowledge base vs. closure** (Section 7.1): the knowledge base that Ontomatic loads is compared with GraphDB's
   closure, assertion by assertion, and the OWL 2 RL rules that derive equalities or inconsistencies are checked
   (`audit/audit.json`);
-* **query time** (Table 4): 18 queries x 10 repetitions, for EQL, SQL (SQLAlchemy over the ORMatic schema in
+* **query time** (Table 3): 18 queries x 10 repetitions, for EQL, SQL (SQLAlchemy over the ORMatic schema in
   PostgreSQL), GraphDB, RDFLib and Owlready2 (`queries/queries.json`);
-* **loading and reasoning** (Table 3), from the raw and the pre-reasoned data: KRROOD (5 runs), KRROOD + ORMatic
+* **loading and reasoning** (Table 2), from the raw and the pre-reasoned data: KRROOD (5 runs), KRROOD + ORMatic
   (5 runs), Owlready2 + Pellet (5 runs), RDFLib + owlrl (1 run, 3 h limit), GraphDB (1 run), and two in-memory
   baselines (5 runs, 24 GiB limit, `BASELINE_MEMORY_LIMIT_GIB`): Nemo 0.10.1, a Datalog engine, with the OWL 2 RL/RDF
   rules written for it (`code/earlier/experiments/src/krrood_experiments/aamas27/owl2rl.rls`), and reasonable 0.4.4,
