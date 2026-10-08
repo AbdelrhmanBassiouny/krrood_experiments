@@ -159,7 +159,7 @@ With a GraphDB license, `full`:
   charges). The same robot is built six ways: KRROOD, with the handout query scanning the students or navigating
   from the college; Python objects mirrored into GraphDB, with SPARQL for the logical part and the planner on the
   candidates; the same, but writing the planner's results into GraphDB so that SPARQL decides alone; Python
-  objects with reasonable, which recomputes the closure; and Python objects with Nemo, which has no incremental
+  objects with reasonable, which adds the facts and returns its whole closure every step; and Python objects with Nemo, which has no incremental
   mode and is re-run every step on the raw data and the facts perceived so far, with two decision rules
   (`nemo_variant.py` in the same folder). The others carry out KRROOD's actions, so all see the same
   states, and their own decisions and candidates are compared with KRROOD's in every step: both GraphDB variants
