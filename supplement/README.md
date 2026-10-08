@@ -54,7 +54,7 @@ docker compose down
 
 Quick mode:
 
-1. runs the tests of the measurement scripts (`43 passed, 2 skipped`: the two skipped tests of the agent loop need
+1. runs the tests of the measurement scripts (`45 passed, 2 skipped`: the two skipped tests of the agent loop need
    GraphDB or 17 GB and are switched on by AGENT_LOOP_GRAPHDB_TESTS=1 and AGENT_LOOP_REASONABLE_TESTS=1), the paper's listings and the formalization's examples
    (`25 passed`, then `1 passed` for the ORMatic listing of Section 6);
 2. runs eager chaining, the ablation "KRROOD without step 5", on the OWL2Bench TBox with small synthetic data
@@ -160,7 +160,7 @@ With a GraphDB license, `full`:
   mode and is re-run every step on the raw data and the facts perceived so far, with two decision rules
   (`nemo_variant.py` in the same folder). The others carry out KRROOD's actions, so all see the same
   states, and their own decisions and candidates are compared with KRROOD's in every step: both GraphDB variants
-  and Nemo agree in all 200 steps; reasonable finds no handout candidates, as it derives no property chains. Facts are never
+  and Nemo agree in every step of every seed; reasonable finds no handout candidates, as it derives no property chains. Facts are never
   removed, as KRROOD does not retract inferred facts. reasonable needs about 17 GB. Quick mode runs KRROOD's two
   variants for 20 steps; without a license, the GraphDB variants are skipped;
 * **further seeds of the agent loop** (seeds 1-4, the same variants but reasonable; about 2 h), combined with
