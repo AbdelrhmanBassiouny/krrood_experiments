@@ -486,7 +486,7 @@ def agent_loop_table() -> Optional[Table]:
                      f"{steps['round_trips']['mean']:.0f}", str(variant["code"]["boundary_lines"]["total"]), agrees,
                      ms(paper_variant["steps"]["total_seconds"]) if paper_variant else "–"])
     caption = (f"The delivery robot on the OWL2Bench campus, {loop['arguments']['steps']} steps (seed "
-               f"{loop['arguments']['seed']}). Each step perceives 3 additions, each an enrolment, a course taken or "
+               f"{loop['arguments']['seed']}). Each step perceives 3 additions, each an enrollment, a course taken or "
                "a new T20 cricket fan, decides with two queries that need inferred facts and call the robot's path planner "
                "(handouts to students of a college, tickets to T20 cricket fans), and acts. Times in ms, median / 95th "
                "percentile. \"Update\": asserting the perceived facts, with KRROOD's and GraphDB's inference; "
