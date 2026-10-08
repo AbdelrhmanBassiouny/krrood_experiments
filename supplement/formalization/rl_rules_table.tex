@@ -1,0 +1,246 @@
+% ============================================================
+%  The OWL 2 RL/RDF rules (OWL 2 Profiles, Section 4.3, Tables 4-9) and how Ontomatic realizes each.
+%  Needs: longtable, booktabs, array, amssymb. Can be \input into a document that loads these packages.
+% ============================================================
+
+\providecommand{\rlload}{\textnormal{\textsc{load}}}
+\providecommand{\rlassign}{\textnormal{\textsc{assign}}}
+\providecommand{\rlschema}{\textnormal{\textsc{schema}}}
+\providecommand{\rlcheck}{\textnormal{\textsc{check}}}
+\providecommand{\rlnone}{\textnormal{\textsc{none}}}
+\providecommand{\rlpython}{\textnormal{\textsc{python}}}
+\providecommand{\rlexcluded}{\textnormal{\textsc{excluded}}}
+\providecommand{\rlunsupported}{\textnormal{\textsc{unsupported}}}
+\providecommand{\rlpartial}{$^\dagger$}
+\providecommand{\rlrule}[1]{\texttt{#1}}
+\providecommand{\rlsame}{\mathrel{\approx}}
+
+The OWL~2 RL/RDF rules~\cite{motik2012owl2profiles} are 78 first-order rules over RDF triples, grouped in six tables of
+Section~4.3 of the specification: equality (Table~4, \rlrule{eq-*}), axioms about properties (Table~5,
+\rlrule{prp-*}), classes (Table~6, \rlrule{cls-*}), class axioms (Table~7, \rlrule{cax-*}), datatypes (Table~8,
+\rlrule{dt-*}) and the schema vocabulary (Table~9, \rlrule{scm-*}). The tables below list every rule and how the
+version of KRROOD used in the experiments (Ontomatic) realizes it. In the column ``derives'', $C(x)$ and $P(x,y)$ are
+class and property assertions, $x\rlsame y$ is \texttt{owl:sameAs}, $x\not\rlsame y$ is \texttt{owl:differentFrom},
+and $\bot$ is the contradiction \texttt{false}. ``Step'' refers to the loading procedure (Algorithm~1 of the paper,
+\texttt{OwlLoader.load}). Each rule has one of the following mechanisms.
+\begin{description}
+  \item[\rlload] Applied by the loading procedure: on the proxies of the individuals in steps~1--2 (types, and the
+    values that \texttt{hasValue} restrictions and chains add), and for the facts of \texttt{hasValue} restrictions also
+    on the objects in step~4. Not applied after loading: the class of an object does not change.
+  \item[\rlassign] Applied by the property descriptors whenever a fact is assigned, at load time (step~4; also on the
+    proxies in steps~1--2) and at runtime. These are the rules $R$ of Section~\ref{sec:descriptors}.
+  \item[\rlschema] Holds by construction of the generated model: class and descriptor inheritance, aliases for
+    equivalent classes, and \texttt{issubclass\_or\_role}, which follows inheritance and role-taker chains. No step
+    materializes the conclusion.
+  \item[\rlcheck] Not applied. The check after loading (\texttt{OwlInstancesRegistry.check\_owl2\_rl}, module
+    \texttt{owl2rl\_check}) evaluates the rule on the loaded knowledge base and reports every application: an equality
+    of two individuals or an inconsistency.
+  \item[\rlnone] Derives no class or property assertion about individuals that is not already present, provided
+    the check reports no equality: the conclusion is a reflexive \texttt{owl:sameAs}, an axiomatic triple, or follows
+    from an equality of two different individuals.
+  \item[\rlpython] Concerns literals, which are Python values: datatype membership is the Python type of the value,
+    and equality of values is Python equality.
+  \item[\rlexcluded] Outside the conditions of Theorem~PR1 of the specification, under which the paper's
+    propositions are stated (no annotation-property axioms, no punning).
+  \item[\rlunsupported] Not realized; the note says what happens.
+\end{description}
+{\sloppy A rule marked \rlpartial{} is realized only for the forms of its construct given in the note. The mechanisms follow
+the code of the earlier version in the supplement: \texttt{owl\_to\_python.py} (TBox compilation),
+\texttt{owl\_instances\_loader.py} and \texttt{owl2rl\_tbox.py} (loading),
+\texttt{property\_descriptor\_relation.py} (assignment) and \texttt{owl2rl\_check.py} (check).\par}
+
+\begin{center}
+\footnotesize
+\begin{tabular}{@{}lrrrrrrr@{}}
+  \toprule
+  Mechanism & \rlrule{eq} & \rlrule{prp} & \rlrule{cls} & \rlrule{cax} & \rlrule{dt} & \rlrule{scm} & Total \\
+  \midrule
+  \rlload        & 0 & 2 & 6 & 0 & 0 & 6  & 14 \\
+  \rlassign      & 0 & 8 & 0 & 0 & 0 & 1  & 9 \\
+  \rlschema      & 0 & 0 & 1 & 3 & 0 & 11 & 15 \\
+  \rlcheck       & 3 & 9 & 7 & 2 & 0 & 0  & 21 \\
+  \rlnone        & 6 & 0 & 2 & 0 & 1 & 0  & 9 \\
+  \rlpython      & 0 & 0 & 0 & 0 & 3 & 0  & 3 \\
+  \rlexcluded    & 0 & 1 & 0 & 0 & 0 & 0  & 1 \\
+  \rlunsupported & 0 & 0 & 3 & 0 & 1 & 2  & 6 \\
+  \midrule
+  Total          & 9 & 20 & 19 & 5 & 5 & 20 & 78 \\
+  \quad of which \rlpartial & 0 & 7 & 8 & 2 & 0 & 1 & 18 \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\begingroup
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
+
+% ------------------------------------------------------------
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{3.4cm}>{\raggedright\arraybackslash}p{5.8cm}@{}}
+  \caption{The semantics of equality (OWL~2 Profiles, Table~4).}\label{tab:rl-eq}\\
+  \toprule
+  Rule & Derives & KRROOD & Note \\
+  \midrule
+  \endfirsthead
+  \toprule
+  Rule & Derives & KRROOD & Note \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  \rlrule{eq-ref} & $x\rlsame x$ for every term & \rlnone & Reflexive \texttt{owl:sameAs} is object identity and is not stored; the closure argument of Proposition~5.2 adds these facts implicitly. \\
+  \rlrule{eq-sym} & $x\rlsame y \Rightarrow y\rlsame x$ & \rlnone & KRROOD never merges individuals (unique names). The check reports every \texttt{owl:sameAs} between different IRIs that is asserted or derived by \rlrule{prp-fp}, \rlrule{prp-ifp}, \rlrule{prp-key}, \rlrule{cls-maxc2} or \rlrule{cls-maxqc3/4}. If it reports none, only reflexive equalities hold, from which this rule and the next four derive nothing new. \\
+  \rlrule{eq-trans} & $x\rlsame y,\ y\rlsame z \Rightarrow x\rlsame z$ & \rlnone & As \rlrule{eq-sym}. \\
+  \rlrule{eq-rep-s} & $x\rlsame x',\ P(x,y) \Rightarrow P(x',y)$ & \rlnone & As \rlrule{eq-sym}. \\
+  \rlrule{eq-rep-p} & $P\rlsame P',\ P(x,y) \Rightarrow P'(x,y)$ & \rlnone & As \rlrule{eq-sym}; an equality of two properties would moreover need punning. \\
+  \rlrule{eq-rep-o} & $y\rlsame y',\ P(x,y) \Rightarrow P(x,y')$ & \rlnone & As \rlrule{eq-sym}. \\
+  \rlrule{eq-diff1} & $x\rlsame y,\ x\not\rlsame y \Rightarrow \bot$ & \rlcheck & Each pair of \texttt{owl:differentFrom} individuals is compared with the equalities that the check found. Equalities are not closed under \rlrule{eq-trans}, but any equality already fails the check. \\
+  \rlrule{eq-diff2} & equal members of \texttt{owl:AllDifferent} (\texttt{owl:members}) $\Rightarrow \bot$ & \rlcheck & As \rlrule{eq-diff1}. \\
+  \rlrule{eq-diff3} & the same with \texttt{owl:distinctMembers} & \rlcheck & As \rlrule{eq-diff1}. \\
+\end{longtable}
+
+% ------------------------------------------------------------
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{3.4cm}>{\raggedright\arraybackslash}p{5.8cm}@{}}
+  \caption{The semantics of axioms about properties (OWL~2 Profiles, Table~5).}\label{tab:rl-prp}\\
+  \toprule
+  Rule & Derives & KRROOD & Note \\
+  \midrule
+  \endfirsthead
+  \toprule
+  Rule & Derives & KRROOD & Note \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  \rlrule{prp-ap} & built-in annotation properties are annotation properties & \rlexcluded & Axiomatic triples about annotation properties. Ontomatic compiles no annotation properties; \texttt{rdfs:label} and \texttt{rdfs:comment} become docstrings. \\
+  \rlrule{prp-dom}\rlpartial & $P(x,y) \Rightarrow C(x)$ for domain $C$ of $P$ & \rlload{} (step~2) & Object and data properties. Facts of super-, equivalent and inverse properties and of symmetry are added in step~1, so their domains apply as well. Only named domain classes are used; a class expression as domain is ignored. Not applied at runtime. \\
+  \rlrule{prp-rng}\rlpartial & $P(x,y) \Rightarrow C(y)$ for range $C$ of $P$ & \rlload{} (step~2) & Object properties, named range classes, as \rlrule{prp-dom}. The range of a data property is a datatype (\rlrule{dt-type2}, \rlrule{dt-not-type}). \\
+  \rlrule{prp-fp} & functional $P$: $P(x,y_1), P(x,y_2) \Rightarrow y_1\rlsame y_2$ & \rlcheck & Object property: an equality is reported. Data property: two different values are an inconsistency (with \rlrule{dt-diff} and \rlrule{eq-diff1}). \\
+  \rlrule{prp-ifp} & inverse-functional $P$: $P(x_1,y), P(x_2,y) \Rightarrow x_1\rlsame x_2$ & \rlcheck & Equality reported. \\
+  \rlrule{prp-irp}\rlpartial & irreflexive $P$: $P(x,x) \Rightarrow \bot$ & \rlcheck & Missed for a property that is symmetric, transitive and irreflexive: step~5 omits the facts $P(x,x)$ of such a property, so a non-empty one, which is inconsistent, passes the check. \\
+  \rlrule{prp-symp} & symmetric $P$: $P(x,y) \Rightarrow P(y,x)$ & \rlassign{} (step~1) & Mixin \texttt{SymmetricProperty}. \\
+  \rlrule{prp-asyp} & asymmetric $P$: $P(x,y), P(y,x) \Rightarrow \bot$ & \rlcheck & Also reports $P(x,x)$. \\
+  \rlrule{prp-trp} & transitive $P$: $P(x,y), P(y,z) \Rightarrow P(x,z)$ & \rlassign{}; step~2; step~5 & Mixin \texttt{TransitiveProperty}. On assignment for properties that are not symmetric; in step~2 on the proxies for the properties used by class expressions and chains; in step~5 (weakly connected components) for symmetric ones, at load time only. \\
+  \rlrule{prp-spo1} & $P_1\sqsubseteq P_2$: $P_1(x,y) \Rightarrow P_2(x,y)$ & \rlassign{} (step~1) & Descriptor inheritance. Data properties: the value is copied to the attributes of the implied properties when loading (step~4), not at runtime. \\
+  \rlrule{prp-spo2} & chain $P_1\circ\dots\circ P_n\sqsubseteq P$ & \rlassign{} (step~2) & Mixin \texttt{HasChainAxioms}; in step~2 also on the proxies. \\
+  \rlrule{prp-eqp1} & $P_1\equiv P_2$: $P_1(x,y) \Rightarrow P_2(x,y)$ & \rlassign{} (step~1) & Mixin \texttt{HasEquivalentProperties}. Data properties are copied when loading, as for \rlrule{prp-spo1}. \\
+  \rlrule{prp-eqp2} & $P_1\equiv P_2$: $P_2(x,y) \Rightarrow P_1(x,y)$ & \rlassign{} (step~1) & As \rlrule{prp-eqp1}. \\
+  \rlrule{prp-pdw}\rlpartial & disjoint $P_1,P_2$: $P_1(x,y), P_2(x,y) \Rightarrow \bot$ & \rlcheck & Object properties only; values of disjoint data properties are not compared. \\
+  \rlrule{prp-adp}\rlpartial & the same for \texttt{owl:AllDisjoint}\allowbreak\texttt{Properties} & \rlcheck & As \rlrule{prp-pdw}. \\
+  \rlrule{prp-inv1}\rlpartial & $P_1$ inverse of $P_2$: $P_1(x,y) \Rightarrow P_2(y,x)$ & \rlassign{} (step~1) & Mixin \texttt{HasInverseProperty}, with at most one inverse per property: if $P$ has two inverses $Q_1,Q_2$, only one of $Q_1(y,x)$, $Q_2(y,x)$ is derived from $P(x,y)$. Only named inverses (no \texttt{ObjectInverseOf} expressions). \\
+  \rlrule{prp-inv2}\rlpartial & $P_1$ inverse of $P_2$: $P_2(x,y) \Rightarrow P_1(y,x)$ & \rlassign{} (step~1) & As \rlrule{prp-inv1}. \\
+  \rlrule{prp-key} & \texttt{hasKey}: same key values $\Rightarrow x\rlsame y$ & \rlcheck & Object and data key properties. \\
+  \rlrule{prp-npa1} & negative object property assertion violated $\Rightarrow \bot$ & \rlcheck & \\
+  \rlrule{prp-npa2} & negative data property assertion violated $\Rightarrow \bot$ & \rlcheck & Values compared as Python values (\rlrule{dt-eq}). \\
+\end{longtable}
+
+% ------------------------------------------------------------
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{3.4cm}>{\raggedright\arraybackslash}p{5.8cm}@{}}
+  \caption{The semantics of classes (OWL~2 Profiles, Table~6).}\label{tab:rl-cls}\\
+  \toprule
+  Rule & Derives & KRROOD & Note \\
+  \midrule
+  \endfirsthead
+  \toprule
+  Rule & Derives & KRROOD & Note \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  \rlrule{cls-thing} & \texttt{owl:Thing} is a class & \rlnone & Axiomatic. \texttt{owl:Thing} corresponds to the generated base class of the ontology, which every generated class inherits; an individual without any type is an object of the base class (end of step~2). \\
+  \rlrule{cls-nothing1} & \texttt{owl:Nothing} is a class & \rlnone & Axiomatic. \\
+  \rlrule{cls-nothing2} & $\mathit{Nothing}(x) \Rightarrow \bot$ & \rlunsupported & \texttt{owl:Nothing} has no generated class: a class declared a subclass of it gets an undefined base class and the generated model fails to import, and an assertion \texttt{rdf:type owl:Nothing} is ignored without report. \\
+  \rlrule{cls-int1}\rlpartial & $C\equiv C_1\sqcap\dots\sqcap C_n$: $C_1(y),\dots,C_n(y) \Rightarrow C(y)$ & \rlload{} (axiom, step~2) & An intersection in subclass position that contains a restriction becomes the class's axiom; its named conjuncts become type checks (\texttt{Student} in \texttt{Student} $\sqcap\ \exists$\texttt{hasMajor.Science} $\sqsubseteq$ \texttt{ScienceStudent}). An intersection of named classes only (\texttt{A} $\sqcap$ \texttt{B} $\sqsubseteq$ \texttt{C}) yields no axiom and derives nothing. A class \texttt{owl:equivalentClass} to an intersection makes TBox compilation fail. The restrictions on the class (see \rlrule{cls-svf1}) apply. \\
+  \rlrule{cls-int2}\rlpartial & $C(y) \Rightarrow C_1(y),\dots,C_n(y)$ & \rlload{} (step~2) & Intersections in superclass position (necessary conditions), applied on the proxies and their absence reported by the check. Not for \texttt{owl:equivalentClass} to an intersection (see \rlrule{cls-int1}). \\
+  \rlrule{cls-uni}\rlpartial & $C\equiv C_1\sqcup\dots\sqcup C_n$: $C_i(y) \Rightarrow C(y)$ & \rlschema & A union in subclass position with named superclasses: every operand inherits these superclasses, so \rlrule{cls-uni} and \rlrule{cax-sco} hold by inheritance. A union inside another class expression is not compiled. \\
+  \rlrule{cls-com}\rlpartial & $C_1\equiv\neg C_2$: $C_1(x), C_2(x) \Rightarrow \bot$ & \rlcheck & \texttt{ObjectComplementOf} of a named class in superclass position, also as the filler of an \texttt{allValuesFrom} restriction (\texttt{WomanCollege} in OWL2Bench). The complement of a class expression is not checked. \\
+  \rlrule{cls-svf1}\rlpartial & $\exists P.D\sqsubseteq C$: $P(u,v), D(v) \Rightarrow C(u)$ & \rlload{} (axiom, step~2) & \texttt{someValuesFrom} of an object property with a named filler, in subclass position. The axiom tests the filler with \texttt{issubclass\_or\_role}. The generated axiom of a class is the conjunction of all its sufficient conditions, so for a class with two (e.g.\ $\exists P.D\sqsubseteq C$ and $\exists Q.D\sqsubseteq C$) an individual satisfying one of them is not classified. Loading fails if the property has a declared domain that is not a superclass of the class, which then declares no attribute for it (observed for \texttt{hasValue}, which takes the same code path). \\
+  \rlrule{cls-svf2} & $\exists P.\top\sqsubseteq C$: $P(u,v) \Rightarrow C(u)$ & \rlunsupported & The filler \texttt{owl:Thing} is compiled to the name \texttt{Thing}, which is not a generated class; loading fails. \\
+  \rlrule{cls-avf} & $C\sqsubseteq\forall P.D$: $C(u), P(u,v) \Rightarrow D(v)$ & \rlload{} (step~2) & \texttt{allValuesFrom} in superclass position, applied on the proxies; a \texttt{hasValue} in the filler adds its facts in step~4. \\
+  \rlrule{cls-hv1} & $C\sqsubseteq\exists P.\{a\}$: $C(u) \Rightarrow P(u,a)$ & \rlload{} (steps~2, 4) & \texttt{hasValue} in superclass position or in an \texttt{owl:equivalentClass} definition: added to the proxies in step~2 and assigned through the descriptor in step~4, so that the assign rules fire. Object and data properties. \\
+  \rlrule{cls-hv2}\rlpartial & $\exists P.\{a\}\sqsubseteq C$: $P(u,a) \Rightarrow C(u)$ & \rlload{} (axiom, step~2) & \texttt{owl:equivalentClass} definitions (Listing~3 of the paper) and general class axioms; the restrictions of \rlrule{cls-svf1} on the property apply. At runtime the class is queried through its axiom. \\
+  \rlrule{cls-maxc1}\rlpartial & $C\sqsubseteq{\le}0\,P$: $C(u), P(u,y) \Rightarrow \bot$ & \rlcheck & Object properties only; maximum cardinalities of data properties are not checked. \\
+  \rlrule{cls-maxc2}\rlpartial & $C\sqsubseteq{\le}1\,P$: $P(u,y_1), P(u,y_2) \Rightarrow y_1\rlsame y_2$ & \rlcheck & Equality reported. Object properties only; for a data property the rule with \rlrule{dt-diff} gives an inconsistency, which is not reported. \\
+  \rlrule{cls-maxqc1} & $C\sqsubseteq{\le}0\,P.D$ $\Rightarrow \bot$ & \rlcheck & \\
+  \rlrule{cls-maxqc2} & $C\sqsubseteq{\le}0\,P.\top$ $\Rightarrow \bot$ & \rlcheck & \\
+  \rlrule{cls-maxqc3} & $C\sqsubseteq{\le}1\,P.D$ $\Rightarrow y_1\rlsame y_2$ & \rlcheck & Equality reported; the values are tested for $D$ on the loaded objects. \\
+  \rlrule{cls-maxqc4} & $C\sqsubseteq{\le}1\,P.\top$ $\Rightarrow y_1\rlsame y_2$ & \rlcheck & Equality reported. \\
+  \rlrule{cls-oo} & $\{a_1,\dots,a_n\}\sqsubseteq C$: $C(a_i)$ & \rlunsupported & \texttt{oneOf} is not compiled; the individuals are not typed, without report. \\
+\end{longtable}
+
+% ------------------------------------------------------------
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{3.4cm}>{\raggedright\arraybackslash}p{5.8cm}@{}}
+  \caption{The semantics of class axioms (OWL~2 Profiles, Table~7).}\label{tab:rl-cax}\\
+  \toprule
+  Rule & Derives & KRROOD & Note \\
+  \midrule
+  \endfirsthead
+  \toprule
+  Rule & Derives & KRROOD & Note \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  \rlrule{cax-sco} & $C_1\sqsubseteq C_2$: $C_1(x) \Rightarrow C_2(x)$ & \rlschema & Between named classes: Python inheritance or the Role pattern; an object of $C_1$ is an instance of $C_2$ under \texttt{issubclass\_or\_role}, and only the most specific types become objects (step~3). A subclass of an intersection: \rlrule{cls-int2} (\rlload). \\
+  \rlrule{cax-eqc1} & $C_1\equiv C_2$: $C_1(x) \Rightarrow C_2(x)$ & \rlschema & Equivalent named classes are one Python class; the other name is an alias (\texttt{School = College} in OWL2Bench). \\
+  \rlrule{cax-eqc2} & $C_1\equiv C_2$: $C_2(x) \Rightarrow C_1(x)$ & \rlschema & As \rlrule{cax-eqc1}. \\
+  \rlrule{cax-dw}\rlpartial & disjoint $C_1,C_2$: $C_1(x), C_2(x) \Rightarrow \bot$ & \rlcheck & Named classes only; disjointness with a class expression is not checked. \\
+  \rlrule{cax-adc}\rlpartial & the same for \texttt{owl:AllDisjoint}\allowbreak\texttt{Classes} & \rlcheck & As \rlrule{cax-dw}. \\
+\end{longtable}
+
+% ------------------------------------------------------------
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{3.4cm}>{\raggedright\arraybackslash}p{5.8cm}@{}}
+  \caption{The semantics of datatypes (OWL~2 Profiles, Table~8).}\label{tab:rl-dt}\\
+  \toprule
+  Rule & Derives & KRROOD & Note \\
+  \midrule
+  \endfirsthead
+  \toprule
+  Rule & Derives & KRROOD & Note \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  \rlrule{dt-type1} & every supported datatype is a datatype & \rlnone & Axiomatic. \\
+  \rlrule{dt-type2} & literal $\ell$ in the value space of $d$: $d(\ell)$ & \rlpython & A literal is stored as a Python value (\texttt{rdflib}'s \texttt{toPython}, coerced to the type annotation of the attribute); its datatype membership is its Python type and is not stored as a fact. No class or property assertion about an individual depends on it. \\
+  \rlrule{dt-eq} & same data value: $\ell_1\rlsame\ell_2$ & \rlpython & Python equality of the values, used by the check for functional data properties, keys and negative data property assertions. \\
+  \rlrule{dt-diff} & different data values: $\ell_1\not\rlsame\ell_2$ & \rlpython & As \rlrule{dt-eq}; two different values of a functional data property are reported as an inconsistency. \\
+  \rlrule{dt-not-type} & $d(\ell)$, $\ell$ not in the value space of $d$ $\Rightarrow \bot$ & \rlunsupported & Not checked: a value outside the declared datatype range of a data property (for example a string for \texttt{xsd:integer}, an inconsistency with \rlrule{prp-rng}) is stored after a failed coercion, without report. \\
+\end{longtable}
+
+% ------------------------------------------------------------
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{3.4cm}>{\raggedright\arraybackslash}p{5.8cm}@{}}
+  \caption{The semantics of schema vocabulary (OWL~2 Profiles, Table~9). These rules derive schema triples only;
+  the table says how the assertions that follow from them are obtained.}\label{tab:rl-scm}\\
+  \toprule
+  Rule & Derives & KRROOD & Note \\
+  \midrule
+  \endfirsthead
+  \toprule
+  Rule & Derives & KRROOD & Note \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  \rlrule{scm-cls} & $C\sqsubseteq C$, $C\equiv C$, $C\sqsubseteq\top$, $\bot\sqsubseteq C$ & \rlschema & \texttt{issubclass} is reflexive and every generated class inherits the base class (\texttt{owl:Thing}); \texttt{owl:Nothing} is not represented (\rlrule{cls-nothing2}). \\
+  \rlrule{scm-sco} & $C_1\sqsubseteq C_2\sqsubseteq C_3 \Rightarrow C_1\sqsubseteq C_3$ & \rlschema & \texttt{issubclass} is transitive. \\
+  \rlrule{scm-eqc1} & $C_1\equiv C_2 \Rightarrow C_1\sqsubseteq C_2,\ C_2\sqsubseteq C_1$ & \rlschema & One class with an alias (\rlrule{cax-eqc1}). \\
+  \rlrule{scm-eqc2} & $C_1\sqsubseteq C_2\sqsubseteq C_1 \Rightarrow C_1\equiv C_2$ & \rlunsupported & Python inheritance cannot be cyclic: for a cycle of \texttt{rdfs:subClassOf} the generated model fails to import. The equivalence must be stated with \texttt{owl:equivalentClass}. \\
+  \rlrule{scm-op} & $P\sqsubseteq P$, $P\equiv P$ (object property) & \rlschema & \texttt{issubclass} is reflexive; the conclusions derive no new fact. \\
+  \rlrule{scm-dp} & the same for data properties & \rlschema & As \rlrule{scm-op}. \\
+  \rlrule{scm-spo} & $P_1\sqsubseteq P_2\sqsubseteq P_3 \Rightarrow P_1\sqsubseteq P_3$ & \rlschema & Descriptor inheritance: a fact of $P_1$ propagates to each direct super-property, which propagates further (\rlrule{prp-spo1}). \\
+  \rlrule{scm-eqp1} & $P_1\equiv P_2 \Rightarrow P_1\sqsubseteq P_2,\ P_2\sqsubseteq P_1$ & \rlassign & Equivalent properties are distinct descriptor classes related by \texttt{HasEquivalentProperties}, not by inheritance; their facts are copied by \rlrule{prp-eqp1/2}. \\
+  \rlrule{scm-eqp2} & $P_1\sqsubseteq P_2\sqsubseteq P_1 \Rightarrow P_1\equiv P_2$ & \rlunsupported & As \rlrule{scm-eqc2}: a cycle of \texttt{rdfs:subPropertyOf} makes the generated descriptor module fail to import. \\
+  \rlrule{scm-dom1} & $\mathit{dom}(P)=C_1$, $C_1\sqsubseteq C_2 \Rightarrow \mathit{dom}(P)=C_2$ & \rlschema & An object typed $C_1$ by \rlrule{prp-dom} is an instance of $C_2$. \\
+  \rlrule{scm-dom2} & $\mathit{dom}(P_2)=C$, $P_1\sqsubseteq P_2 \Rightarrow \mathit{dom}(P_1)=C$ & \rlload{} (steps~1--2) & Step~1 adds the facts of the super-property, and step~2 applies its domain. TBox compilation also derives undeclared domains of descriptors from super-, inverse and equivalent properties. \\
+  \rlrule{scm-rng1} & $\mathit{rng}(P)=C_1$, $C_1\sqsubseteq C_2 \Rightarrow \mathit{rng}(P)=C_2$ & \rlschema & As \rlrule{scm-dom1}. \\
+  \rlrule{scm-rng2} & $\mathit{rng}(P_2)=C$, $P_1\sqsubseteq P_2 \Rightarrow \mathit{rng}(P_1)=C$ & \rlload{} (steps~1--2) & As \rlrule{scm-dom2}. \\
+  \rlrule{scm-hv} & $P_1\sqsubseteq P_2 \Rightarrow \exists P_1.\{a\}\sqsubseteq\exists P_2.\{a\}$ & \rlload{} (steps~1--2) & The fact of $P_2$ is added in step~1 (\rlrule{prp-spo1}), so the axiom on $P_2$ holds (\rlrule{cls-hv2}). \\
+  \rlrule{scm-svf1} & $D_1\sqsubseteq D_2 \Rightarrow \exists P.D_1\sqsubseteq\exists P.D_2$ & \rlschema & The axiom tests the filler with \texttt{issubclass\_or\_role}, so a value of type $D_1$ satisfies $\exists P.D_2$. \\
+  \rlrule{scm-svf2} & $P_1\sqsubseteq P_2 \Rightarrow \exists P_1.D\sqsubseteq\exists P_2.D$ & \rlload{} (steps~1--2) & As \rlrule{scm-hv}. \\
+  \rlrule{scm-avf1} & $D_1\sqsubseteq D_2 \Rightarrow \forall P.D_1\sqsubseteq\forall P.D_2$ & \rlschema & A value typed $D_1$ by \rlrule{cls-avf} is an instance of $D_2$. \\
+  \rlrule{scm-avf2} & $P_1\sqsubseteq P_2 \Rightarrow \forall P_2.D\sqsubseteq\forall P_1.D$ & \rlload{} (steps~1--2) & The fact of $P_2$ is added in step~1, and \rlrule{cls-avf} on $P_2$ applies in step~2. \\
+  \rlrule{scm-int}\rlpartial & $C\equiv C_1\sqcap\dots\sqcap C_n \Rightarrow C\sqsubseteq C_i$ & \rlload{} (step~2) & Obtained as \rlrule{cls-int2} for intersections in superclass position; an \texttt{owl:equivalentClass} to an intersection makes TBox compilation fail. \\
+  \rlrule{scm-uni} & $C\equiv C_1\sqcup\dots\sqcup C_n \Rightarrow C_i\sqsubseteq C$ & \rlschema & The operands inherit the superclasses of the union (\rlrule{cls-uni}). \\
+\end{longtable}
+\endgroup

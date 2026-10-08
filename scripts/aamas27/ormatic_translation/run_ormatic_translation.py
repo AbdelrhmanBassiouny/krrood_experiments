@@ -18,14 +18,25 @@ version that the experiments use. This script therefore
    forms);
 5. measures the time of the translated query: of ``evaluate`` (translation, execution and the answers as EQL returns
    them) and of the translated statement alone, as the hand-written SQLAlchemy queries of the query experiment are
-   measured (``session.execute(statement).all()`` after ``expunge_all``). Relationships are loaded lazily, as in the
-   interface of the experiments (see ``lazy_translation``).
+   measured (``session.execute(statement).all()`` after ``expunge_all``).
+
+The translation selects identifiers by default (``--selection identifiers``): ``eql_to_sql`` is called with
+``select_identifiers=True``, so that every selected variable and flattened element is returned as its database id, the
+identity of the answer, as most hand-written queries return the id columns of an association table. The tables of a
+variable are then joined only where a column of them is read or the class of the variable must be restricted; mapping
+the ids to IRIs for the comparison is not timed. With ``--selection objects`` the translation selects data access
+objects, as in the first run, and relationships are loaded lazily, as in the interface of the experiments (see
+``lazy_translation``).
+
+The database is rebuilt on every run unless ``--reuse-database`` is given, which keeps the tables of an earlier run with
+the same closure (for iterating on queries with ``--queries``).
 
 Usage (current KRROOD environment; psycopg2 for PostgreSQL)::
 
     python run_ormatic_translation.py --reasoned-file owl2bench_statements_reasoned.rdf \
         --reference-answers results/run/check/answers/graphdb --database-uri postgresql+psycopg2://... \
-        --output-dir results/aamas27/ormatic_translation-20261008
+        --output-dir results/aamas27/ormatic_translation-20261008 [--selection identifiers|objects] \
+        [--reuse-database] [--queries 2,3]
 """
 
 from __future__ import annotations
@@ -44,9 +55,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple
 
+import krrood
 import rdflib
+import sqlalchemy
 from rdflib.namespace import RDF
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session, configure_mappers, lazyload
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -440,14 +453,15 @@ class AnswerNormalizer:
 
     def iri_of_database_id(self, database_id: int) -> str:
         """
-        The translation returns the database id instead of the data access object for a variable that is selected
-        together with one of its attributes; this resolves it.
+        The translation returns database ids when it selects identifiers, and also for a variable that is selected
+        together with one of its attributes when it selects objects; this resolves them. Relationships are loaded
+        lazily, so that only the role takers on the way to the IRI are read.
 
         :param database_id: The database id of a symbol.
         :return: Its IRI.
         """
         if database_id not in self.iri_by_database_id:
-            dao = self.session.get(interface.SymbolDAO, database_id)
+            dao = self.session.get(interface.SymbolDAO, database_id, options=[lazyload("*")])
             self.iri_by_database_id[database_id] = self.iri_of_object(dao)
         return self.iri_by_database_id[database_id]
 
@@ -527,29 +541,38 @@ def paper_sql_medians(path: Optional[Path]) -> Dict[int, float]:
     return {int(k): median_without_first(v["times_ms"]) for k, v in data["queries"].items() if v.get("times_ms")}
 
 
-def lazy_translation(query: Any, session: Session) -> Any:
+SELECTIONS = ("identifiers", "objects")
+"""
+What the translation selects: database ids (``eql_to_sql(..., select_identifiers=True)``) or data access objects.
+"""
+
+
+def lazy_translation(query: Any, session: Session, selection: str) -> Any:
     """
-    Translate a query and load the relationships of the selected data access objects lazily. The generated interface
-    of the current version loads every relationship eagerly (``selectin``), so that loading one answer loads every
-    object reachable from it, here the whole benchmark; the interface of the query experiment loads lazily.
+    Translate a query. When it selects data access objects, their relationships are loaded lazily: the generated
+    interface of the current version loads every relationship eagerly (``selectin``), so that loading one answer loads
+    every object reachable from it, here the whole benchmark; the interface of the query experiment loads lazily.
+    A translation that selects identifiers loads no objects.
 
     :param query: An EQL query.
     :param session: The session of the database.
-    :return: The translator, whose statement loads lazily.
+    :param selection: ``identifiers`` or ``objects``.
+    :return: The translator.
     """
-    translator = eql_to_sql(query, session)
-    translator.sql_query = translator.sql_query.options(lazyload("*"))
+    translator = eql_to_sql(query, session, select_identifiers=selection == "identifiers")
+    if selection == "objects":
+        translator.sql_query = translator.sql_query.options(lazyload("*"))
     return translator
 
 
 def run_query(benchmark: BenchmarkQuery, session: Session, normalizer: AnswerNormalizer, reference: Path,
-              repetitions: int) -> Dict[str, Any]:
+              repetitions: int, selection: str) -> Dict[str, Any]:
     """
     Evaluate one query in working memory and through its translation, compare and time the translation.
 
     :return: The record of the query.
     """
-    record: Dict[str, Any] = {"query": benchmark.number, "rewrite": benchmark.rewrite}
+    record: Dict[str, Any] = {"query": benchmark.number, "rewrite": benchmark.rewrite, "selection": selection}
     memory_ms, memory_results = timed(lambda: list(benchmark.query.evaluate()))
     memory = {normalizer.row(r, benchmark.selected, False) for r in memory_results}
     del memory_results
@@ -557,7 +580,7 @@ def run_query(benchmark: BenchmarkQuery, session: Session, normalizer: AnswerNor
     record.update({"eql_in_memory_ms_single_run": memory_ms, "eql_answers": len(memory),
                    "graphdb_answers": len(graphdb), "eql_equal_to_graphdb": memory == graphdb})
     try:
-        translator = eql_to_sql(benchmark.query, session)
+        translator = lazy_translation(benchmark.query, session, selection)
     except Exception as error:
         record.update({"translated": False, "error": f"{type(error).__name__}: {error}",
                        "traceback": traceback.format_exc(limit=4)})
@@ -566,7 +589,7 @@ def run_query(benchmark: BenchmarkQuery, session: Session, normalizer: AnswerNor
     record["sql"] = str(translator.sql_query.compile(session.get_bind(), compile_kwargs={"literal_binds": True}))
     try:
         session.expunge_all()
-        first_ms, results = timed(lambda: list(lazy_translation(benchmark.query, session).evaluate()))
+        first_ms, results = timed(lambda: list(lazy_translation(benchmark.query, session, selection).evaluate()))
         database = {normalizer.row(r, benchmark.selected, True) for r in results}
         record["raw_rows"] = len(results)
         del results
@@ -577,11 +600,11 @@ def run_query(benchmark: BenchmarkQuery, session: Session, normalizer: AnswerNor
     record.update({"evaluated": True, "translation_answers": len(database),
                    "equal_to_eql": compare(database, memory), "equal_to_graphdb": compare(database, graphdb)})
     evaluate_ms, execute_ms = [first_ms], []
-    statement = lazy_translation(benchmark.query, session).sql_query
+    statement = lazy_translation(benchmark.query, session, selection).sql_query
     for repetition in range(repetitions):
         if repetition > 0:
             session.expunge_all()
-            evaluate_ms.append(timed(lambda: list(lazy_translation(benchmark.query, session).evaluate()))[0])
+            evaluate_ms.append(timed(lambda: list(lazy_translation(benchmark.query, session, selection).evaluate()))[0])
         session.expunge_all()
         execute_ms.append(timed(lambda: session.execute(statement).all())[0])
     session.expunge_all()
@@ -613,7 +636,7 @@ def markdown_summary(report: Dict[str, Any]) -> str:
     :return: A short summary table of the report.
     """
     lines = ["# ORMatic's translation of the 18 OWL2Bench queries", "",
-             f"Data: {report['data']}", "",
+             f"Data: {report['data']}", "", f"Selection: {report['selection']}", "",
              "| Query | Translated | = EQL | = GraphDB | Answers | Translated SQL [ms] | Hand-written SQL, paper [ms] "
              "| evaluate [ms] |",
              "|---|---|---|---|---|---|---|---|"]
@@ -643,6 +666,12 @@ def main() -> None:
     parser.add_argument("--paper-sqlalchemy-times", default=None, help="queries_sqlalchemy.json of the paper's run")
     parser.add_argument("--repetitions", type=int, default=10)
     parser.add_argument("--queries", default=None, help="comma separated query numbers (default: all 18)")
+    parser.add_argument("--selection", choices=SELECTIONS, default="identifiers",
+                        help="select database ids (default) or data access objects")
+    parser.add_argument("--translator-commit", default=None,
+                        help="the commit of the KRROOD version whose translator is used, recorded in the report")
+    parser.add_argument("--reuse-database", action="store_true",
+                        help="keep the tables of an earlier run with the same closure instead of storing the objects")
     arguments = parser.parse_args()
     output = Path(arguments.output_dir)
     output.mkdir(parents=True, exist_ok=True)
@@ -654,7 +683,7 @@ def main() -> None:
     print(f"built {len(knowledge.all_objects())} objects in {build_ms / 1000:.1f} s", flush=True)
     configure_mappers()
     engine = create_engine(arguments.database_uri)
-    persist_seconds = persist(knowledge, engine)
+    persist_seconds = "reused" if arguments.reuse_database else persist(knowledge, engine)
     print(f"stored: {persist_seconds}", flush=True)
 
     session = Session(engine)
@@ -665,7 +694,7 @@ def main() -> None:
         if wanted is not None and benchmark.number not in wanted:
             continue
         record = run_query(benchmark, session, normalizer, Path(arguments.reference_answers),
-                           arguments.repetitions)
+                           arguments.repetitions, arguments.selection)
         records.append(record)
         print(f"Q{record['query']}: translated={record.get('translated')} "
               f"=EQL={record.get('equal_to_eql', {}).get('equal')} "
@@ -684,14 +713,21 @@ def main() -> None:
         "objects": len(knowledge.all_objects()), "knowledge_statistics": knowledge.statistics,
         "read_seconds": read_ms / 1000, "build_seconds": build_ms / 1000, "persist": persist_seconds,
         "repetitions": arguments.repetitions,
-        "timing": "relationships loaded lazily (lazyload('*')), as in the interface of the query experiment; "
+        "selection": arguments.selection,
+        "timing": ("selection of database ids (eql_to_sql(query, session, select_identifiers=True)); ids are mapped "
+                   "to IRIs outside the timing; " if arguments.selection == "identifiers" else
+                   "relationships loaded lazily (lazyload('*')), as in the interface of the query experiment; ") +
                   "execute: session.execute(translated statement).all() after expunge_all, as the hand-written "
                   "SQLAlchemy queries are measured; evaluate: eql_to_sql(query).evaluate() including translation; "
                   "medians without the first run",
         "paper_sqlalchemy_median_ms": {str(k): v for k, v in paper_sql_medians(
             Path(arguments.paper_sqlalchemy_times) if arguments.paper_sqlalchemy_times else None).items()},
         "environment": {"python": platform.python_version(), "machine": platform.machine(),
-                        "cpus_available": len(os.sched_getaffinity(0))},
+                        "cpus_available": len(os.sched_getaffinity(0)),
+                        "cpus": sorted(os.sched_getaffinity(0)),
+                        "krrood": str(Path(krrood.__file__).parent), "translator_commit": arguments.translator_commit,
+                        "sqlalchemy": sqlalchemy.__version__,
+                        "database_version": session.execute(text("SELECT version()")).scalar()},
         "queries": records,
     }
     report["summary"] = {

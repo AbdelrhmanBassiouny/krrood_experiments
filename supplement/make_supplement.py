@@ -57,7 +57,7 @@ LISTINGS = HERE / "listings"   # executable versions of the paper's listings, ru
 IDENTIFYING = re.compile(
     r"bassiouny|bassioun|abdelrhman|ms-7d32|schierenbeck|tomsch|sorinar|sorin|\barion\b|beetz|bremen|aicor|vasantak|hoanggia"
     r"|\bnaren\b|\bgiang\b|cram2|github\.com|gitlab\.com|/home/|/tmp/claude|@[a-z0-9.-]+\.(de|com|org|net)\b"
-    r"|\bbass\b|\bcram\b|pycram|semantic_digital_twin|giskard|knowrob_|tom_sch|ec7c922b9f|eeeb2e48db|3308cb252f|3b994bb|b0b59087a6|ccf8367709",
+    r"|\bbass\b|\bcram\b|pycram|semantic_digital_twin|giskard|knowrob_|tom_sch|ec7c922b9f|eeeb2e48db|3308cb252f|20f6990f69|aa8e9299a3|67a666b1e2|aamas27-fast-translation|3b994bb|b0b59087a6|ccf8367709",
     re.IGNORECASE,
 )
 # Matches that are not identifying: generated person names of the OWL2Bench data (e.g. "Jamarion").
@@ -188,6 +188,8 @@ def main() -> None:
     parser.add_argument("--code-from", help="take code/ from this earlier bundle (zip or folder)")
     parser.add_argument("--experiments-from",
                         help="with --code-from: export code/earlier/experiments from HEAD of this clone instead")
+    parser.add_argument("--current-from", nargs=2, metavar=("REPOSITORY", "COMMIT"),
+                        help="with --code-from: export code/current from this clone of the current version at COMMIT")
     parser.add_argument("--draft", action="store_true",
                         help="allow TODO-AUTHORS markers (for the measured run; not for submission)")
     arguments = parser.parse_args()
@@ -205,6 +207,10 @@ def main() -> None:
             export(Path(arguments.experiments_from).resolve(), "HEAD", paths, bundle / destination)
             for excluded in EXCLUDE:
                 (bundle / excluded).unlink(missing_ok=True)
+        if arguments.current_from:
+            _, _, paths, destination, _ = next(s for s in SOURCES if s[3] == "code/current")
+            shutil.rmtree(bundle / destination)
+            export(Path(arguments.current_from[0]).resolve(), arguments.current_from[1], paths, bundle / destination)
     else:
         for repository, commit, paths, destination, _ in SOURCES:
             export(repository, commit, paths, bundle / destination)
@@ -219,8 +225,12 @@ def main() -> None:
     shutil.copytree(HERE / "tools", bundle / "tools", ignore=shutil.ignore_patterns("__pycache__", "*.rdf"))
     # The formalization of EQL: LaTeX source and the PDF compiled from it.
     (bundle / "formalization").mkdir()
-    for name in ("eql_formalization.tex", "eql_formalization.pdf"):
+    for name in ("eql_formalization.tex", "eql_formalization.pdf", "rl_rules_table.tex"):
         shutil.copy(HERE / "formalization" / name, bundle / "formalization" / name)
+    # The agent loop of Section 7.4 in detail: LaTeX source and the PDF compiled from it.
+    (bundle / "agent_loop").mkdir()
+    for name in ("agent_loop.tex", "agent_loop.pdf"):
+        shutil.copy(HERE / "agent_loop" / name, bundle / "agent_loop" / name)
     if arguments.results:
         copy_results(Path(arguments.results), bundle / "results")
         subprocess.run([sys.executable, str(HERE / "tools" / "query_size.py"),

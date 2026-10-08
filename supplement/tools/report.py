@@ -511,9 +511,10 @@ def ormatic_translation_table() -> Optional[Table]:
     caption = ("ORMatic's translation of the 18 queries with the current version of KRROOD "
                "(scripts/aamas27/ormatic_translation/run_ormatic_translation.py): the objects of the queries' part of "
                "the model, built from GraphDB's OWL 2 RL closure, stored in PostgreSQL; each query in the current EQL, "
-               "evaluated in working memory and, translated by eql_to_sql, in the database. \"Translated SQL\": median "
-               "time of the translated statement; \"Hand-written SQL\": the SQLAlchemy query of the paper's run, which "
-               "reads fewer tables (ormatic_translation.json).")
+               "evaluated in working memory and, translated by eql_to_sql with select_identifiers=True (the answers' "
+               "database ids; only the tables a query needs), in the database. \"Translated SQL\": median time of the "
+               "translated statement, which the paper's Table 3 reports; \"Hand-written SQL\": the SQLAlchemy query of "
+               "the main run, for comparison only (ormatic_translation.json).")
     return Table("ORMatic's translation of the 18 queries to SQL (paper, Section 6)", caption,
                  ["Query", "Translated", "= EQL", "= GraphDB", "Answers", "Translated SQL [ms]",
                   "Hand-written SQL [ms]"], rows, right=[4, 5, 6])
