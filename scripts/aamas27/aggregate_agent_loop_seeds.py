@@ -46,8 +46,8 @@ def main() -> None:
     summaries = {d: json.loads((d / "agent_loop.json").read_text()) for d in directories}
     variants = sorted({v for s in summaries.values() for v in s["variants"]})
     rng = random.Random(0)
-    result: Dict[str, Any] = {"seeds": {str(d): s["arguments"]["seed"] for d, s in summaries.items()},
-                              "steps_per_seed": {str(d): s["arguments"]["steps"] for d, s in summaries.items()},
+    result: Dict[str, Any] = {"seeds": {d.name: s["arguments"]["seed"] for d, s in summaries.items()},
+                              "steps_per_seed": {d.name: s["arguments"]["steps"] for d, s in summaries.items()},
                               "variants": {}}
     for variant in variants:
         runs = [d for d in directories if variant in summaries[d]["variants"]]
