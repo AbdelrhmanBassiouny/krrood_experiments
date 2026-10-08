@@ -311,7 +311,7 @@ baseline_closures() {
 agent_loop() {
     [[ "$MODE" == quick ]] && rm -rf "$RUN/agent_loop"
     python scripts/aamas27/run_agent_loop.py --variants "$1" --steps "$2" --seed 0 --results-dir "$RUN/agent_loop" \
-        --resume
+        --resume --keep-graphdb-repository
 }
 
 # More seeds of the agent loop (seed 0 is agent_loop above): VARIANTS. GraphDB's repository, loaded by the seed-0
@@ -324,7 +324,7 @@ agent_loop_seeds() {
         [[ -f "$RUN/agent_loop/graphdb_repository_state.json" ]] \
             && cp "$RUN/agent_loop/graphdb_repository_state.json" "$folder/"
         python scripts/aamas27/run_agent_loop.py --variants "$1" --steps 200 --seed "$seed" --results-dir "$folder" \
-            --resume
+            --resume --keep-graphdb-repository
         seeds+=("$folder")
     done
     python scripts/aamas27/aggregate_agent_loop_seeds.py "$RUN/agent_loop/agent_loop_seeds.json" "${seeds[@]}"
