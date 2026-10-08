@@ -24,8 +24,11 @@ The translation selects identifiers by default (``--selection identifiers``): ``
 ``select_identifiers=True``, so that every selected variable and flattened element is returned as its database id, the
 identity of the answer, as most hand-written queries return the id columns of an association table. The tables of a
 variable are then joined only where a column of them is read or the class of the variable must be restricted; mapping
-the ids to IRIs for the comparison is not timed. With ``--selection objects`` the translation selects data access
-objects, as in the first run, and relationships are loaded lazily, as in the interface of the experiments (see
+the ids to IRIs for the comparison is not timed. With ``--selection iris`` the translation selects the IRI of every
+selected variable and flattened element instead (``eql_to_sql(..., select_identifiers=True,
+identifying_attribute="uri")``), read from the ``uri`` column of ``ThingDAO``, the one table that declares it, so that
+the returned IRIs are compared with GraphDB's and EQL's answers directly, without mapping ids. With
+``--selection objects`` the translation selects data access objects, as in the first run, and relationships are loaded lazily, as in the interface of the experiments (see
 ``lazy_translation``).
 
 The database is rebuilt on every run unless ``--reuse-database`` is given, which keeps the tables of an earlier run with
@@ -35,7 +38,7 @@ Usage (current KRROOD environment; psycopg2 for PostgreSQL)::
 
     python run_ormatic_translation.py --reasoned-file owl2bench_statements_reasoned.rdf \
         --reference-answers results/run/check/answers/graphdb --database-uri postgresql+psycopg2://... \
-        --output-dir results/aamas27/ormatic_translation-20261008 [--selection identifiers|objects] \
+        --output-dir results/aamas27/ormatic_translation-20261008 [--selection identifiers|iris|objects] \
         [--reuse-database] [--queries 2,3]
 """
 
@@ -465,6 +468,21 @@ class AnswerNormalizer:
             self.iri_by_database_id[database_id] = self.iri_of_object(dao)
         return self.iri_by_database_id[database_id]
 
+    @staticmethod
+    def row_of_iris(result: Any, selected: List[Any]) -> Tuple[str, ...]:
+        """
+        :param result: One result of a translated query that selects IRIs: an IRI, or a mapping from variables to
+            IRIs and values.
+        :param selected: The selected variables.
+        :return: The answer tuple as returned, without mapping anything.
+        :raises TypeError: When a value is a database id, which this selection must not return.
+        """
+        values = [result] if len(selected) == 1 and not hasattr(result, "keys") else [result[v] for v in selected]
+        for value in values:
+            if isinstance(value, int) and not isinstance(value, bool):
+                raise TypeError(f"the translation returned the database id {value} instead of an IRI")
+        return tuple(str(value) for value in values)
+
     def row(self, result: Any, selected: List[Any], from_database: bool) -> Tuple[str, ...]:
         """
         :param result: One result of a query: an object, or a mapping from variables to values.
@@ -541,10 +559,14 @@ def paper_sql_medians(path: Optional[Path]) -> Dict[int, float]:
     return {int(k): median_without_first(v["times_ms"]) for k, v in data["queries"].items() if v.get("times_ms")}
 
 
-SELECTIONS = ("identifiers", "objects")
+SELECTIONS = ("identifiers", "iris", "objects")
 """
-What the translation selects: database ids (``eql_to_sql(..., select_identifiers=True)``) or data access objects.
+What the translation selects: database ids (``eql_to_sql(..., select_identifiers=True)``), IRIs
+(``eql_to_sql(..., select_identifiers=True, identifying_attribute="uri")``) or data access objects.
 """
+
+IDENTIFYING_ATTRIBUTE = "uri"
+"""The attribute of the model that holds the IRI of an individual, declared by Thing (the column of ThingDAO)."""
 
 
 def lazy_translation(query: Any, session: Session, selection: str) -> Any:
@@ -556,10 +578,11 @@ def lazy_translation(query: Any, session: Session, selection: str) -> Any:
 
     :param query: An EQL query.
     :param session: The session of the database.
-    :param selection: ``identifiers`` or ``objects``.
+    :param selection: ``identifiers``, ``iris`` or ``objects``.
     :return: The translator.
     """
-    translator = eql_to_sql(query, session, select_identifiers=selection == "identifiers")
+    translator = eql_to_sql(query, session, select_identifiers=selection != "objects",
+                            identifying_attribute=IDENTIFYING_ATTRIBUTE if selection == "iris" else None)
     if selection == "objects":
         translator.sql_query = translator.sql_query.options(lazyload("*"))
     return translator
@@ -590,7 +613,8 @@ def run_query(benchmark: BenchmarkQuery, session: Session, normalizer: AnswerNor
     try:
         session.expunge_all()
         first_ms, results = timed(lambda: list(lazy_translation(benchmark.query, session, selection).evaluate()))
-        database = {normalizer.row(r, benchmark.selected, True) for r in results}
+        database = {normalizer.row_of_iris(r, benchmark.selected) if selection == "iris"
+                    else normalizer.row(r, benchmark.selected, True) for r in results}
         record["raw_rows"] = len(results)
         del results
     except Exception as error:
@@ -667,7 +691,7 @@ def main() -> None:
     parser.add_argument("--repetitions", type=int, default=10)
     parser.add_argument("--queries", default=None, help="comma separated query numbers (default: all 18)")
     parser.add_argument("--selection", choices=SELECTIONS, default="identifiers",
-                        help="select database ids (default) or data access objects")
+                        help="select database ids (default), IRIs or data access objects")
     parser.add_argument("--translator-commit", default=None,
                         help="the commit of the KRROOD version whose translator is used, recorded in the report")
     parser.add_argument("--reuse-database", action="store_true",
@@ -714,9 +738,14 @@ def main() -> None:
         "read_seconds": read_ms / 1000, "build_seconds": build_ms / 1000, "persist": persist_seconds,
         "repetitions": arguments.repetitions,
         "selection": arguments.selection,
-        "timing": ("selection of database ids (eql_to_sql(query, session, select_identifiers=True)); ids are mapped "
-                   "to IRIs outside the timing; " if arguments.selection == "identifiers" else
-                   "relationships loaded lazily (lazyload('*')), as in the interface of the query experiment; ") +
+        "identifying_attribute": IDENTIFYING_ATTRIBUTE if arguments.selection == "iris" else None,
+        "timing": {"identifiers": "selection of database ids (eql_to_sql(query, session, select_identifiers=True)); "
+                              "ids are mapped to IRIs outside the timing; ",
+                   "iris": "selection of IRIs (eql_to_sql(query, session, select_identifiers=True, "
+                           f"identifying_attribute='{IDENTIFYING_ATTRIBUTE}')); the returned IRIs are compared directly, "
+                           "without mapping; ",
+                   "objects": "relationships loaded lazily (lazyload('*')), as in the interface of the query "
+                              "experiment; "}[arguments.selection] +
                   "execute: session.execute(translated statement).all() after expunge_all, as the hand-written "
                   "SQLAlchemy queries are measured; evaluate: eql_to_sql(query).evaluate() including translation; "
                   "medians without the first run",
