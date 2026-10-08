@@ -1,7 +1,7 @@
 """
 Optional ablation: KRROOD loading of the raw OWL2Bench data WITHOUT the weakly-connected-components post-processing
 of symmetric-transitive properties (hasSameHomeTownWith). Relations of such properties are closed eagerly, one
-relation at a time, as before the optimisation (krrood commit 3b72ec1001, 2026-01-14). The measurement runs in a fresh
+relation at a time, as before the optimisation (KRROOD of 14 January 2026). The measurement runs in a fresh
 process with a wall-clock cap (default 2 h); a run that hits the cap is reported as ``timeout`` with the cap as lower
 bound.
 
