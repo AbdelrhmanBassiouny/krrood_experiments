@@ -459,7 +459,9 @@ def agent_loop_seeds_table() -> Optional[Table]:
                "all seeds, a 95% bootstrap interval of the median step (seeds resampled, then steps), the range of the "
                "seeds' medians, the median update and query phases, round trips and statements written to another store "
                "per step, boundary lines (synchronization/mapping/procedure integration), and the steps in which the "
-               "variant took KRROOD's action.")
+               "variant took KRROOD's action. Statements written and synchronization lines follow from EQL's "
+               "semantics (one world model), round trips from the implementation (one process); the paper's Table 4 "
+               "groups its rows this way.")
     return Table("Agent loop over five seeds (paper, Table 4)", caption,
                  ["Variant", "Seeds", "Steps", "Step [ms]", "95% interval", "Seed medians", "Update [ms]", "Query [ms]",
                   "Round trips", "Written", "Boundary lines", "Same action"], rows, right=[2, 3, 4, 5, 6, 7, 8, 9])

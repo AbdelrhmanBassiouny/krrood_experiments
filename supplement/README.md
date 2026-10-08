@@ -166,10 +166,13 @@ With a GraphDB license, `full`:
 * **further seeds of the agent loop** (seeds 1-4, the same variants but reasonable; about 2 h), combined with
   seed 0 into `agent_loop/agent_loop_seeds.json` (`scripts/aamas27/aggregate_agent_loop_seeds.py`): medians over all
   steps of all seeds, a 95% bootstrap interval, the seeds' medians, round trips and statements written per step,
-  boundary lines per category, and agreement with KRROOD. The paper's Table 4 adds, from the code, the languages the
-  developer writes (KRROOD: Python; GraphDB: Python and SPARQL), the processes that hold the robot's knowledge
-  (GraphDB is a Java server reached over HTTP), the world models (the objects, and for GraphDB its store) and where
-  the planner runs (inside the query, on the answers, or before the query with its results written into the store);
+  boundary lines per category, and agreement with KRROOD. The paper's Table 4 adds, from the code, the world models (the objects, and for GraphDB its store), where the
+  planner runs (inside the query, on the answers, or before the query with its results written into the store), the
+  languages the developer writes (KRROOD: Python; GraphDB: Python and SPARQL) and the processes that hold the robot's
+  knowledge (GraphDB is a Java server reached over HTTP). It groups its rows by what they follow from: world models,
+  the planner's place, writes to another store and synchronization lines from EQL's semantics; languages, processes,
+  round trips, the other boundary lines and the step time from the implementation (see "What is unified, and what
+  runs underneath");
 * **the runtime audit** (Section 7.1; about 20 min, no license needed): KRROOD's agent loop runs unchanged for 200
   steps of seeds 0-4, and after 0, 10, 50, 100 and 200 steps the live knowledge base is compared with Nemo's OWL 2 RL
   closure of the raw data and the facts perceived so far, normalised as in the comparison with GraphDB's closure
@@ -265,6 +268,30 @@ To start over, delete `state/`.
 | A step is killed, or `status: memory_limit` / `failed` with return code -9 in `loading.json` | Not enough memory: lower `GRAPHDB_HEAP`, or raise Docker Desktop's memory limit. A baseline that runs out of memory within the limits is itself a result, recorded as such. |
 | `FAILED: the code in the image does not match its BUNDLE id`, or `docker run --rm krrood-aamas27 fingerprint` prints another id than `cat environment/BUNDLE` | Docker built the image partly from files of an earlier version of this bundle: all files in the zip have the same time, so Docker takes a changed file of the same size for unchanged. Unzip with `-DD` (files get the current time), or run `docker builder prune -af`; then `docker compose build` again. |
 | `state/` belongs to root | Create `state/` yourself before the first run (`mkdir -p state`), or `sudo chown -R $USER state`. |
+
+## What is unified, and what runs underneath
+
+The paper's claim is about the representation and its semantics: the agent's classes and objects are the knowledge
+base, EQL's queries are evaluated over these objects (the interpretation of Section 4), and the robot's procedures
+are predicates of the queries. It is not a claim that everything runs in Python. In the KRROOD version of these
+experiments (`code/earlier/krrood`):
+
+* the property rules (descriptors), EQL's evaluation and Ontomatic's loading are Python code; RDFLib parses the input;
+* every object and the relations between objects are also kept, as references to the same Python objects, in a
+  graph of rustworkx (a Rust library with Python bindings), which the program never handles itself;
+* step 5 of Algorithm 1 finds the cliques of symmetric, transitive properties as the weakly connected components of
+  that graph, with rustworkx (`add_inferences_from_transitive_symmetric_relations` in
+  `ontomatic/ontology_to_python/owl_instances_loader.py`). Step 5 is what keeps loading fast on OWL2Bench (the paper's
+  ablation, "KRROOD without step 5"); connected components take linear time in any language, but we did not measure
+  a Python implementation of this step;
+* ORMatic's long-term memory is PostgreSQL, reached through SQLAlchemy; EQL queries reach it through a translation
+  to SQL, which the developer calls explicitly (`eql_to_sql`), which rejects what it cannot translate and whose
+  answers are compared with EQL's and GraphDB's.
+
+None of these is a second representation that the program keeps in sync: the graph holds references to the
+program's objects and is maintained by KRROOD, and the database holds what the agent stores. This is the line that
+Table 4 of the paper draws: one world model, the planner inside the query and no writes to another store follow from
+the semantics; one language and one process could also come from a wrapper or an embedded store.
 
 ## Contents
 
