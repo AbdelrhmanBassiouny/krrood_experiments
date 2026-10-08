@@ -234,6 +234,9 @@ def main() -> int:
                         help="keep every variant already in the summary of --results-dir and run only the missing "
                              "ones of --variants; in a new results directory, keep a GraphDB state file copied "
                              "into it, so that the GraphDB variants reuse the loaded repository")
+    parser.add_argument("--keep-graphdb-repository", action="store_true",
+                        help="do not delete GraphDB's repository at the end, so that a later run with --resume and "
+                             "a copy of the state file reuses it")
     arguments = parser.parse_args()
 
     variants = [v for v in arguments.variants.split(",") if v]
@@ -294,7 +297,7 @@ def main() -> int:
                 )
             write_json(summary_file, summary)
     finally:
-        if any(v in GRAPHDB_VARIANTS for v in variants):
+        if any(v in GRAPHDB_VARIANTS for v in variants) and not arguments.keep_graphdb_repository:
             client = GraphDBClient(arguments.graphdb_url) if arguments.graphdb_url else GraphDBClient()
             if REPOSITORY in client.repository_ids():
                 client.delete_repository(REPOSITORY)
