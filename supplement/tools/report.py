@@ -296,7 +296,7 @@ def loading_table() -> Optional[Table]:
                "Core i7-13700 with 64 GB RAM. ")
     caption += ("Protégé was run by hand, once per input (protege/README.txt)." if OWN else
                 "Protégé was run by hand in the paper and is not run here.")
-    table = Table("Loading and reasoning (paper, Table 2)", caption,
+    table = Table("Loading and reasoning (paper, Table 1)", caption,
                   ["System", "Input", "Time [s]", "Paper", "Memory", "Paper"], rows, right=[2, 3, 4, 5])
     return table.without([3, 5]) if OWN else table
 
@@ -317,6 +317,50 @@ def query_means(summary: Optional[Dict[str, Any]]) -> Dict[str, Dict[str, float]
     return means
 
 
+QUERY_TABLE_SYSTEMS = [("eql", "EQL"), ("translated", "SQL translated from EQL"), ("graphdb", "GraphDB"),
+                       ("rdflib", "RDFLib"), ("owlready2", "Owlready2"), ("sqlalchemy", "SQL, hand-written")]
+"""The columns of the per-query times: the systems of the paper's Table 3 in its order, then the hand-written
+SQLAlchemy queries, which the paper's Table 3 replaces by the translated SQL. Protégé follows when it was timed."""
+PROTEGE_LABEL = "Protégé (by hand, once)"
+TABLE_3_SYSTEMS = ("eql", "translated", "graphdb", "rdflib", "owlready2")
+"""The systems among which the paper's Table 3 counts the queries on which each is fastest."""
+
+
+def translated_means(folder: Path) -> Dict[str, float]:
+    """
+    :return: Per query, the median time of the statement that ORMatic translated from EQL (ormatic_translation.json of
+     a separate run, over a database holding the part of the model that the queries use).
+    """
+    record = load(folder / "ormatic_translation" / "ormatic_translation.json") or {}
+    return {str(q["query"]): q["execute_median_ms"] for q in record.get("queries", [])
+            if q.get("execute_median_ms") is not None}
+
+
+def protege_times(folder: Path) -> Dict[str, Any]:
+    """
+    :return: Per query, Protégé's time in ms from its one session by hand (protege.json), or its status when it did not
+     complete the query.
+    """
+    queries = (load(folder / "protege.json") or {}).get("queries", {})
+    return {number: entry["mean_ms"] if entry.get("mean_ms") is not None else entry.get("status", "–")
+            for number, entry in queries.items()}
+
+
+def fastest_counts(times: Dict[str, Dict[str, float]], numbers: List[str], listed: List[str]) -> Dict[str, int]:
+    """
+    :return: Per system of the paper's Table 3 that is listed and has times, the number of the given queries on which
+     it is the fastest of these systems.
+    """
+    systems = [key for key in TABLE_3_SYSTEMS if key in times and key in listed]
+    if len(systems) < 2:
+        return {}
+    counts = {key: 0 for key in systems}
+    for number in numbers:
+        if all(number in times[key] for key in systems):
+            counts[min(systems, key=lambda key: times[key][number])] += 1
+    return counts
+
+
 def query_table() -> Optional[Table]:
     summary = load(RUN / "queries" / "queries.json")
     repetitions_note = ""
@@ -327,28 +371,56 @@ def query_table() -> Optional[Table]:
     if summary is None:
         return None
     this, paper = query_means(summary), query_means(load(PAPER / "queries" / "queries.json"))
-    present = [(key, label) for key, label in QUERY_FRAMEWORKS if key in this]
+    for times, folder in ((this, RUN), (paper, PAPER)):
+        if translated_means(folder):
+            times["translated"] = translated_means(folder)
+    protege = protege_times(RUN)
+    timed = [(key, label) for key, label in QUERY_TABLE_SYSTEMS if key in this]
+    present = timed + ([("protege", PROTEGE_LABEL)] if protege else [])
     counts = (load(RUN / "check" / "answer_check.json") or load(RUN / "reference_check" / "answer_check.json")
               or {"queries": {}})["queries"]
-    numbers = sorted({n for values in this.values() for n in values}, key=int)
+    numbers = sorted({n for key, _ in timed for n in this[key]}, key=int)
+
+    def cell(key: str, number: str) -> str:
+        if key == "protege":
+            value = protege.get(number, "–")
+            return milliseconds(value) if isinstance(value, (int, float)) else str(value)
+        return milliseconds(this[key][number]) if number in this[key] else "–"
+
     rows = []
     for number in numbers:
         reference = next((c["reference"] for c in counts.get(number, {}).values() if "reference" in c), None)
-        cells = [milliseconds(this[key][number]) if number in this[key] else "–" for key, _ in present]
-        rows.append([f"Q{number}", f"{reference:,}" if reference is not None else "–", *cells])
-    common = [n for n in numbers if all(n in this[key] and n in paper.get(key, {}) for key, _ in present)]
+        rows.append([f"Q{number}", f"{reference:,}" if reference is not None else "–",
+                     *[cell(key, number) for key, _ in present]])
+    common = [n for n in numbers if all(n in this[key] and n in paper.get(key, {}) for key, _ in timed)]
     geometric = lambda values: math.exp(statistics.mean(math.log(max(v, 1e-6)) for v in values)) if values else None
     for label, source in (("Geom. mean", this),) + ((("Geom. mean, paper", paper),) if not OWN else ()):
-        values = [geometric([source[key][n] for n in common]) if key in source else None for key, _ in present]
+        values = [geometric([source[key][n] for n in common]) if key in source and key != "protege" else None
+                  for key, _ in present]
         rows.append([label, "", *[milliseconds(v) if v is not None else "–" for v in values]])
-    caption = (f"Query times in milliseconds on the loaded data (median over the repetitions of this run without the first, "
-               f"which includes warm-up): EQL over "
-               f"the objects in working memory, SQL (SQLAlchemy) over the objects that ORMatic persisted in "
-               f"PostgreSQL, the others over their own stores. \"Answers\" is the number of GraphDB's answers. The "
-               f"geometric means are over the {len(common)} queries that every listed system completed, in this "
-               f"run{'' if OWN else ' and in the paper' + chr(39) + 's run'}.{repetitions_note}")
-    return Table("Query times (paper, Table 3, which summarizes them)", caption, ["Query", "Answers", *[l for _, l in present]], rows,
-                 right=list(range(1, 2 + len(present))))
+    for label, source in (("Fastest on", this),) + ((("Fastest on, paper", paper),) if not OWN else ()):
+        fastest = fastest_counts(source, common, [key for key, _ in timed])
+        if fastest:
+            rows.append([label, "", *[str(fastest[key]) if key in fastest else "" for key, _ in present]])
+    translated = ("SQL translated from EQL by ORMatic (eql_to_sql, selecting the answers' IRIs), measured in a separate "
+                  "run over a database holding only the classes and properties that the queries use "
+                  "(ormatic_translation/, the table of ORMatic's translation below); " if "translated" in this else "")
+    caption = (f"Query times in milliseconds on the loaded data (median over the repetitions of this run without the "
+               f"first, which includes warm-up): EQL over the objects in working memory; {translated}GraphDB, RDFLib "
+               f"and Owlready2 over their own stores; the hand-written SQLAlchemy queries over the objects that "
+               f"ORMatic persisted in PostgreSQL, which the paper's Table 3 replaces by the translated SQL. "
+               f"\"Answers\" is the number of GraphDB's answers. The geometric means are over the {len(common)} "
+               f"queries that every listed system{' but Protégé' if protege else ''} completed, in this run"
+               f"{'' if OWN else ' and in the paper' + chr(39) + 's run'}. \"Fastest on\" counts the queries on which "
+               f"each listed system of the paper's Table 3 (EQL, the translated SQL, GraphDB, RDFLib and Owlready2) is "
+               f"the fastest of those listed. ")
+    caption += ("Protégé was timed by hand, once per query (Snap SPARQL with Pellet, 60 s limit; protege.json, "
+                "protege/README.txt): it raised an error on Q9 and did not finish Q20 within the limit, so it has no "
+                "geometric mean, and the paper's Table 3 leaves it out." if protege else
+                "Protégé is timed by hand (README.md) and is not run here.")
+    caption += repetitions_note
+    return Table("Query times (paper, Table 3, which summarizes them)", caption,
+                 ["Query", "Answers", *[l for _, l in present]], rows, right=list(range(1, 2 + len(present))))
 
 
 # --- Ablation ----------------------------------------------------------------------------------------------------
@@ -375,7 +447,7 @@ def scaling_table() -> Optional[Table]:
                "a home town, linked in a chain: load time, attempts to add a fact, facts (n², everyone with everyone) "
                "and whether the closure is complete. The attempts grow about 8-fold per doubling of n, i.e. cubically; "
                "OWL2Bench's largest such group has 1,145 persons, which explains why the ablation does not finish "
-               "within two hours on the benchmark (Table 2).")
+               "within two hours on the benchmark (paper, Section 7.2).")
     table = Table("Why the ablation does not finish: eager chaining on small data", caption,
                   ["n", "Time [s]", "Attempts", "Facts", "Complete", "Time, paper", "Attempts, paper"], rows,
                   right=[0, 1, 2, 3, 5, 6])
@@ -419,7 +491,8 @@ def agent_loop_table() -> Optional[Table]:
                "percentile. \"Update\": asserting the perceived facts, with KRROOD's and GraphDB's inference; "
                "\"reasoning / push\": reasonable's materialization, Nemo's run from the raw data, or GraphDB (push) writing the planner's results "
                "into the store. \"Written\": statements inserted plus deleted per step; \"boundary code\": lines of code "
-               "that only synchronize, map identifiers to objects or connect the planner to the queries. The other "
+               "that only synchronize, map identifiers to objects or connect the planner to the queries (the paper's "
+               "Table 4 reports only the synchronization lines; next table). The other "
                "variants carry out KRROOD's actions; \"agrees\" compares their own decisions and candidates with "
                "KRROOD's. reasonable 0.4.4 derives no property chains, so it finds no member of a college and no "
                "handout candidate. Nemo has no incremental mode and is re-run every step. Removals are not perceived, as KRROOD does not retract inferred facts.")
@@ -461,7 +534,9 @@ def agent_loop_seeds_table() -> Optional[Table]:
                "per step, boundary lines (synchronization/mapping/procedure integration), and the steps in which the "
                "variant took KRROOD's action. Statements written and synchronization lines follow from EQL's "
                "semantics (one world model), round trips from the implementation (one process); the paper's Table 4 "
-               "groups its rows this way.")
+               "groups its rows this way. Of the boundary lines, the paper's Table 4 reports only the synchronization "
+               "lines: the mapping lines follow from the simulated perceptions, which arrive as IRIs in every build, "
+               "and the procedure lines from wrapping the planner, not from the number of world models.")
     return Table("Agent loop over five seeds (paper, Table 4)", caption,
                  ["Variant", "Seeds", "Steps", "Step [ms]", "95% interval", "Seed medians", "Update [ms]", "Query [ms]",
                   "Round trips", "Written", "Boundary lines", "Same action"], rows, right=[2, 3, 4, 5, 6, 7, 8, 9])
@@ -499,6 +574,7 @@ def ormatic_translation_table() -> Optional[Table]:
     record = load(RUN / "ormatic_translation" / "ormatic_translation.json")
     if not record:
         return None
+    hand_written = record.get("paper_sqlalchemy_median_ms") or {}
     rows = []
     for query in record["queries"]:
         rows.append([f"Q{query['query']}", "yes" if query["translated"] else "no",
@@ -506,18 +582,38 @@ def ormatic_translation_table() -> Optional[Table]:
                      "yes" if query.get("equal_to_graphdb", {}).get("equal") else "no",
                      f"{query.get('translation_answers', 0):,}",
                      milliseconds(query["execute_median_ms"]) if query.get("execute_median_ms") is not None else "–",
-                     milliseconds(record["paper_sqlalchemy_median_ms"][str(query["query"])])
-                     if record.get("paper_sqlalchemy_median_ms") else "–"])
+                     milliseconds(query["evaluate_median_ms"]) if query.get("evaluate_median_ms") is not None else "–",
+                     milliseconds(hand_written[str(query["query"])]) if str(query["query"]) in hand_written else "–"])
+    timed = [q for q in record["queries"] if q.get("execute_median_ms") is not None]
+    if timed and len(timed) == len(record["queries"]):
+        geometric = lambda values: math.exp(statistics.mean(math.log(max(v, 1e-6)) for v in values))
+        rows.append(["Geom. mean", "", "", "", "", milliseconds(geometric([q["execute_median_ms"] for q in timed])), "",
+                     milliseconds(geometric([hand_written[str(q["query"])] for q in timed]))
+                     if all(str(q["query"]) in hand_written for q in timed) else "–"])
+    selection = record.get("selection", "identifiers")
+    selected = {
+        "iris": "eql_to_sql(query, session, select_identifiers=True, identifying_attribute="
+                f"\"{record.get('identifying_attribute') or 'uri'}\"), which returns the answers' IRIs, read from the one "
+                "table that declares them, and joins only the tables a query needs; the IRIs are compared with "
+                "GraphDB's and EQL's answers directly",
+        "identifiers": "eql_to_sql(query, session, select_identifiers=True), which returns the answers' database ids "
+                       "and joins only the tables a query needs; the ids are mapped to IRIs for the comparison, "
+                       "outside the timing",
+        "objects": "eql_to_sql(query, session), which returns data access objects",
+    }.get(selection, selection)
+    summary, total = record.get("summary", {}), len(record["queries"])
     caption = ("ORMatic's translation of the 18 queries with the current version of KRROOD "
-               "(scripts/aamas27/ormatic_translation/run_ormatic_translation.py): the objects of the queries' part of "
-               "the model, built from GraphDB's OWL 2 RL closure, stored in PostgreSQL; each query in the current EQL, "
-               "evaluated in working memory and, translated by eql_to_sql with select_identifiers=True (the answers' "
-               "database ids; only the tables a query needs), in the database. \"Translated SQL\": median time of the "
-               "translated statement, which the paper's Table 3 reports; \"Hand-written SQL\": the SQLAlchemy query of "
-               "the main run, for comparison only (ormatic_translation.json).")
-    return Table("ORMatic's translation of the 18 queries to SQL (paper, Section 6)", caption,
-                 ["Query", "Translated", "= EQL", "= GraphDB", "Answers", "Translated SQL [ms]",
-                  "Hand-written SQL [ms]"], rows, right=[4, 5, 6])
+               "(scripts/aamas27/ormatic_translation/run_ormatic_translation.py, ormatic_translation.json): the objects "
+               "of the queries' part of the model, built from GraphDB's OWL 2 RL closure, stored in PostgreSQL; each "
+               f"query in the current EQL, evaluated in working memory and in the database, translated by {selected}. "
+               "\"Translated SQL\": median time of the translated statement (session.execute(statement).all()), which "
+               "the paper's Table 3 reports; \"evaluate\": eql_to_sql(...).evaluate(), translation included; "
+               "\"Hand-written SQL\": the SQLAlchemy query of the main run, for comparison only. Translated: "
+               f"{summary.get('translated', '–')}/{total}; equal to EQL: {summary.get('equal_to_eql', '–')}/{total}; "
+               f"equal to GraphDB: {summary.get('equal_to_graphdb', '–')}/{total}.")
+    return Table("ORMatic's translation of the 18 queries to SQL (paper, Section 6 and Table 3)", caption,
+                 ["Query", "Translated", "= EQL", "= GraphDB", "Answers", "Translated SQL [ms]", "evaluate [ms]",
+                  "Hand-written SQL [ms]"], rows, right=[4, 5, 6, 7])
 
 
 def owlready2_heap_table() -> Optional[Table]:
@@ -533,8 +629,8 @@ def owlready2_heap_table() -> Optional[Table]:
                      seconds(result["load_and_reasoning_seconds"]) if "load_and_reasoning_seconds" in result else "–",
                      memory(run["peak_rss_mib"] - base), str(result.get("java_memory_mb", "–"))])
     caption = ("Owlready2 with Pellet on the pre-reasoned data with a Java heap of 22 GB, 1 run "
-               "(owlready2_heap/loading.json); with its default heap of 2 GB, Pellet fails (Table 2).")
-    return Table("Owlready2 with a larger Java heap (paper, Table 2)", caption,
+               "(owlready2_heap/loading.json); with its default heap of 2 GB, Pellet fails (Table 1).")
+    return Table("Owlready2 with a larger Java heap (paper, Table 1)", caption,
                  ["Input", "Status", "Time [s]", "Memory", "Java heap [MB]"], rows, right=[2, 3, 4])
 
 
@@ -563,9 +659,9 @@ def scaling_experiment_table() -> Optional[Table]:
                "3 runs, or 1 for GraphDB / memory increase), generated by OWL2Bench's generator and changed as the "
                "paper's raw file (scripts/aamas27/derive_scaled_owl2bench.py). \"Closure\": triples of Nemo's OWL 2 RL "
                "closure; \"Missing / extra\": KRROOD's knowledge base compared with it, assertion by assertion "
-               "(krrood_experiments.aamas27.scaling_audit). GraphDB's one university is that of Table 2 "
+               "(krrood_experiments.aamas27.scaling_audit). GraphDB's one university is that of Table 1 "
                "(scaling/scaling.json).")
-    return Table("Scaling with the number of universities (supplement; paper, Section 7)", caption,
+    return Table("Scaling with the number of universities (paper, Table 2)", caption,
                  ["Universities", "Raw statements", "Closure", "Missing / extra", "KRROOD", "Nemo", "reasonable",
                   "GraphDB"], rows, right=[1, 2, 3])
 

@@ -130,7 +130,7 @@ The experiment asks two questions.
 \begin{enumerate}
   \item Can such an agent decide with \emph{one} world model, in which perception updates the knowledge, the OWL~2~RL
         consequences follow, and the decision query calls the planner directly?
-  \item What does a \emph{second} world model cost: in code that synchronizes and maps the two representations, in
+  \item What does a \emph{second} world model cost: in code that synchronizes the two representations, in
         statements written per step, in requests to another process, and in time per step?
 \end{enumerate}
 
@@ -154,8 +154,8 @@ application data), \code{perceive} (bring the knowledge up to date with the step
 \code{handout\_candidates} and \code{ticket\_candidates} (answer the two decisions). Each build runs in a fresh Python
 interpreter (\file{worker.py}), so builds share no memory, caches or symbol graph.
 
-The paper's Table~4 compares three builds: KRROOD, GraphDB, and GraphDB with pushed planner results. The paper's text
-also reports Nemo and reasonable. A sixth build, \code{krrood\_navigation}, is KRROOD with a different handout query
+The paper's Table~4 compares four builds: KRROOD, GraphDB, GraphDB with pushed planner results, and Nemo. The paper's
+text also reports reasonable. A sixth build, \code{krrood\_navigation}, is KRROOD with a different handout query
 (Section~\ref{sec:krrood}).
 
 % =====================================================================
@@ -266,10 +266,11 @@ second process (the GraphDB server, the Nemo process) or, for reasonable, the na
 for KRROOD it is empty. A node sits in the lane where its work runs. Red arrows cross a process boundary.
 \tikz[baseline=-0.6ex]\node[rt]{R}; marks a request to a server (a round trip),
 \tikz[baseline=-0.6ex]\node[wr]{W}; statements written to the second world model.
-Badges mark code that is counted in Table~4:
-\tikz[baseline=-0.6ex]\node[badge=tagS]{S}; synchronization,
-\tikz[baseline=-0.6ex]\node[badge=tagM]{M}; mapping,
-\tikz[baseline=-0.6ex]\node[badge=tagP]{P}; procedure integration (Section~\ref{sec:measure}).
+Badges mark the code that the line count attributes (Section~\ref{sec:lines}):
+\tikz[baseline=-0.6ex]\node[badge=tagS]{S}; synchronization, which Table~4 reports,
+\tikz[baseline=-0.6ex]\node[badge=tagM]{M}; mapping and
+\tikz[baseline=-0.6ex]\node[badge=tagP]{P}; procedure integration, which are counted in the results but not reported
+in Table~4.
 Column headers name the phases of the step; a red header marks a phase that runs out of the usual order.
 
 % ---------------------------------------------------------------------
@@ -752,7 +753,7 @@ world model, so the table reports 0. Its meter does count its descriptor assignm
 are the update itself, not a copy of it.
 
 \paragraph{Synchronization lines.} Lines of code that exist only to write the application's facts into the second
-representation. See the line count below.
+representation, counted as in Section~\ref{sec:lines}.
 
 \subsection{Rows from the implementation}
 
@@ -769,8 +770,30 @@ GraphDB (one update, two queries) and 4 for push (two updates, two queries). KRR
 requests; Nemo's process start and reasonable's two library calls per step are counted separately as
 \code{reasoner\_calls} (1 and 2).
 
-\paragraph{Mapping and procedure lines.} Lines of code that translate between the application's objects and another
-representation (mapping), and lines that make the robot's procedures usable in a decision (procedure integration).
+\paragraph{Step [ms].} The wall time of a step, from \code{StepMeter} (\file{measurement.py}). The loop
+(\file{loop.py}, \code{run\_agent\_loop}) times every part of a step as a phase with \code{time.perf\_counter}:
+\begin{itemize}
+  \item \code{mapping}: translating between the objects and another representation;
+  \item \code{update}: writing the perceived facts, including the inference that happens on insertion (descriptor
+        chaining in KRROOD, GraphDB's incremental materialization inside the update request);
+  \item \code{reasoning}: a separate materialization call (Nemo's run, reasonable's \code{reason()});
+  \item \code{push}: writing the planner's results into the store (push only);
+  \item \code{query}: evaluating the decision queries, without the time inside the procedures;
+  \item \code{procedures}: the time inside \code{can\_reach} and \code{travel\_seconds}, wherever they are called
+        from. The \code{ProcedureMeter} times every call, and the enclosing phase's time is reduced by it;
+  \item \code{decide} and \code{act}: the shared policy and the robot's motion.
+\end{itemize}
+The step time is the sum of the phases. It excludes setup (loading and materializing the closure) and the bookkeeping of
+the experiment (the digest of the candidates). The table reports the median over the 1,000 steps of the five seeds and,
+in parentheses, the range of the five seeds' medians; the results file also holds a 95\% bootstrap interval of the
+median and the 95th percentile (\file{agent\_loop\_seeds.json}).
+
+\paragraph{Agreement.} Not a row, but the precondition for comparing the rows. For every step, the build's own action
+and its candidate sets (sorted, de-duplicated, driving times rounded to microseconds, hashed) are compared with the
+reference's.
+
+\subsection{The line count}
+\label{sec:lines}
 
 \paragraph{The line count.} Code is attributed by marking functions with the decorator
 \code{@boundary(category)} of \file{measurement.py}. There are three categories:
@@ -820,27 +843,14 @@ which every build has.
 \end{tabular}
 \end{table}
 
-\paragraph{Step [ms].} The wall time of a step, from \code{StepMeter} (\file{measurement.py}). The loop
-(\file{loop.py}, \code{run\_agent\_loop}) times every part of a step as a phase with \code{time.perf\_counter}:
-\begin{itemize}
-  \item \code{mapping}: translating between the objects and another representation;
-  \item \code{update}: writing the perceived facts, including the inference that happens on insertion (descriptor
-        chaining in KRROOD, GraphDB's incremental materialization inside the update request);
-  \item \code{reasoning}: a separate materialization call (Nemo's run, reasonable's \code{reason()});
-  \item \code{push}: writing the planner's results into the store (push only);
-  \item \code{query}: evaluating the decision queries, without the time inside the procedures;
-  \item \code{procedures}: the time inside \code{can\_reach} and \code{travel\_seconds}, wherever they are called
-        from. The \code{ProcedureMeter} times every call, and the enclosing phase's time is reduced by it;
-  \item \code{decide} and \code{act}: the shared policy and the robot's motion.
-\end{itemize}
-The step time is the sum of the phases. It excludes setup (loading and materializing the closure) and the bookkeeping of
-the experiment (the digest of the candidates). The table reports the median over the 1,000 steps of the five seeds and,
-in parentheses, the range of the five seeds' medians; the results file also holds a 95\% bootstrap interval of the
-median and the 95th percentile (\file{agent\_loop\_seeds.json}).
-
-\paragraph{Agreement.} Not a row, but the precondition for comparing the rows. For every step, the build's own action
-and its candidate sets (sorted, de-duplicated, driving times rounded to microseconds, hashed) are compared with the
-reference's.
+\paragraph{Mapping and procedure lines: counted, not in Table~4.} The line count also attributes lines of code that
+translate between the application's objects and another representation (mapping) and lines that make the robot's
+procedures usable in a decision (procedure integration). The results files hold them (\code{boundary\_lines}, per
+category; Table~\ref{tab:lines}), and the supplement's report lists them, but the paper's Table~4 does not report
+them, as they do not measure a second world model. The mapping lines follow from the simulated perceptions, which
+arrive as IRIs in every build: KRROOD, with one world model, also resolves them to objects (12 lines). The procedure
+lines follow from wrapping the planner, as a predicate and a function in KRROOD (7 lines) or as a filter of the
+answers in GraphDB and Nemo (2 lines), not from the number of world models.
 
 % =====================================================================
 \section{Results}
@@ -855,21 +865,20 @@ of 200 steps on other cores, with KRROOD alongside as the reference of the agree
 \paragraph{The table.} The paper's Table~4 reads:
 \begin{center}
 \footnotesize
-\begin{tabular}{@{}lrrr@{}}
+\begin{tabular}{@{}lrrrr@{}}
 \toprule
- & \textbf{KRROOD} & \textbf{GraphDB} & \textbf{GraphDB, push}\\
+ & \textbf{KRROOD} & \textbf{GraphDB} & \textbf{GraphDB, push} & \textbf{Nemo}\\
 \midrule
-\multicolumn{4}{@{}l}{\emph{From the semantics}}\\
-World models & 1 & 2 & 2\\
-Planner runs & in query & on answers & before query\\
-Writes / step & 0 & 4 & 405\\
-Synchronization lines & 0 & 16 & 44\\
-\multicolumn{4}{@{}l}{\emph{From the implementation}}\\
-Languages & 1 & 2 & 2\\
-Processes & 1 & 2 & 2\\
-Round trips / step & 0 & 3 & 4\\
-Mapping/procedure lines & 12/7 & 9/2 & 15/0\\
-Step [ms] & 90 (88--90) & 96 (93--100) & 162 (150--166)\\
+\multicolumn{5}{@{}l}{\emph{From the semantics}}\\
+World models & 1 & 2 & 2 & 2\\
+Planner runs & in query & on answers & before query & on answers\\
+Writes / step & 0 & 4 & 405 & 4\\
+Synchronization lines & 0 & 16 & 44 & 22\\
+\multicolumn{5}{@{}l}{\emph{From the implementation}}\\
+Languages & 1 & 2 & 2 & 2\\
+Processes & 1 & 2 & 2 & 2\\
+Round trips / step & 0 & 3 & 4 & 1 run\\
+Step [ms] & 90 (88--90) & 96 (93--100) & 162 (150--166) & 5{,}683 (5{,}653--5{,}690)\\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -878,10 +887,11 @@ GraphDB push writes 405 statements per step: 204 inserted and 201 deleted (media
 \paragraph{What the rows show.}
 \begin{itemize}
   \item \emph{One world model is enough.} KRROOD decides with no synchronization code, no writes to another store and
-        no requests. Its 12 mapping lines resolve the IRIs in which events name individuals and attach the
-        application data; its 7 procedure lines are the predicate and the function.
-  \item \emph{A second world model costs code and traffic.} GraphDB needs 16 lines to mirror facts, 9 to map answers
-        back and 2 to filter them with the planner, and three requests per step.
+        no requests. Outside the table, its 12 mapping lines resolve the IRIs in which events name individuals and
+        attach the application data, and its 7 procedure lines are the predicate and the function
+        (Section~\ref{sec:lines}).
+  \item \emph{A second world model costs code and traffic.} GraphDB needs 16 lines to mirror facts and three requests
+        per step; outside the table, 9 more lines map answers back and 2 filter them with the planner.
   \item \emph{Letting the store decide moves the planner out of the decision.} With the planner's results pushed, SPARQL
         decides alone and the procedure lines drop to 0, but the synchronization lines grow to 44, the writes to about
         400 statements per step, and the planner runs for every room in every step, whether a decision needs it or
@@ -893,9 +903,10 @@ GraphDB push writes 405 statements per step: 204 inserted and 201 deleted (media
         form of KRROOD's handout query brings KRROOD's median step to 74\,ms.
   \item \emph{Recomputing the closure every step is slow.} Nemo makes the same decisions with a median step of 5.68\,s
         (seeds' medians 5.65--5.69\,s), nearly all of it Nemo's run (by its own report, about 2.2\,s import and 3.4\,s
-        reasoning). In the terms of the table's rows, Nemo has 2 world models, runs the planner on the answers, appends
-        a median of 4 statements per step, has 22 synchronization and 9/2 mapping/procedure lines, uses 2 languages and
-        2 processes, and makes no server request but starts one process per step. reasonable takes 4.6\,s per step
+        reasoning). In the table, Nemo has 2 world models, runs the planner on the answers, appends a median of 4
+        statements per step, has 22 synchronization lines, uses 2 languages and 2 processes, and makes no server
+        request but starts one process per step (``1 run''); outside the table, it has 9 mapping and 2 procedure
+        lines. reasonable takes 4.6\,s per step
         (seed~0) and finds no handout candidate.
 \end{itemize}
 

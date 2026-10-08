@@ -20,15 +20,14 @@ version that the experiments use. This script therefore
    them) and of the translated statement alone, as the hand-written SQLAlchemy queries of the query experiment are
    measured (``session.execute(statement).all()`` after ``expunge_all``).
 
-The translation selects identifiers by default (``--selection identifiers``): ``eql_to_sql`` is called with
-``select_identifiers=True``, so that every selected variable and flattened element is returned as its database id, the
-identity of the answer, as most hand-written queries return the id columns of an association table. The tables of a
-variable are then joined only where a column of them is read or the class of the variable must be restricted; mapping
-the ids to IRIs for the comparison is not timed. With ``--selection iris`` the translation selects the IRI of every
-selected variable and flattened element instead (``eql_to_sql(..., select_identifiers=True,
-identifying_attribute="uri")``), read from the ``uri`` column of ``ThingDAO``, the one table that declares it, so that
-the returned IRIs are compared with GraphDB's and EQL's answers directly, without mapping ids. With
-``--selection objects`` the translation selects data access objects, as in the first run, and relationships are loaded lazily, as in the interface of the experiments (see
+The translation selects the answers' IRIs by default (``--selection iris``, the paper's run): ``eql_to_sql`` is called
+with ``select_identifiers=True, identifying_attribute="uri"``, so that every selected variable and flattened element is
+returned as its IRI, read from the ``uri`` column of ``ThingDAO``, the one table that declares it, and the returned IRIs
+are compared with GraphDB's and EQL's answers directly. The tables of a variable are joined only where a column of
+them is read or the class of the variable must be restricted. With ``--selection identifiers``
+(``select_identifiers=True`` alone) every selected variable and flattened element is returned as its database id, as
+most hand-written queries return the id columns of an association table; mapping the ids to IRIs for the comparison is
+not timed. With ``--selection objects`` the translation selects data access objects, as in the first run, and relationships are loaded lazily, as in the interface of the experiments (see
 ``lazy_translation``).
 
 The database is rebuilt on every run unless ``--reuse-database`` is given, which keeps the tables of an earlier run with
@@ -38,7 +37,7 @@ Usage (current KRROOD environment; psycopg2 for PostgreSQL)::
 
     python run_ormatic_translation.py --reasoned-file owl2bench_statements_reasoned.rdf \
         --reference-answers results/run/check/answers/graphdb --database-uri postgresql+psycopg2://... \
-        --output-dir results/aamas27/ormatic_translation-20261008 [--selection identifiers|iris|objects] \
+        --output-dir results/aamas27/ormatic_translation-20261008 [--selection iris|identifiers|objects] \
         [--reuse-database] [--queries 2,3]
 """
 
@@ -690,8 +689,8 @@ def main() -> None:
     parser.add_argument("--paper-sqlalchemy-times", default=None, help="queries_sqlalchemy.json of the paper's run")
     parser.add_argument("--repetitions", type=int, default=10)
     parser.add_argument("--queries", default=None, help="comma separated query numbers (default: all 18)")
-    parser.add_argument("--selection", choices=SELECTIONS, default="identifiers",
-                        help="select database ids (default), IRIs or data access objects")
+    parser.add_argument("--selection", choices=SELECTIONS, default="iris",
+                        help="select IRIs (default, the paper's run), database ids or data access objects")
     parser.add_argument("--translator-commit", default=None,
                         help="the commit of the KRROOD version whose translator is used, recorded in the report")
     parser.add_argument("--reuse-database", action="store_true",

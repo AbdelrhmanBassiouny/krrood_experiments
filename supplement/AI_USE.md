@@ -19,9 +19,10 @@ reviewed and verified all of it. The prompts of that period were not retained, s
 
 **Code and scripts** (permitted without disclosure, listed for completeness): corrections of Ontomatic's loader
 (only sufficient conditions classify individuals; no relations guessed from shared properties; the OWL 2 RL/RDF rules
-of Table 2, including the necessary conditions, the data-property rules and the check of the equality and
-inconsistency rules), the translation of EQL queries over collection-valued attributes to SQL (Section 6), the
-measurement scripts, the tests, and the Docker set-up of this supplementary material.
+of Section 5, including the necessary conditions, the data-property rules and the check of the equality and
+inconsistency rules), the translation of EQL queries over collection-valued attributes to SQL and its selection of
+the answers' database ids or IRIs (Section 6), the measurement scripts, the tests, and the Docker set-up of this
+supplementary material.
 
 **Experimental design and methodology** (proposed by the AI tool and approved by the authors):
 

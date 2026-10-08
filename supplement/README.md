@@ -132,7 +132,11 @@ With a GraphDB license, `full`:
   member of a marked class to itself by `roleFor` extends every model of OWL2Bench to a model of the marked ontology;
 * **query time** (Table 3, which summarizes the per-query times of the report): 18 queries x 10 repetitions, for EQL, SQL (SQLAlchemy over the ORMatic schema in
   PostgreSQL), GraphDB, RDFLib and Owlready2 (`queries/queries.json`). The hand-written SQLAlchemy queries are measured
-  and checked here, but the paper's Table 3 reports SQL translated from EQL instead (`ormatic_translation`, below);
+  and checked here, but the paper's Table 3 reports SQL translated from EQL instead (`ormatic_translation`, below).
+  The report's table "Query times" lists the per-query times of every system side by side: those of Table 3, the
+  translated SQL among them, and those that Table 3 leaves out, the hand-written SQL and Protégé (timed once by hand;
+  it did not complete Q9 and Q20, see "Protégé (by hand)"). It also counts the queries on which each system of Table 3
+  is the fastest;
 * **loading and reasoning** (Table 1), from the raw and the pre-reasoned data: KRROOD (5 runs), KRROOD + ORMatic
   (5 runs), Owlready2 + Pellet (5 runs), RDFLib + owlrl (1 run, 3 h limit), GraphDB (1 run), and two in-memory
   baselines (5 runs, 24 GiB limit, `BASELINE_MEMORY_LIMIT_GIB`): Nemo 0.10.1, a Datalog engine, with the OWL 2 RL/RDF
@@ -174,8 +178,12 @@ With a GraphDB license, `full`:
   languages the developer writes (KRROOD: Python; GraphDB: Python and SPARQL) and the processes that hold the robot's
   knowledge (GraphDB is a Java server reached over HTTP). It groups its rows by what they follow from: world models,
   the planner's place, writes to another store and synchronization lines from EQL's semantics; languages, processes,
-  round trips, the other boundary lines and the step time from the implementation (see "What is unified, and what
-  runs underneath");
+  round trips and the step time from the implementation (see "What is unified, and what runs underneath"). Of the
+  boundary lines, Table 4 reports only the synchronization lines. The mapping and procedure-integration lines are
+  still counted in the results (`boundary_lines`, and the report's agent-loop tables), but they do not measure a
+  second world model: the mapping lines follow from the simulated perceptions, which arrive as IRIs in every build,
+  and the procedure lines from wrapping the planner (`agent_loop/agent_loop.pdf`, "How the rows of Table 4 are
+  measured");
 * **the runtime audit** (Section 7.1; about 20 min, no license needed): KRROOD's agent loop runs unchanged for 200
   steps of seeds 0-4, and after 0, 10, 50, 100 and 200 steps the live knowledge base is compared with Nemo's OWL 2 RL
   closure of the raw data and the facts perceived so far, normalised as in the comparison with GraphDB's closure
@@ -194,16 +202,23 @@ With a GraphDB license, `full`:
   KRROOD): the objects of the part of the model that the queries use (`scripts/aamas27/ormatic_translation/`, the model
   of the paper's ORMatic listing) are built from GraphDB's closure and stored in PostgreSQL; each query, written in the
   current EQL, is evaluated in working memory and, translated by `eql_to_sql(query, session,
-  select_identifiers=True)`, in the database, and both answer sets are compared with GraphDB's
-  (`ormatic_translation/ormatic_translation.json`). With `select_identifiers=True` the translation returns the
-  answers' database ids instead of data access objects and joins only the tables a query needs: a variable or
-  collection element is the foreign-key column that already holds its id, a table is joined only to read a column it
-  declares or to restrict a variable to its class, a membership test that all answers satisfy becomes a join of the
-  association table, and an existential quantifier over a chain of collections one correlated `EXISTS`. The
-  translated statements are timed as the main run times its SQL (`session.execute(statement).all()`, median of 10
-  runs without the first). Table 3 of the paper reports these times; the main run's hand-written SQLAlchemy queries are
-  listed in the report for comparison only. The step drops and recreates the experiments' database, so it runs last.
-  The translator's tests (`test_eql_collections.py` and `test_eql_identifier_selection.py` in the repository of the
+  select_identifiers=True, identifying_attribute="uri")` (the script's `--selection iris`, its default), in the
+  database, and both answer sets are compared with GraphDB's (`ormatic_translation/ormatic_translation.json`). With
+  `select_identifiers=True` the translation returns identifiers instead of data access objects and joins only the
+  tables a query needs: a variable or collection element is the foreign-key column that already holds its id, a table
+  is joined only to read a column it declares or to restrict a variable to its class, a membership test that all
+  answers satisfy becomes a join of the association table, and an existential quantifier over a chain of collections
+  one correlated `EXISTS`. With `identifying_attribute="uri"` the identifier of every answer is its IRI, read by
+  joining the one table that declares it (`ThingDAO`), and through its role taker for a role; the returned IRIs are
+  compared with GraphDB's and EQL's answers directly, without mapping database ids. The translated statements are
+  timed as the main run times its SQL (`session.execute(statement).all()`, median of 10 runs without the first).
+  Table 3 of the paper reports these times; the main run's hand-written SQLAlchemy queries are listed in the report
+  for comparison only. In our run (`results/ormatic_translation/`, with its README), all 18 translations return
+  GraphDB's and EQL's answers, the geometric mean is 0.83 ms, and the translated SQL is the fastest system of Table 3
+  on 14 queries (EQL on Q3, Q5 and Q8, GraphDB on Q22). The same folder holds the earlier run that selected database
+  ids (`ids_run/`, `--selection identifiers`, geometric mean 0.33 ms) and the first run, which selected data access
+  objects (`first_run_objects/`). The step drops and recreates the experiments' database, so it runs last. The
+  translator's tests (`test_eql_collections.py` and `test_eql_identifier_selection.py` in the repository of the
   current version, not in this bundle) cover the queries' shapes on a small dataset;
 * **scaling** (Table 2; about 2 h without GraphDB): the raw data of 1, 2, 4 and 8 universities, generated by OWL2Bench's
   generator (`java -jar OWL2Bench.jar N RL`, downloaded at the commit the paper's data comes from, checked by its
@@ -238,7 +253,9 @@ Intel Core i7-13700 with 64 GB RAM under Ubuntu 24.04.
 
 Protégé has a graphical interface, so it runs outside Docker, and its numbers in the paper come from one session
 each, by hand. It needs the pre-reasoned file that `full` (or `check`) writes. `results/protege/` holds our
-sessions, the scripts we used and a README; in short:
+sessions, the scripts we used and a README, and `results/protege.json` the numbers. Its loading is in Table 1 of the
+paper; its query times, which Table 3 leaves out as Protégé did not complete Q9 and Q20, are in the report's table
+"Query times" (`results/REPORT.md`). In short:
 
 1. Protégé 5.6.7 (Linux build with its own Java 11) with the plug-ins "Pellet Reasoner Plug-in" 2.2.0 and "Snap
    SPARQL Query" 6.0.0 from Protégé's plug-in registry (File -> Check for plugins, or copy the jars into
@@ -295,8 +312,8 @@ experiments (`code/earlier/krrood`):
   ablation, "KRROOD without step 5"); connected components take linear time in any language, but we did not measure
   a Python implementation of this step;
 * ORMatic's long-term memory is PostgreSQL, reached through SQLAlchemy; EQL queries reach it through a translation
-  to SQL, which the developer calls explicitly (`eql_to_sql`), which rejects what it cannot translate and whose
-  answers are compared with EQL's and GraphDB's.
+  to SQL, which the developer calls explicitly (`eql_to_sql`), which rejects what it cannot translate, can return the
+  answers' IRIs, and whose answers are compared with EQL's and GraphDB's.
 
 None of these is a second representation that the program keeps in sync: the graph holds references to the
 program's objects and is maintained by KRROOD, and the database holds what the agent stores. This is the line that
@@ -311,9 +328,9 @@ the semantics; one language and one process could also come from a wrapper or an
 | `code/earlier/ripple_down_rules` | Rule-base library that Ontomatic's model generator uses (Section 5, TBox compilation). |
 | `code/earlier/experiments` | The experiments: the generated OWL2Bench model, the 18 queries of every system (`src/krrood_experiments/owl2bench/`), the measurement scripts (`scripts/aamas27/`) and their tests. `src/krrood_experiments/lubm/` holds a model generated from LUBM in earlier work; the paper does not evaluate LUBM, whose ontology uses class expressions outside OWL 2 RL (existential restrictions on the right-hand side of its class equivalences, such as `Chair`), and no step of this bundle uses it. |
 | `code/earlier/experiments/resources/owl2bench_statements_unreasoned.rdf` | OWL2Bench, OWL 2 RL profile, one university, with the role markers and the `T20CricketFan` definition (Section 7). |
-| `code/current/krrood` | The current version of KRROOD, which the paper's listings use. Its EQL API differs from the earlier version in the names of some constructors, and its translator from EQL to SQL (Section 6) handles collection-valued attributes. |
+| `code/current/krrood` | The current version of KRROOD, which the paper's listings use. Its EQL API differs from the earlier version in the names of some constructors, and its translator from EQL to SQL (Section 6) handles collection-valued attributes and can return the answers' IRIs (`eql_to_sql(..., select_identifiers=True, identifying_attribute="uri")`). |
 | `listings/` | Executable versions of the paper's listings, as tests on the current version. `listings/ormatic/` tests the listing of Section 6 (one query in working memory and translated to SQL). |
-| `results/` | Our measured run: `REPORT.md` (its report), raw measurements (JSON), the answer-set check, the comparison with the closure, the environment record, the LaTeX tables, in `host/` the machine's details and a 30-second record of its load during the run, in `memory/` the memory after imports and GraphDB's heap from a separate load with a GC log, in `ablation_scaling/` the ablation on small data, in `protege/` the Protégé sessions, and `provenance.txt`, which says which numbers come from which run (KRROOD's loading was measured again in a clean rerun, as a browser had run during the first). Its `BUNDLE` id, `ae0b139a90267579`, differs from this bundle's because of three files in `code/current/` (the version the listing tests use, which gained idempotent rules) and because `code/earlier/experiments` has since gained the in-memory baselines and the agent loop; the code of every other measurement is identical. `baselines/` and `agent_loop/` hold those two experiments, each from its own run with a `provenance.txt`; `agent_loop_nemo/` holds the Nemo variant of the agent loop, run later with KRROOD as the reference, and `ormatic_translation/`, `owlready2_heap/` and `scaling/` the experiments added after the second review, each with a `provenance.txt` or README; the baselines' loading runs are also merged into `loading/loading.json`. Of the answer sets, `check/answers/graphdb/` holds GraphDB's, the reference; the other systems' sets are equal to them (`check/answer_check.json`) and are left out for size. |
+| `results/` | Our measured run: `REPORT.md` (its report), raw measurements (JSON), the answer-set check, the comparison with the closure, the environment record, the LaTeX tables, in `host/` the machine's details and a 30-second record of its load during the run, in `memory/` the memory after imports and GraphDB's heap from a separate load with a GC log, in `ablation_scaling/` the ablation on small data, in `protege/` the Protégé sessions, and `provenance.txt`, which says which numbers come from which run (KRROOD's loading was measured again in a clean rerun, as a browser had run during the first). Its `BUNDLE` id, `ae0b139a90267579`, differs from this bundle's because `code/current/` (the version the listing tests and ORMatic's translation use) has since changed (idempotent rules, the translator's selection of database ids and IRIs) and because `code/earlier/experiments` has since gained the in-memory baselines, the agent loop and the translation's run script; the code of every other measurement is identical. `baselines/` and `agent_loop/` hold those two experiments, each from its own run with a `provenance.txt`; `agent_loop_nemo/` holds the Nemo variant of the agent loop, run later with KRROOD as the reference, and `ormatic_translation/`, `owlready2_heap/` and `scaling/` the experiments added after the second review, each with a `provenance.txt` or README (`ormatic_translation/` holds the paper's run, selecting IRIs, and in subfolders the earlier runs that selected database ids or data access objects); the baselines' loading runs are also merged into `loading/loading.json`. Of the answer sets, `check/answers/graphdb/` holds GraphDB's, the reference; the other systems' sets are equal to them (`check/answer_check.json`) and are left out for size. |
 | `run_ubuntu.sh` | The quick check and the full run on Ubuntu, in one command each (above). |
 | `tools/` | Scripts of the container around the measurement scripts: the report (`report.py`), the size of the queries (`query_size.py`), EQL and SQL without a GraphDB server (`queries_without_graphdb.py`), the memory after imports (`import_memory.py`), GraphDB's heap from its GC log (`graphdb_heap.py`), and the ablation on small data with its tests (`ablation/`). |
 | `Dockerfile`, `compose.yaml`, `reproduce.sh` | The container: GraphDB 11.2 (official image, Ubuntu 24.04, Java 21), Python 3.12.3 with both versions of KRROOD in separate virtual environments, and PostgreSQL 18.1 in a second container. `reproduce.sh` runs inside it. |

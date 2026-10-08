@@ -338,9 +338,10 @@ runtime_audit() {
         --results-dir "$RUN/runtime_audit" --note "run by reproduce.sh, mode $MODE"
 }
 
-# ORMatic's translation of the 18 queries (paper, Section 6), with the current version of KRROOD: the objects of the
-# queries' part of the model are built from GraphDB's closure and stored in PostgreSQL, and each translation's answers
-# are compared with EQL's in working memory and GraphDB's. The current environment takes psycopg2 from the earlier one.
+# ORMatic's translation of the 18 queries (paper, Section 6 and Table 3), with the current version of KRROOD: the
+# objects of the queries' part of the model are built from GraphDB's closure and stored in PostgreSQL, each query is
+# translated with eql_to_sql(query, session, select_identifiers=True, identifying_attribute="uri"), which returns the
+# answers' IRIs, and each translation's answers are compared with EQL's in working memory and GraphDB's. The current environment takes psycopg2 from the earlier one.
 # The step drops and recreates the experiments' database, so it runs after every other step that uses it.
 ormatic_translation() {
     local packages=/tmp/aamas27_psycopg2 earlier=/opt/venvs/earlier/lib/python3.12/site-packages
@@ -351,7 +352,7 @@ ormatic_translation() {
     PYTHONPATH="$packages" /opt/venvs/current/bin/python scripts/aamas27/ormatic_translation/run_ormatic_translation.py \
         --reasoned-file "$REASONED_FILE" --reference-answers "$PAPER_RESULTS/check/answers/graphdb" \
         --database-uri "$KRROOD_EXPERIMENTS_DATABASE_URI" --output-dir "$RUN/ormatic_translation" \
-        --paper-sqlalchemy-times "$PAPER_RESULTS/queries/queries_sqlalchemy.json"
+        --paper-sqlalchemy-times "$PAPER_RESULTS/queries/queries_sqlalchemy.json" --selection iris
 }
 
 # Owlready2 + Pellet on the pre-reasoned data with a 22 GB Java heap (1 run): with its default heap of 2 GB, as in

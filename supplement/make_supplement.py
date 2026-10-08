@@ -31,7 +31,9 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 # The clones of the pinned commits on the authors' machine. Every commit below is on the authors' forks:
 # CRAM branch aamas27-experiments (earlier version) and fix/eql-to-sql-collections (current version),
-# krrood_experiments branch aamas27-experiments, ripple_down_rules 3b994bb.
+# krrood_experiments branch aamas27-experiments, ripple_down_rules 3b994bb. Since then, code/current is exported with
+# --current-from from the translator's branch aamas27-fast-translation (f083e650c4: identifying_attribute) and
+# code/earlier/experiments with --experiments-from (branch aamas27-review6, 20aed7b and later: --selection iris).
 SCRATCH = Path("/tmp/claude-1000/-home-bass-Projects-krrood-aamas/33ba4645-d3a6-450c-b474-694a7d4a326f/scratchpad")
 NAME = "krrood-aamas27-supplement"
 
@@ -57,7 +59,7 @@ LISTINGS = HERE / "listings"   # executable versions of the paper's listings, ru
 IDENTIFYING = re.compile(
     r"bassiouny|bassioun|abdelrhman|ms-7d32|schierenbeck|tomsch|sorinar|sorin|\barion\b|beetz|bremen|aicor|vasantak|hoanggia"
     r"|\bnaren\b|\bgiang\b|cram2|github\.com|gitlab\.com|/home/|/tmp/claude|@[a-z0-9.-]+\.(de|com|org|net)\b"
-    r"|\bbass\b|\bcram\b|pycram|semantic_digital_twin|giskard|knowrob_|tom_sch|ec7c922b9f|eeeb2e48db|3308cb252f|20f6990f69|aa8e9299a3|67a666b1e2|aamas27-fast-translation|3b994bb|b0b59087a6|ccf8367709",
+    r"|\bbass\b|\bcram\b|pycram|semantic_digital_twin|giskard|knowrob_|tom_sch|ec7c922b9f|eeeb2e48db|3308cb252f|20f6990f69|aa8e9299a3|67a666b1e2|f083e650c4|20aed7b|aamas27-fast-translation|3b994bb|b0b59087a6|ccf8367709",
     re.IGNORECASE,
 )
 # Matches that are not identifying: generated person names of the OWL2Bench data (e.g. "Jamarion").
