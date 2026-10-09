@@ -115,6 +115,14 @@ class StepMeter:
     """
     Calls into an in-process reasoner.
     """
+    rows_returned: int = 0
+    """
+    Solution rows a store returned to the agent, before the agent filters them with the planner.
+    """
+    planner_values_pushed: int = 0
+    """
+    Planner results written into a store (the push variant), counted separately from perceived facts.
+    """
 
     @contextmanager
     def phase(self, name: str) -> Iterator[None]:
@@ -151,6 +159,8 @@ class StepMeter:
             "statements_deleted": self.statements_deleted,
             "round_trips": self.round_trips,
             "reasoner_calls": self.reasoner_calls,
+            "rows_returned": self.rows_returned,
+            "planner_values_pushed": self.planner_values_pushed,
         }
 
 

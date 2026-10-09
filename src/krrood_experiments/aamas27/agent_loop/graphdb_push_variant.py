@@ -137,6 +137,7 @@ class GraphDBPushVariant(GraphDBMirror):
             self._send(DELETE_PROCEDURE_RESULTS + " ;\n" + insert_data(values), meter)
         meter.statements_deleted += self.pushed_statements
         meter.statements_inserted += len(values)
+        meter.planner_values_pushed += len(values)
         self.pushed_statements = len(values)
 
     @boundary(SYNCHRONIZATION)
@@ -163,6 +164,13 @@ class GraphDBPushVariant(GraphDBMirror):
             for room in self.target_rooms
             if can_reach(self.robot, room)
         ]
+
+    def final_measurements(self) -> Dict[str, Any]:
+        """
+        :return: The measurements of :class:`GraphDBMirror` and the number of target rooms, whose planner results
+         are pushed every step.
+        """
+        return {**super().final_measurements(), "target_rooms": len(self.target_rooms)}
 
     def _restore_update(self) -> str:
         return DELETE_PROCEDURE_RESULTS + " ;\n" + super()._restore_update()

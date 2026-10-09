@@ -68,9 +68,11 @@ def main() -> None:
             "all_agree": None if agreements[0] is None else all(a["all_agree"] for a in agreements),
             "equal_actions": None if agreements[0] is None else sum(a["equal_actions"] for a in agreements),
             "steps_compared": None if agreements[0] is None else sum(a["steps_compared"] for a in agreements),
-            "median_per_step": {counter: statistics.median(r[counter] for d in runs for r in records[d])
+            "median_per_step": {counter: statistics.median(r.get(counter, 0) for d in runs for r in records[d])
                                 for counter in ("round_trips", "statements_inserted", "statements_deleted",
-                                                "reasoner_calls")},
+                                                "reasoner_calls", "rows_returned", "planner_values_pushed")},
+            "median_can_reach_false_per_step": statistics.median(
+                r.get("procedure_false_results", {}).get("can_reach", 0) for d in runs for r in records[d]),
             "boundary_lines": entry["code"]["boundary_lines"],
             "setup_seconds": [summaries[d]["variants"][variant]["setup"].get("total_seconds") for d in runs],
         }

@@ -21,7 +21,7 @@ import math
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Sequence, Set, Tuple
+from typing import Any, Dict, List, Sequence, Set, Tuple
 
 from .campus import CampusMap, PathPlanner, Place
 from .scenario import RobotSpecification
@@ -41,14 +41,21 @@ class ProcedureMeter:
     """
     Total wall time spent in the procedures.
     """
+    false_results: Dict[str, int] = field(default_factory=dict)
+    """
+    Number of calls per procedure that returned false.
+    """
 
-    def record(self, procedure: str, elapsed: float) -> None:
+    def record(self, procedure: str, elapsed: float, result: Any = True) -> None:
         """
         :param procedure: The procedure name.
         :param elapsed: The wall time of the call.
+        :param result: The value the call returned.
         """
         self.calls[procedure] = self.calls.get(procedure, 0) + 1
         self.seconds += elapsed
+        if result is False:
+            self.false_results[procedure] = self.false_results.get(procedure, 0) + 1
 
     @property
     def total_calls(self) -> int:
@@ -143,7 +150,7 @@ def can_reach(robot: Robot, room: Place) -> bool:
     start = time.perf_counter()
     needed = robot.planner.distance(robot.place, room) + robot.planner.distance_to_nearest_dock(room)
     result = needed <= robot.battery_metres
-    robot.procedure_meter.record("can_reach", time.perf_counter() - start)
+    robot.procedure_meter.record("can_reach", time.perf_counter() - start, result)
     return result
 
 

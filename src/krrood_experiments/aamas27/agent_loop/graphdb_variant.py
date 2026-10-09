@@ -199,7 +199,9 @@ class GraphDBMirror(AgentVariant, ABC):
         :return: The solutions.
         """
         meter.round_trips += 1
-        return self.client.select_bindings(REPOSITORY, query, bindings)
+        rows = self.client.select_bindings(REPOSITORY, query, bindings)
+        meter.rows_returned += len(rows)
+        return rows
 
     def final_measurements(self) -> Dict[str, Any]:
         """

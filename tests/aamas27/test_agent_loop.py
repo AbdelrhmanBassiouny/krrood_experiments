@@ -333,3 +333,15 @@ def test_nemo_decides_like_krrood(tmp_path):
     summary = run_driver(tmp_path, "krrood,nemo", steps=3)
     agreement = summary["variants"]["nemo"]["agreement"]
     assert agreement["all_agree"], agreement["first_disagreements"]
+
+
+def test_procedure_meter_counts_calls_that_return_false():
+    from krrood_experiments.aamas27.agent_loop.robot import ProcedureMeter
+
+    meter = ProcedureMeter()
+    for result in (True, False, False):
+        meter.record("can_reach", 0.0, result)
+    meter.record("travel_seconds", 0.0, 12.5)
+
+    assert meter.calls == {"can_reach": 3, "travel_seconds": 1}
+    assert meter.false_results == {"can_reach": 2}

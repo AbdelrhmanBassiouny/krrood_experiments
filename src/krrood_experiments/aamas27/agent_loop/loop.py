@@ -192,6 +192,7 @@ def run_agent_loop(
     for perception in variant.scenario.perceptions:
         meter = StepMeter(robot.procedure_meter)
         calls_before = dict(robot.procedure_meter.calls)
+        false_results_before = dict(robot.procedure_meter.false_results)
         variant.perceive(perception, meter)
         start = time.perf_counter()
         handouts = variant.handout_candidates(perception.requested_college, meter)
@@ -211,6 +212,10 @@ def run_agent_loop(
             "decision_seconds": {"handouts": handout_seconds, "tickets": ticket_seconds},
             "procedure_calls": {
                 name: count - calls_before.get(name, 0) for name, count in robot.procedure_meter.calls.items()
+            },
+            "procedure_false_results": {
+                name: count - false_results_before.get(name, 0)
+                for name, count in robot.procedure_meter.false_results.items()
             },
             "handout_candidates": len(digest["handout_rows"]),
             "ticket_candidates": len(digest["ticket_rows"]),

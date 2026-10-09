@@ -41,6 +41,7 @@ from typing import Any, Dict, List, Optional
 
 from krrood_experiments.aamas27.agent_loop.graphdb_variant import REPOSITORY
 from krrood_experiments.aamas27.agent_loop.measurement import PHASES, distribution
+from krrood_experiments.aamas27.agent_loop.campus import CampusLayout
 from krrood_experiments.aamas27.agent_loop.scenario import generate_scenario
 from krrood_experiments.aamas27.agent_loop.worker import GRAPHDB_VARIANTS, VARIANTS
 from krrood_experiments.aamas27.environment import UNREASONED_FILE, resolve_results_directory, write_json
@@ -120,6 +121,12 @@ def summarise_steps(steps: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
     for counter in ("statements_inserted", "statements_deleted", "round_trips", "reasoner_calls"):
         summary[counter] = distribution([s[counter] for s in steps])
+    for counter in ("rows_returned", "planner_values_pushed"):
+        summary[counter] = distribution([s.get(counter, 0) for s in steps])
+    false_procedures = sorted({name for s in steps for name in s.get("procedure_false_results", {})})
+    summary["procedure_false_results"] = {
+        name: distribution([s["procedure_false_results"].get(name, 0) for s in steps]) for name in false_procedures
+    }
     procedures = sorted({name for s in steps for name in s["procedure_calls"]})
     summary["procedure_calls"] = {
         name: distribution([s["procedure_calls"].get(name, 0) for s in steps]) for name in procedures
@@ -229,6 +236,8 @@ def main() -> int:
     parser.add_argument("--steps", type=int, default=200)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--events-per-step", type=int, default=3)
+    parser.add_argument("--courses-per-classroom", type=int, default=CampusLayout.courses_per_classroom,
+                        help="courses that share one classroom; fewer gives more rooms")
     parser.add_argument("--variants", default=",".join(DEFAULT_VARIANTS),
                         help="comma-separated, the first is the reference")
     parser.add_argument("--graphdb-url", default=None)
@@ -248,7 +257,13 @@ def main() -> int:
     if unknown:
         parser.error(f"unknown variants {unknown}, expected some of {sorted(VARIANTS)}")
     results_directory = resolve_results_directory(arguments.results_dir, "agent_loop")
-    scenario = generate_scenario(Path(arguments.raw_file), arguments.steps, arguments.seed, arguments.events_per_step)
+    scenario = generate_scenario(
+        Path(arguments.raw_file),
+        arguments.steps,
+        arguments.seed,
+        arguments.events_per_step,
+        layout=CampusLayout(courses_per_classroom=arguments.courses_per_classroom),
+    )
     scenario_file = results_directory / "scenario.json"
     summary_file = results_directory / "agent_loop.json"
     summary: Dict[str, Any] = {
