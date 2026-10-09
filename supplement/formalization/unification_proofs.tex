@@ -1,0 +1,290 @@
+% Proofs added in the unification revision: answers over objects, loading (Propositions 5.1-5.3,
+% Corollary 5.4 of the paper) and the one-semantics theorem for ORMatic's translation (Theorem 6.1).
+
+% ============================================================
+\section{Answers over Objects and over Individuals}
+\label{sec:objects-individuals}
+
+EQL evaluates $=$, $\neq$ and $\in$ with Python's \texttt{operator.eq} and
+\texttt{operator.contains}, so the classes of the compared objects decide equality. We therefore
+define $\mathit{ans}(Q,\mathcal{K})$ over assignments $\theta$ of \emph{objects} and values, with
+$o=o'$ read as the equality of their classes. In the current version, roles and classes declared with \texttt{eq=False} compare by identity
+(\texttt{Role.\_\_eq\_\_} is \texttt{self is other}, \texttt{patterns/role.py}), while a plain
+dataclass compares its fields; the predicate \texttt{IsSameSemanticEntity}
+(\texttt{patterns/role\_predicates.py}) compares the role takers of two objects. In the
+earlier version, which ran the experiments, a role's hash is the identity of its root taker and
+its equality compares hashes (\texttt{class\_diagrams/utils.py}, template \texttt{onto\_base.j2}),
+so a role equals its taker and its taker's other roles. In both versions two root objects that
+share one IRI are unequal.
+
+\begin{definition}
+The \emph{answers over individuals} of $Q$ are
+$\mathit{ind}(\mathit{ans}(Q,\mathcal{K}))=\{\mathit{ind}\circ t \mid t\in\mathit{ans}(Q,\mathcal{K})\}$.
+\end{definition}
+
+\begin{proposition}
+\label{prop:objects-individuals}
+Let $V_\alpha$ be the set of values the two operands of an atom $\alpha$ of the form $t_1=t_2$,
+$t_1\neq t_2$ or $t_2\in t_1$ can take. If, for every such atom of $Q$, $\mathit{ind}$ is
+one-to-one on $V_\alpha$ and object equality on $V_\alpha$ is identity or coincides with equality
+of $\mathit{ind}$, then $\mathit{ind}(\mathit{ans}(Q,\mathcal{K}))$ equals the answers of $Q$
+evaluated over individuals in $\mathcal{I}_{\mathcal{A}}$.
+\end{proposition}
+
+\begin{proof}
+By induction on $\varphi$. Class atoms, property atoms and predicates are defined through
+$\mathit{ind}$ (Section~\ref{sec:eql:semantics}), so their truth under $\theta$ and under
+$\mathit{ind}\circ\theta$ agrees. For $t_1=t_2$ with values $u,v\in V_\alpha$: $u=v$ as objects
+iff $u$ is $v$ (or $\mathit{ind}(u)=\mathit{ind}(v)$), iff $\mathit{ind}(u)=\mathit{ind}(v)$, since
+$\mathit{ind}$ is one-to-one on $V_\alpha$; $\neq$ and $\in$ follow, the latter as a disjunction
+of equalities over the collection's elements. Connectives and quantifiers commute with the
+induction hypothesis, because every individual a quantifier ranges over is the image of an object
+of the quantified domain (domain closure).
+\end{proof}
+
+The hypothesis holds, for example, when every individual is denoted by one object plus its roles,
+at most one of each class, and both operands of each atom range over one class. Positive queries
+contain no $\neq$ and no negation; for them, object equality implies equality of the denoted
+individuals in both versions, so every answer over objects maps to an answer over individuals
+without the hypothesis.
+
+% ============================================================
+\section{Loading: Proofs of Propositions 5.1--5.3 and Corollary 5.4}
+\label{sec:loading-proofs}
+
+We write $F_k$ for the facts (class and property assertions over individuals) after step $k$ of
+Algorithm~1 of the paper, $R$ for the assign rules (\texttt{prp-spo1}, \texttt{prp-spo2},
+\texttt{prp-eqp1/2}, \texttt{prp-inv1/2}, \texttt{prp-symp}, \texttt{prp-trp}), and
+$\mathit{Imp}^*(P)$ for the properties reachable from $P$ through super-, equivalent and inverse
+properties and chains. The constructs covered are: named classes with subclass and equivalence
+axioms; domains and ranges that are named classes; sub-, equivalent, symmetric and transitive
+properties, one inverse per property, and property chains; restrictions and intersections as
+superclasses; unions in subclass position; and one sufficient condition per class, a
+\texttt{someValuesFrom} or \texttt{hasValue} restriction with a named filler, possibly intersected
+with named classes. Of the 78 RL/RDF rules (Section~\ref{sec:rl-rules}), 14 apply when loading, 9
+on assignment, 15 by construction of the hierarchies, 21 are checked, 13 derive nothing new here,
+and 6 concern constructs outside this list.
+
+\paragraph{Hypotheses of Proposition 5.2} (G1) every property lists all its equivalent properties
+(the generator lists the declared ones, and step~4 does not apply equivalence to facts derived by
+equivalence); (G2) equivalent properties have the same characteristics; (G3) no symmetric,
+transitive property is implied, through a chain, by another symmetric, transitive property
+(step~5 is a single pass); (G4) every object IRI is declared a named individual; every domain and
+range is a named class; every individual has at most one value of each data property. OWL2Bench
+meets G1--G4.
+
+\begin{lemma}[Steps 1 and 2]
+\label{lem:step12}
+$F_1$ contains, for every asserted $P(a,b)$, the facts that \texttt{prp-spo1}, \texttt{prp-eqp1/2},
+\texttt{prp-inv1/2} and \texttt{prp-symp} derive from it, closed under these rules. $F_2$ is
+additionally closed under \texttt{prp-spo2} and under \texttt{prp-trp} for every transitive
+property in $\mathit{Imp}^*$ of a property used by a class expression or a chain, and under the
+typing rules \texttt{prp-dom}, \texttt{prp-rng}, \texttt{cax-sco}, \texttt{cax-eqc1/2} and the
+\texttt{cls-*} rules of the covered constructs.
+\end{lemma}
+
+\begin{proof}
+Step~1 builds each proxy from the asserted types and values and those implied by sub-, inverse
+and symmetric properties (\texttt{owl\_instances\_loader.py}); equivalence is applied with G1.
+Step~2 repeats, until no type or value is added, the chain and transitivity closure of the
+relevant properties and the typing rules; each iteration is monotone over a finite set of
+facts, so it reaches the least fixpoint, which is closed under the rules it applies.
+\end{proof}
+
+\begin{lemma}[Typing invariant]
+\label{lem:typing}
+Every fact in the final $\mathcal{A}^*$ that is not in $F_2$ is a fact $P(a,b)$ of a property $P$
+in $\mathit{Imp}^*(T)$ for a transitive property $T$ that no class expression or chain uses, and
+$a$ and $b$ already have facts of $P$, as subject and as object respectively, in $F_2$. Hence the
+typing rules derive no fact that is not in $F_2$.
+\end{lemma}
+
+\begin{proof}
+Facts added in steps~4 and~5 come from $R$ applied to facts of $F_2$ (step~4) or from component
+pairs of a symmetric, transitive property (step~5). \texttt{prp-spo1}, \texttt{prp-eqp},
+\texttt{prp-inv} and \texttt{prp-symp} were already closed in $F_1$ (Lemma~\ref{lem:step12}),
+so a new fact arises only from \texttt{prp-trp} (or a chain over its result, closed in step~2 for
+the used properties) on a non-relevant transitive $T$, and $T(a,c)$ from $T(a,b),T(b,c)$ relates
+a subject and an object that already hold $T$; its super-, equivalent and inverse facts relate
+individuals that already hold those properties, by the closure of $F_1$. Step~5 relates members
+of one weakly connected component, each of which already has a fact of the property in both
+positions (symmetry). A typing rule's premise $P(a,b)$ therefore has a counterpart $P(a,b')$ and
+$P(a'',b)$ in $F_2$, whose conclusions are already in $F_2$; \texttt{hasValue} conclusions are
+facts of $F_2$'s types, added after step~4.
+\end{proof}
+
+\begin{lemma}[Storage]
+\label{lem:storage}
+Every fact of $F_2$ and every fact that steps~4 and~5 derive is stored: its subject has an object
+whose class declares the property.
+\end{lemma}
+
+\begin{proof}
+TBox compilation declares each property on its domain class, and on the domains derived through
+equivalent, inverse and super-properties (\texttt{prp-dom}, \texttt{scm-dom2}), which are entailed
+by the ontology. By Lemma~\ref{lem:step12}, the subject of every fact of $F_2$ has that domain
+among its types, so step~3 creates an object of a class that declares the property; by
+Lemma~\ref{lem:typing} the same holds for later facts.
+\end{proof}
+
+\begin{lemma}[Step 4]
+\label{lem:step4}
+After step~4, the stored property facts are closed under $R$, except \texttt{prp-trp} for
+symmetric, transitive properties.
+\end{lemma}
+
+\begin{proof}
+Every fact is added to the store before it is enqueued, and every enqueued fact is propagated
+(Definition~\ref{def:assign}), so for every instance of a rule of $R$ whose premises are present
+at the end, consider the premise added last: when it was propagated, all other premises were
+present, so the conclusion was added. The implementation skips an instance only when its
+conclusion is certainly present: the symmetric fact of a fact derived by symmetry, the inverse
+of a fact derived by inverse (one inverse per property), and the equivalence of a fact derived by
+equivalence (all equivalents listed, G1). The one remaining skip, transitivity on a fact derived
+from an equivalent property, is covered by G2: the equivalent twin has the same characteristics,
+and its own propagation applies transitivity to the same pair.
+\end{proof}
+
+\begin{lemma}[Step 5]
+\label{lem:step5}
+For a symmetric, transitive $P$, the closure of $P$'s facts under \texttt{prp-symp} and
+\texttt{prp-trp} relates exactly the pairs of members of each weakly connected component of $P$'s
+graph; with G3, step~5 completes all of them in one pass, and propagates the new facts through
+$R$ when $P$ has a super-property, an inverse, an equivalent or occurs in a chain.
+\end{lemma}
+
+\begin{proof}
+A path in the underlying undirected graph between $a$ and $b$ yields $P(a,b)$ by symmetry and
+transitivity, and conversely every derived pair lies on such a path. G3 ensures that no other
+symmetric, transitive property gains facts from the propagation, which a single pass would miss.
+\end{proof}
+
+\begin{proof}[Proof of Proposition 5.1]
+Every fact added by steps~1--5 and by an assignment is the conclusion of a sequence of RL/RDF
+rule applications (Lemmas~\ref{lem:step12}--\ref{lem:step5}; the schema-level domains and ranges
+are entailed, Lemma~\ref{lem:storage}), so it is entailed by $\mathcal{O}$. A positive query is
+preserved under homomorphisms, and $\mathcal{I}_{\mathcal{A}^*}$ maps homomorphically into every
+model of $\mathcal{O}$, also one that identifies individuals KRROOD keeps apart; with
+Section~\ref{sec:objects-individuals}, the image under $\mathit{ind}$ of an answer is a certain
+answer.
+\end{proof}
+
+\begin{proof}[Proof of Proposition 5.2]
+By Theorem~PR1 of the OWL~2 profiles, it suffices that $\mathcal{A}^*$ is closed under the
+RL/RDF rules for the covered constructs. The check reports no application of an equality rule,
+so these rules derive nothing. The property rules are closed by Lemmas~\ref{lem:step4}
+and~\ref{lem:step5}, the typing rules by Lemmas~\ref{lem:step12} and~\ref{lem:typing}, and every
+fact is stored by Lemma~\ref{lem:storage}. G4 makes every individual an object and every data
+value a field.
+\end{proof}
+
+\begin{proof}[Proof of Proposition 5.3]
+An assignment propagates the new fact as in Lemma~\ref{lem:step4}, from the current facts; the
+same argument (premise added last, G2) gives closure under $R$, except transitivity of
+symmetric, transitive properties, which only step~5 completes, and except facts whose subject has
+no object declaring the property, which are not stored. Soundness follows as in
+Proposition~5.1, with the asserted facts added to $\mathcal{O}$.
+\end{proof}
+
+\begin{proof}[Proof of Corollary 5.4]
+The earlier loader may store, as a value, a role whose class fits the range through its taker, so
+a stored value's class can differ from the declared range; the earlier version's equality, which
+equates a role with its taker and sibling roles, makes such values equal to the variable's object
+of the same individual.
+By Proposition~5.2, every certain answer $\bar a$ of a positive query $Q$ satisfies $Q$ over
+individuals in $\mathcal{I}_{\mathcal{A}^*}$. Under the corollary's hypothesis,
+Proposition~\ref{prop:objects-individuals} applies, so $\bar a$ is the image of an answer over
+objects.
+\end{proof}
+
+% ============================================================
+\section{One Semantics for Working and Long-Term Memory}
+\label{sec:ormatic-theorem}
+
+\paragraph{The database $D(\mathcal{A})$} ORMatic's \texttt{to\_dao} converts all objects of
+$\mathcal{A}$, with one shared conversion state, into an empty database: joined-table
+inheritance with one table per class, an association table per collection attribute, a nullable
+foreign key per reference, a role table with the column \texttt{\_role\_taker\_id}, the IRI in
+the \texttt{uri} column of \texttt{ThingDAO}, which is \texttt{NOT NULL}, and inferred facts stored
+like asserted ones.
+
+\paragraph{The fragment $\mathcal{F}$} Queries \texttt{an}/\texttt{the} over \texttt{entity} or
+\texttt{set\_of} of variables, collection elements (\texttt{flat\_variable}) and data attributes,
+with an optional plain \texttt{.distinct()}. Terms: reference chains, including delegation from a
+role to its taker and narrowing to the single subclass that declares an attribute. Atoms:
+$=,\neq,<,\le,>,\ge$ between a column and a literal, two columns, or two elements of one DAO
+hierarchy; \texttt{contains} on an object collection; \texttt{in\_} with a literal list; an
+attribute as a truth value. Connectives: $\wedge$; $\vee$ and \texttt{not\_} without joins inside
+them (the translator's guard), negation translated as $(\tau\varphi)$ \texttt{IS NOT TRUE};
+\texttt{exists} over an element chain or a variable, as a correlated \texttt{EXISTS}.
+
+\paragraph{Left out, and why} The translator rejects universal quantification (no
+translation implemented), predicates and symbolic functions (they run Python code), rules (they
+create objects), grouping and aggregates (no proof given here), and, since this revision, a
+variable used as a condition (it has no column to test). It accepts but the theorem excludes:
+substring \texttt{contains}, which becomes \texttt{LIKE}, where \texttt{\%} and \texttt{\_} are
+wildcards and SQLite compares case-insensitively; \texttt{distinct(on=\dots)}, whose \texttt{on}
+is ignored; \texttt{limit}, which picks a subset that depends on the evaluation order; and
+\texttt{ordered\_by} without \texttt{limit} does not change the set of answers, so it is
+admitted as a no-op on answer sets.
+
+\paragraph{Side conditions} (1) The database is $D(\mathcal{A})$. (2) Every variable ranges over
+all instances of its class: the translator ignores an explicit \texttt{domain=} and ranges over
+all rows of the class's table. (3) Stored classes use single inheritance (the translator joins
+one parent table). (4) No missing value (\texttt{None}/\texttt{NULL}) in a compared column or an
+\texttt{in\_} list, no \texttt{None} element of a collection, and every role has a taker.
+(5) Order comparisons only on numbers, or a database with C collation, and no NaN. (6) Compared
+objects use identity equality (\texttt{eq=False}). (7) Answers are compared as sets of tuples of
+IRIs and values.
+
+\begin{theorem}[One semantics, Theorem 6.1 of the paper]
+For every $Q\in\mathcal{F}$ and every $\mathcal{A}$ meeting (1)--(7), the identifier-selecting
+translation of $Q$, evaluated over $D(\mathcal{A})$, returns
+$\{\iota\circ t \mid t\in\mathit{ans}(Q,\mathcal{K})\}$, where $\iota$ maps an object to its IRI
+and a value to itself.
+\end{theorem}
+
+\begin{proof}
+By structural induction on $Q$, with the invariant: for a formula $\varphi$ whose free variables
+and elements are $\bar z$, the rows of the outer \texttt{FROM} clause correspond one to one to
+the assignments of $\bar z$ to objects (and elements to pairs of an owner and a member), and the
+SQL condition $\tau\varphi$ is true on a row iff $\varphi$ holds under the corresponding
+assignment.
+
+\emph{Base.} By (1) and (2), the rows of a class's table, joined with its parent tables by the
+inheritance condition, correspond one to one to the instances of the class; by (3) one join chain
+suffices. An element of a collection corresponds to a row of its association table (one row per
+pair, as collections are sets). A reference chain becomes joins on foreign keys; an
+\texttt{IS NOT NULL} test or the narrowing join to the declaring subclass removes exactly the rows
+whose object lacks the attribute, as EQL drops a binding when an attribute is missing; role
+delegation joins \texttt{\_role\_taker\_id}, total by (4). A comparison of two columns or a
+column and a literal has the same truth value in SQL and Python by (4) (no \texttt{NULL}), (5)
+(the same order) and (6) (object comparison is identity, hence comparison of primary keys);
+\texttt{in\_} with a literal list is a disjunction of such comparisons. \texttt{contains} on an
+object collection is a correlated \texttt{EXISTS} over the association table, true iff the pair
+is a row, iff the member is in the set; as a top-level conjunct with \texttt{distinct}, it may be
+a join, which yields the same set of answer rows after duplicate removal (7). An attribute as a
+truth value is \texttt{IS NOT NULL} for a reference, a non-empty \texttt{EXISTS} for a
+collection and the column's truth for a value, as Python's truth value of each.
+
+\emph{Step.} $\wedge$ is \texttt{AND} over the same rows. For $\vee$ and \texttt{not\_}, the
+translator's guard ensures that no join occurs inside, so the rows are those of the enclosing
+formula and \texttt{OR} and $(\tau\varphi)$ \texttt{IS NOT TRUE} compute the truth value: the
+latter is true exactly when $\varphi$ fails, also when SQL evaluates $\tau\varphi$ to
+\texttt{NULL}, matching negation as failure. \texttt{exists} over a variable or element chain is
+a correlated semi-join, true iff some row of the inner \texttt{FROM} clause satisfies the inner
+condition, iff some assignment of the bound variable does. Finally, the selection maps each row
+to the IRIs of the selected objects (by (1), the \texttt{uri} column) and the selected columns,
+and by (7) duplicates do not matter.
+\end{proof}
+
+The check of the 18 OWL2Bench queries (\texttt{run\_ormatic\_translation.py --selection iris})
+confirms the theorem empirically: it evaluates each query object in working memory and, through
+\texttt{eql\_to\_sql}, in PostgreSQL over the objects built from the closure, with every domain
+equal to all instances of its class, and both return GraphDB's answers.
+
+\paragraph{Fixed in this revision} An attribute typed with its own class (e.g.\
+\texttt{Node.parent: Node}) was generated without SQLAlchemy's \texttt{remote\_side}: after
+\texttt{a.parent = b} and \texttt{c.parent = b}, the database held \texttt{b}$\to$\texttt{a} and
+lost \texttt{c}'s fact, which violated (1). ORMatic now marks the referenced primary key, and the
+test \texttt{test\_references\_to\_one\_object\_of\_the\_same\_class\_are\_kept} covers it.

@@ -57,6 +57,8 @@
 \theoremstyle{plain}
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
 \theoremstyle{definition}
 \newtheorem{definition}[theorem]{Definition}
 \theoremstyle{remark}
@@ -843,16 +845,16 @@ true for its subject and property. $\mathit{Assign}(F,f)$ adds $f$ to $F$ and th
 \emph{propagates} it. Propagating a fact $g$ means: for every rule $r\in R$ and every
 instance of $r$ in which $g$ is one of the premises and every other premise is in the current
 $F$, let $h$ be the conclusion; if $\mathit{decl}$ holds for the subject and property of $h$ and
-$h\notin F$, add $h$ to $F$ and propagate $h$ before continuing.
+$h\notin F$, add $h$ to $F$ and append $h$ to a first-in-first-out queue of facts still to propagate; propagation continues until the queue is empty.
 \end{definition}
 
-The definition is the depth-first recursion of the implementation: a derived fact is stored
+The definition is the worklist of the implementation, which propagates facts in first-in-first-out order: a derived fact is stored
 (\texttt{update\_source}) and its implications are applied at once
 (\texttt{infer\_and\_apply\_implications}); a fact already present is not propagated again;
 and a fact whose subject has no object declaring the property is not stored
 (\texttt{holder\_of\_property} returns \texttt{None}). The implementation skips some rule
 instances whose conclusion is certainly present, such as the symmetric fact of a fact derived by
-symmetry; these skips do not change the result. The procedure terminates because $F$ grows in
+symmetry; these skips do not change the result if every property lists all its equivalent properties and has at most one inverse (Lemma~\ref{lem:step4}). The procedure terminates because $F$ grows in
 every step and there are finitely many facts over the finitely many individuals and properties.
 
 \begin{remark}
@@ -923,6 +925,8 @@ out after the agent loop of the paper.
 \label{sec:rl-rules}
 
 \input{rl_rules_table}
+
+\input{unification_proofs}
 
 \section{Computational Complexity}
 \label{sec:eql:complexity}
