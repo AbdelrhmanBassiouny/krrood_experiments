@@ -334,7 +334,7 @@ class CanReach(Predicate):
 def travel_time(robot: Robot, room: Place) -> float:
     return travel_seconds(robot, room)
 \end{lstlisting}
-EQL evaluates them inside the query, for each binding that reaches them, on the live robot object. No value is stored.
+EQL evaluates them inside the query, on the live robot object, once per distinct argument tuple among the bindings that reach them. No value is stored.
 
 \paragraph{(e) Decision queries.} Both decisions are EQL queries over the live objects:
 \begin{lstlisting}[style=py]
@@ -374,7 +374,7 @@ and candidate sets in every step.
   \node[phasenode] (b) at (\cB,\yP) {assignment:\\\texttt{s.enroll\textunderscore in}\\\texttt{.add(d)}};
   \node[phasenode] (c) at (\cC,\yP) {descriptor rules\\(chain, inverse,\\sub-property)};
   \node[phasenode] (d) at (\cD,\yP) {EQL query over\\live objects};
-  \node[phasenode] (e) at (\cE,\yP) {\code{CanReach},\\\code{travel\_time},\\per binding};
+  \node[phasenode] (e) at (\cE,\yP) {\code{CanReach},\\\code{travel\_time},\\per distinct\\arguments};
   \node[phasenode] (f) at (\cF,\yP) {policy\\(shared)};
   \tagM{a} \tagP{e}
   \draw[flow] (a) -- (b); \draw[flow] (b) -- (c);
@@ -816,12 +816,12 @@ reasonable's closure, or Pellet's model, rebuilt every step from Owlready2's qua
 objects and the quadstore count as one, as the objects are proxies of the stored individuals. Read from the code.
 
 \paragraph{Planner vs.\ query.} Where \code{can\_reach} and \code{travel\_seconds} are evaluated relative to the logical
-query. \emph{Inside}: as an EQL predicate and symbolic function, per binding, on the live robot. \emph{After}: in Python,
+query. \emph{Inside}: as an EQL predicate and symbolic function, on the live robot, once per distinct argument tuple within one query evaluation (each result is reused for every binding with the same arguments). \emph{After}: in Python,
 after the query, once per distinct room among the answers (GraphDB, Nemo, Owlready2, reasonable). \emph{Before}: for every
 room a decision could need, with the results written into the store (GraphDB push). The \code{ProcedureMeter} counts the
-calls. For seed~0, the mean number of \code{can\_reach} calls per step is 1,310.7 for KRROOD (per binding), 59.5 for
+calls. For seed~0, the mean number of \code{can\_reach} calls per step is 59.5 for KRROOD (1,310.7 when called per binding, in the run of \file{agent\_loop.json}), 59.5 for
 GraphDB (per distinct room among the answers) and 201 for GraphDB push (every target room)
-(\file{agent\_loop.json}).
+(\file{agent\_loop.json}; KRROOD: \file{agent\_loop\_krrood\_memo/rerun}).
 
 \paragraph{Writes.} Statements written in a step because of the second world model, inserted plus deleted, as counted
 by the build in \code{StepMeter.statements\_inserted} and \code{statements\_deleted}: the statements of the
@@ -971,11 +971,11 @@ Languages & 1 & 2 & 2 & 2 & 1\\
 Processes & 1 & 2 & 2 & 2 & 2\\
 Round trips & 0 & 3 & 4 & 1 run & 1 run\\
 Boundary lines & 19 & 27 & 59 & 33 & 25\\
-Step [ms] & 90 & 96 & 162 & 5{,}683 & 32{,}986\\
+Step [ms] & 103 & 96 & 162 & 5{,}683 & 32{,}986\\
 \bottomrule
 \end{tabular}
 \end{center}
-The seeds' median steps range over 88--90 (KRROOD), 93--100 (GraphDB), 150--166 (push) and 5,653--5,690\,ms (Nemo).
+The seeds' median steps range over 101--104 (KRROOD; 88--90 when the planner is called per binding), 93--100 (GraphDB), 150--166 (push) and 5,653--5,690\,ms (Nemo).
 GraphDB push writes 405 statements per step: 204 inserted and 201 deleted (medians).
 
 \paragraph{What the rows show.}
@@ -991,10 +991,10 @@ GraphDB push writes 405 statements per step: 204 inserted and 201 deleted (media
         400 statements per step, and the planner runs for every room in every step, whether a decision needs it or
         not.
   \item \emph{Step times are comparable, but spent differently.} The median phases (\file{agent\_loop\_seeds.json})
-        are: KRROOD, 88.3\,ms in queries and 0.43\,ms in the update; GraphDB, 88.9\,ms in the update and 7.5\,ms in
+        are: KRROOD, 102.1\,ms in queries and 0.44\,ms in the update (88.3\,ms in queries when the planner is called per binding); GraphDB, 88.9\,ms in the update and 7.5\,ms in
         queries; push, 87.2\,ms in the update, 63.0\,ms in the push and 15.5\,ms in queries. A GraphDB update costs
         about 38\,ms even when empty (median of 30 empty updates, \file{graphdb\_update\_cost.json}). The navigation
-        form of KRROOD's handout query brings KRROOD's median step to 74\,ms.
+        form of KRROOD's handout query, run with the planner called per binding, brings KRROOD's median step to 74\,ms.
   \item \emph{Recomputing the closure every step is slow.} Nemo makes the same decisions with a median step of 5.68\,s
         (seeds' medians 5.65--5.69\,s), nearly all of it Nemo's run (by its own report, about 2.2\,s import and 3.4\,s
         reasoning). In the table, Nemo has 2 world models, runs the planner on the answers, appends a median of 4
