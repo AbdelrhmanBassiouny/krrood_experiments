@@ -8,7 +8,7 @@ description: 'Answer the AAMAS 2027 reviews of submission 1481 (KRROOD) by 24 No
 
   '
 default_repository: AbdelrhmanBassiouny/krrood_experiments
-tracking_issue: 1
+tracking_issue: 2
 waves:
 - id: one-version
   name: One version (20-22 Nov)
