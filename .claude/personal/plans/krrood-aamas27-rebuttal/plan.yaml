@@ -38,11 +38,10 @@ items:
   - ontomatic-paper-check
   status: not started
   recommended_model: sonnet
-  notes: 'Pin one cram2 main commit for every run and record it. Branch from unification-revision in krrood_experiments.
-    Move code/earlier/experiments (OWL2Bench model generation, the 18 queries per system, scripts/aamas27,
-    the agent loop and baselines) onto code/current; the bundle then has one KRROOD environment. Baselines
-    that do not use KRROOD stay as they are. Sorin''s owl2bench-experiments puts the same models and queries
-    into CRAM''s experiments/: agree with him which copy the paper cites.
+  notes: 'Pin one cram2 main commit for every run and record it. OWL2Bench model generation and queries
+    are Sorin Arion''s owl2bench-experiments in CRAM''s experiments/: the paper cites that copy. Here,
+    branch from unification-revision and move only what his item leaves out (the agent loop, scripts/aamas27,
+    the baselines) onto the pinned commit; baselines that do not use KRROOD stay as they are.
 
     '
 - id: proofs-on-current-version
@@ -142,14 +141,12 @@ items:
   depends_on: []
   status: not started
   recommended_model: opus
-  notes: 'Tracked in the CRAM fork''s plan ontomatic-port, track paper-eql-ormatic: eql-predicate-call-memo
-    (fork PR 553), ormatic-collection-translation, ormatic-identifier-selection, ormatic-reference-fixes.
-    Not in any item yet: 3308cb252f, one inference object per class and argument binding. Correlated quantifiers
-    already merged (cram2#915). Theorem 6.1 cites this code.
+  notes: 'Tracked in the CRAM fork''s plan ontomatic-port: eql-predicate-call-memo (fork PR 553), eql-inference-object-per-binding,
+    ormatic-collection-translation, ormatic-identifier-selection, ormatic-reference-fixes. Correlated
+    quantifiers already merged (cram2#915). Theorem 6.1 cites this code.
 
     '
   repository: AbdelrhmanBassiouny/cognitive_robot_abstract_machine
-
 - id: ontomatic-on-main
   title: Sorin Arion's Ontomatic port on cram2 main
   track: port
