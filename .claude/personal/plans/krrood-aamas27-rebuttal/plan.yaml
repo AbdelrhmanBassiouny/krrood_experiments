@@ -1,10 +1,10 @@
 schema_version: 1
 id: krrood-aamas27-rebuttal
 title: 'KRROOD AAMAS 2027: one version, new evidence, rebuttal'
-description: 'Answer the AAMAS 2027 reviews of submission 1481 (KRROOD) by 24 November. Port Ontomatic
-  and the earlier version''s property rules onto the current version, rerun every experiment on that one
-  version, add LUBM, a retraction variant of the agent loop and a reflection listing, update the proofs,
-  and write the rebuttal and the revised paper.
+description: 'Answer the AAMAS 2027 reviews of submission 1481 (KRROOD) by 24 November. Bring the revision
+  branch''s EQL and ORMatic work onto cram2 main, build on Sorin Arion''s Ontomatic port there, rerun
+  every experiment on one pinned main commit, add LUBM, a retraction variant of the agent loop and a reflection
+  listing, update the proofs, and write the rebuttal and the revised paper.
 
   '
 default_repository: AbdelrhmanBassiouny/krrood_experiments
@@ -12,14 +12,14 @@ tracking_issue: 2
 waves:
 - id: one-version
   name: One version (20-22 Nov)
-  description: Everything the paper claims runs on the current version.
+  description: Everything the paper claims runs on one pinned cram2 main commit.
 - id: evidence
   name: Reruns and new evidence (22-23 Nov)
 - id: response
   name: Rebuttal and revision (by 24 Nov)
 tracks:
 - id: port
-  name: Port to the current version
+  name: Port to cram2 main
   wave: one-version
 - id: theory
   name: Proofs
@@ -31,57 +31,18 @@ tracks:
   name: Rebuttal and paper
   wave: response
 items:
-- id: property-rules-port
-  title: Port the earlier version's property rules and provenance onto the current version
-  track: port
-  depends_on: []
-  status: not started
-  recommended_model: opus
-  notes: 'aamas27-unification-revision only has super, inverse and transitive rules. Port from aamas27-experiments:
-    equivalent properties, symmetry, chains, InferredThrough provenance, the symmetric-transitive component
-    (step 5) and storing a fact on the object of its individual that declares the property. main already
-    ported most of the runtime rules (krrood-ontomatic); reuse that code. Rules must match Definition
-    assign and Lemma Step 4 of supplement/formalization.
-
-    '
-  repository: AbdelrhmanBassiouny/cognitive_robot_abstract_machine
-- id: ontomatic-tbox-port
-  title: Port Ontomatic's TBox compilation to the current API
-  track: port
-  depends_on: []
-  status: not started
-  recommended_model: opus
-  notes: 'From aamas27-experiments: owl_to_python.py, owl2rl_tbox.py, axioms.py, the jinja templates,
-    rdrs/ (domain and range inference), alternative_mappings.py, roleFor. Generated roles use the current
-    Role pattern (patterns/role.py), not the hash-by-root-taker template base. Can run in parallel with
-    property-rules-port; agree on the descriptor API with its owner first.
-
-    '
-  repository: AbdelrhmanBassiouny/cognitive_robot_abstract_machine
-- id: ontomatic-abox-loader-port
-  title: Port ABox loading (Algorithm 1) and the after-load check
-  track: port
-  depends_on:
-  - property-rules-port
-  - ontomatic-tbox-port
-  status: not started
-  recommended_model: opus
-  notes: 'Port owl_instances_loader.py (steps 1-5) and owl2rl_check.py. Store each value on an object
-    whose class fits the property''s range, so Corollary 5.4 holds under identity equality. Done when
-    the OWL2Bench closure from the ported loader equals the earlier run''s closure, assertion by assertion.
-
-    '
-  repository: AbdelrhmanBassiouny/cognitive_robot_abstract_machine
 - id: experiments-on-current-version
   title: Run the experiments and the agent loop on the current version only
   track: port
   depends_on:
-  - ontomatic-abox-loader-port
+  - ontomatic-paper-check
   status: not started
   recommended_model: sonnet
-  notes: 'Branch from unification-revision. Move code/earlier/experiments (OWL2Bench model generation,
-    the 18 queries per system, scripts/aamas27, the agent loop and baselines) onto code/current; the bundle
-    then has one KRROOD environment. Baselines that do not use KRROOD stay as they are.
+  notes: 'Pin one cram2 main commit for every run and record it. Branch from unification-revision in krrood_experiments.
+    Move code/earlier/experiments (OWL2Bench model generation, the 18 queries per system, scripts/aamas27,
+    the agent loop and baselines) onto code/current; the bundle then has one KRROOD environment. Baselines
+    that do not use KRROOD stay as they are. Sorin''s owl2bench-experiments puts the same models and queries
+    into CRAM''s experiments/: agree with him which copy the paper cites.
 
     '
 - id: proofs-on-current-version
@@ -90,10 +51,10 @@ items:
   depends_on: []
   status: not started
   recommended_model: opus
-  notes: 'supplement/formalization: Section 5 lemmas cite earlier-only files (owl_instances_loader.py,
-    the earlier descriptor relation), Theorem 6.1 cites the current translator. Update the file references
-    once the port lands, rewrite Corollary 5.4''s proof for identity equality (it relies on the earlier
-    equality), drop the two-version text, and write a 3-5 line sketch per result for the paper.
+  notes: 'supplement/formalization: Section 5 lemmas cite earlier-only files, Theorem 6.1 cites the revision
+    branch. Point every reference at the pinned main commit once the port items land, rewrite Corollary
+    5.4''s proof for identity equality, drop the two-version text, and write a 3-5 line sketch per result
+    for the paper.
 
     '
 - id: owl2bench-rerun
@@ -141,10 +102,10 @@ items:
   depends_on: []
   status: not started
   recommended_model: sonnet
-  notes: 'Branch from aamas27-unification-revision. Executable listing test, e.g. which rules derive T20CricketFan,
-    which decisions call CanReach, why a fact was inferred (provenance). Goes in supplement/listings and
-    is the paper''s evidence for reflection (Newell''s knowledge level); contrast with storing SPARQL
-    queries as RDF.
+  notes: 'Branch from cram2 main. Executable listing test, e.g. which rules derive T20CricketFan, which
+    decisions call CanReach, why a fact was inferred (provenance). Goes in supplement/listings and is
+    the paper''s evidence for reflection (Newell''s knowledge level); contrast with storing SPARQL queries
+    as RDF.
 
     '
   repository: AbdelrhmanBassiouny/cognitive_robot_abstract_machine
@@ -174,3 +135,47 @@ items:
     title, a novelty paragraph tied to Table 1, reflection and retraction paragraphs, LUBM results, cite
     the rela-model paper. Paper source: krrood_aamas_2027/main.tex.'
   repository: AbdelrhmanBassiouny/krrood_aamas
+
+- id: revision-commits-to-main
+  title: The revision branch's EQL and ORMatic commits on cram2 main
+  track: port
+  depends_on: []
+  status: not started
+  recommended_model: opus
+  notes: 'Tracked in the CRAM fork''s plan ontomatic-port, track paper-eql-ormatic: eql-predicate-call-memo
+    (fork PR 553), ormatic-collection-translation, ormatic-identifier-selection, ormatic-reference-fixes.
+    Not in any item yet: 3308cb252f, one inference object per class and argument binding. Correlated quantifiers
+    already merged (cram2#915). Theorem 6.1 cites this code.
+
+    '
+  repository: AbdelrhmanBassiouny/cognitive_robot_abstract_machine
+
+- id: ontomatic-on-main
+  title: Sorin Arion's Ontomatic port on cram2 main
+  track: port
+  depends_on: []
+  status: in progress
+  recommended_model: opus
+  notes: 'Sorin Arion''s plan ontomatic-port on sorinar329''s notes branch (tracking issue sorinar329#26);
+    we write none of it unless he asks. The paper needs: descriptor-characteristics (cram2#892), descriptor-provenance
+    (cram2#909), ontology-extraction (cram2#954), ontology-axioms, ontology-inference, ontology-code-generation
+    (fork PRs 35-37), owl2rl-consistency-check (30), abox-loader (31). Send him Definition assign, Lemma
+    Step 4 and Corollary 5.4 (store a value on an object whose class fits the range).
+
+    '
+  repository: sorinar329/cognitive_robot_abstract_machine
+
+- id: ontomatic-paper-check
+  title: Check main's Ontomatic against the supplement and the earlier OWL2Bench closure
+  track: port
+  depends_on:
+  - ontomatic-on-main
+  - revision-commits-to-main
+  status: not started
+  recommended_model: sonnet
+  notes: 'Done when the OWL2Bench closure from main''s loader equals the earlier run''s closure, assertion
+    by assertion, and its rules match the lemmas. Sorin''s closure-verification (against owlrl) does not
+    cover this. Report each gap to him rather than patching his port.
+
+    '
+  repository: AbdelrhmanBassiouny/cognitive_robot_abstract_machine

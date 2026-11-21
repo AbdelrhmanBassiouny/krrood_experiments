@@ -1,8 +1,9 @@
 # KRROOD AAMAS 2027 rebuttal - standing rules
 
-- The current version is aamas27-unification-revision in cognitive_robot_abstract_machine and
-  unification-revision in krrood_experiments and krrood_aamas; branch every item from those, never
-  from main or the earlier branches.
+- The current version is cram2 main, pinned at one commit for the experiments and the
+  supplement; CRAM items branch from main on the fork and reach cram2 as pull requests.
+  krrood_experiments and krrood_aamas items branch from unification-revision.
+- Ontomatic on main is Sorin Arion's port: report gaps to him, never patch it on our own.
 - Every listing, proposition and number in the paper refers to the current version; the earlier
   version leaves the supplement once owl2bench-rerun lands.
 - Port behaviour, not only API: the ported loader and descriptors apply the rules the supplement's
