@@ -111,8 +111,11 @@ items:
 - id: rebuttal-response
   title: Write the author response to the four reviews
   track: writing
+  branch: claude/dreamy-lovelace-u8zftd
+  pull_request_number: 1
+  session: https://claude.ai/code/session_01JxHGiPxn4eYVTutZRND4it
   depends_on: []
-  status: not started
+  status: in progress
   recommended_model: opus
   notes: 'Due 24 Nov; draft now, fill numbers from the reruns. Lead with one version. Points: motivation
     (sync code, reflection), closed world as certain answers of positive queries (no open-world claim),
