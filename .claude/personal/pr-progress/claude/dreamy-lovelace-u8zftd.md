@@ -1,10 +1,11 @@
 ## Plan
-- Draft krrood_aamas_2027/rebuttal/response.md: one-version lead, per-reviewer answers, camera-ready promises
-- No code changes; every unfinished number or feature is a camera-ready promise
+- Response text in krrood_aamas_2027/rebuttal/response.md; promises mapped in promises.md
+- No code changes; every unfinished result promised for the camera-ready
 
 ## Done
-- Branch and draft PR opened from unification-revision
+- Draft of the general reply and the four per-reviewer replies (5c474a2)
+- Promise-to-plan-item map
 
 ## Next
-- Get the four reviews' text and the length limit from the user
-- Draft the response against main.tex
+- Authors review the wording, the proposed title and the length limit
+- Post on OpenReview by 24 Nov; mark the item done
